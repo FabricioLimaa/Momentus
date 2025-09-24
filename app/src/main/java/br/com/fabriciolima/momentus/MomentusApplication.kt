@@ -1,4 +1,4 @@
-// ARQUIVO: MomentusApplication.kt
+// ARQUIVO: MomentusApplication.kt (CÓDIGO COMPLETO)
 package br.com.fabriciolima.momentus
 
 import android.app.Application
@@ -7,6 +7,6 @@ import br.com.fabriciolima.momentus.data.database.AppDatabase
 
 class MomentusApplication : Application() {
     private val database by lazy { AppDatabase.getDatabase(this) }
-    // Atualize a criação do repositório
-    val repository by lazy { RotinaRepository(database.rotinaDao(), database.itemCronogramaDao()) }
+    // Modifique a criação do repositório para incluir o novo DAO
+    val repository by lazy { RotinaRepository(database.rotinaDao(), database.itemCronogramaDao(), database.templateDao()) }
 }

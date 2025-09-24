@@ -1,0 +1,44 @@
+// ARQUIVO: data/database/TemplateDao.kt (CÓDIGO COMPLETO)
+package br.com.fabriciolima.momentus.data.database
+
+import androidx.room.*
+import br.com.fabriciolima.momentus.data.ItemCronograma
+import br.com.fabriciolima.momentus.data.Template
+import br.com.fabriciolima.momentus.data.TemplateItem
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface TemplateDao {
+    @Query("SELECT * FROM tabela_templates ORDER BY nome ASC")
+    fun getAllTemplates(): Flow<List<Template>>
+
+    @Insert
+    suspend fun insertTemplate(template: Template)
+
+    @Delete
+    suspend fun deleteTemplate(template: Template)
+
+    // As próximas funções são para a lógica de "Salvar como Template"
+    @Query("SELECT * FROM tabela_itens_cronograma")
+    suspend fun getItensCronogramaAtuais(): List<ItemCronograma>
+
+    @Insert
+    suspend fun insertAllTemplateItems(items: List<TemplateItem>)
+
+    // Uma transação garante que todas as operações dentro dela aconteçam
+    // com sucesso, ou nenhuma delas acontece. Isso evita corrupção de dados.
+    @Transaction
+    suspend fun saveCurrentScheduleAsTemplate(template: Template) {
+        insertTemplate(template)
+        val cronogramaAtual = getItensCronogramaAtuais()
+        val templateItems = cronogramaAtual.map { item ->
+            TemplateItem(
+                templateId = template.id,
+                diaDaSemana = item.diaDaSemana,
+                horarioInicio = item.horarioInicio,
+                rotinaId = item.rotinaId
+            )
+        }
+        insertAllTemplateItems(templateItems)
+    }
+}

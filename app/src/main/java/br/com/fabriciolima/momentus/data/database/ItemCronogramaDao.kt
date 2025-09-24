@@ -2,13 +2,10 @@
 
 package br.com.fabriciolima.momentus.data.database
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
+import androidx.room.* // Mude para wildcard para incluir Transaction
 import br.com.fabriciolima.momentus.data.ItemCronograma
 import br.com.fabriciolima.momentus.data.StatsResult
+import br.com.fabriciolima.momentus.data.TemplateItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -35,5 +32,31 @@ interface ItemCronogramaDao {
         GROUP BY r.nome, r.cor
     """)
     fun getStats(): Flow<List<StatsResult>>
+    // --- MODIFICAÇÃO TERMINA AQUI ---
+
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    @Query("DELETE FROM tabela_itens_cronograma")
+    suspend fun deleteAllCronogramaItems()
+
+    @Query("SELECT * FROM tabela_itens_template WHERE templateId = :templateId")
+    suspend fun getItemsForTemplate(templateId: String): List<TemplateItem>
+
+    @Transaction
+    suspend fun loadTemplateIntoSchedule(templateId: String) {
+        // 1. Apaga o cronograma atual.
+        deleteAllCronogramaItems()
+        // 2. Busca os itens do template selecionado.
+        val templateItems = getItemsForTemplate(templateId)
+        // 3. Converte os itens de template para itens de cronograma.
+        val cronogramaItems = templateItems.map { item ->
+            ItemCronograma(
+                diaDaSemana = item.diaDaSemana,
+                horarioInicio = item.horarioInicio,
+                rotinaId = item.rotinaId
+            )
+        }
+        // 4. Insere todos os novos itens no cronograma principal.
+        cronogramaItems.forEach { insert(it) }
+    }
     // --- MODIFICAÇÃO TERMINA AQUI ---
 }
