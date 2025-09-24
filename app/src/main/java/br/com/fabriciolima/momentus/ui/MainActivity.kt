@@ -182,6 +182,13 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 true
             }
+            // --- MODIFICAÇÃO INICIA AQUI ---
+            R.id.action_stats -> {
+                val intent = Intent(this, StatsActivity::class.java)
+                startActivity(intent)
+                true
+            }
+            // --- MODIFICAÇÃO TERMINA AQUI ---
             R.id.action_google_sign_in -> {
                 signInWithGoogle()
                 true

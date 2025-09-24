@@ -1,14 +1,12 @@
+// ARQUIVO: settings.gradle.kts (CÓDIGO COMPLETO E CORRIGIDO)
+
 pluginManagement {
     repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
+        google()
         mavenCentral()
         gradlePluginPortal()
+        // Sintaxe explícita para Kotlin DSL
+        maven("https://jitpack.io")
     }
 }
 dependencyResolutionManagement {
@@ -16,6 +14,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Adicionamos aqui também para garantir, caso alguma dependência precise
+        maven("https://jitpack.io")
     }
 }
 

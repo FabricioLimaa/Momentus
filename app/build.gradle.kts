@@ -62,6 +62,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
 
+    // Biblioteca de Gráficos
+    implementation(libs.mpandroidchart) // <-- ADICIONE ESTA LINHA
+
     // Room (Banco de Dados)
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")

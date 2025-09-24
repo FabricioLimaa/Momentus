@@ -11,9 +11,17 @@
         android:id="@+id/action_google_sign_out"
         android:title="Logout"
         app:showAsAction="never"
-        android:visible="false" /> <item
-    android:id="@+id/action_schedule"
-    android:title="Cronograma"
-    android:icon="@drawable/ic_schedule"
-    app:showAsAction="ifRoom" />
+        android:visible="false" />
+
+    <item
+        android:title="Cronograma"
+        android:id="@+id/action_schedule"
+        android:icon="@drawable/ic_schedule"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_stats"
+        android:title="Estatísticas"
+        android:icon="@drawable/ic_stats"
+        app:showAsAction="ifRoom" />
 </menu>

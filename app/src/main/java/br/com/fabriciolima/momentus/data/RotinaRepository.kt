@@ -5,9 +5,14 @@ package br.com.fabriciolima.momentus.data
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.RotinaDao
 import kotlinx.coroutines.flow.Flow
+import br.com.fabriciolima.momentus.data.StatsResult
 
 class RotinaRepository(private val rotinaDao: RotinaDao, private val itemCronogramaDao: ItemCronogramaDao) {
     val todasAsRotinas: Flow<List<Rotina>> = rotinaDao.getAllRotinas()
+
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    val stats: Flow<List<StatsResult>> = itemCronogramaDao.getStats()
+    // --- MODIFICAÇÃO TERMINA AQUI ---
 
     suspend fun insert(rotina: Rotina) {
         rotinaDao.insert(rotina)
