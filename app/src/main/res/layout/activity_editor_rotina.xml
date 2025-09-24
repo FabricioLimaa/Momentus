@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".ui.EditorRotinaActivity">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutNome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nome da Rotina">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editTextNome"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapWords" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutDuracao"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Duração (em minutos)">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editTextDuracao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Cor"
+        android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp">
+
+        <LinearLayout
+            android:id="@+id/colorSelectorContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <FrameLayout style="@style/ColorCircleContainer">
+                <ImageView style="@style/ColorCircle" android:id="@+id/colorRed" android:backgroundTint="@color/palette_red" />
+                <ImageView style="@style/SelectedBorder" />
+            </FrameLayout>
+            <FrameLayout style="@style/ColorCircleContainer">
+                <ImageView style="@style/ColorCircle" android:id="@+id/colorPink" android:backgroundTint="@color/palette_pink" />
+                <ImageView style="@style/SelectedBorder" />
+            </FrameLayout>
+            <FrameLayout style="@style/ColorCircleContainer">
+                <ImageView style="@style/ColorCircle" android:id="@+id/colorPurple" android:backgroundTint="@color/palette_purple" />
+                <ImageView style="@style/SelectedBorder" />
+            </FrameLayout>
+            <FrameLayout style="@style/ColorCircleContainer">
+                <ImageView style="@style/ColorCircle" android:id="@+id/colorBlue" android:backgroundTint="@color/palette_blue" />
+                <ImageView style="@style/SelectedBorder" />
+            </FrameLayout>
+            <FrameLayout style="@style/ColorCircleContainer">
+                <ImageView style="@style/ColorCircle" android:id="@+id/colorGreen" android:backgroundTint="@color/palette_green" />
+                <ImageView style="@style/SelectedBorder" />
+            </FrameLayout>
+            <FrameLayout style="@style/ColorCircleContainer">
+                <ImageView style="@style/ColorCircle" android:id="@+id/colorYellow" android:backgroundTint="@color/palette_yellow" />
+                <ImageView style="@style/SelectedBorder" />
+            </FrameLayout>
+            <FrameLayout style="@style/ColorCircleContainer">
+                <ImageView style="@style/ColorCircle" android:id="@+id/colorOrange" android:backgroundTint="@color/palette_orange" />
+                <ImageView style="@style/SelectedBorder" />
+            </FrameLayout>
+            <FrameLayout style="@style/ColorCircleContainer">
+                <ImageView style="@style/ColorCircle" android:id="@+id/colorGrey" android:backgroundTint="@color/palette_grey" />
+                <ImageView style="@style/SelectedBorder" />
+            </FrameLayout>
+        </LinearLayout>
+    </HorizontalScrollView>
+    <Button
+        android:id="@+id/buttonSalvar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Salvar Rotina" />
+
+</LinearLayout>
