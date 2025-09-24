@@ -83,7 +83,12 @@ class MainActivity : AppCompatActivity() {
                 binding.recyclerViewRotinas.visibility = View.VISIBLE
                 binding.emptyStateLayout.visibility = View.GONE
             }
-            rotinaAdapter.updateData(listaDeRotinas)
+            // --- MODIFICAÇÃO INICIA AQUI ---
+            // 1. Em vez de chamar 'updateData', agora usamos 'submitList'.
+            //    O ListAdapter receberá a nova lista, calculará as diferenças
+            //    e animará as mudanças automaticamente.
+            rotinaAdapter.submitList(listaDeRotinas)
+            // --- MODIFICAÇÃO TERMINA AQUI ---
         }
 
         binding.fab.setOnClickListener {
@@ -121,11 +126,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        rotinaAdapter = RotinaAdapter(emptyList()) { rotinaClicada ->
+        // --- MODIFICAÇÃO INICIA AQUI ---
+        // 2. O adapter não precisa mais da lista vazia no construtor.
+        rotinaAdapter = RotinaAdapter { rotinaClicada ->
             val intent = Intent(this, EditorRotinaActivity::class.java)
             intent.putExtra("ROTINA_PARA_EDITAR", rotinaClicada)
             editorRotinaLauncher.launch(intent)
         }
+        // --- MODIFICAÇÃO TERMINA AQUI ---
         binding.recyclerViewRotinas.apply {
             adapter = rotinaAdapter
             layoutManager = LinearLayoutManager(this@MainActivity)

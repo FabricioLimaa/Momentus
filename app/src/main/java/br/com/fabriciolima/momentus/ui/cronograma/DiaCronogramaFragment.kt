@@ -1,5 +1,3 @@
-// ARQUIVO: ui/cronograma/DiaCronogramaFragment.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.ui.cronograma
 
 import android.os.Bundle
@@ -26,10 +24,7 @@ class DiaCronogramaFragment : Fragment() {
     private var _binding: FragmentDiaCronogramaBinding? = null
     private val binding get() = _binding!!
 
-    private val adapter = ItemCronogramaAdapter { itemClicado ->
-        AddItemCronogramaDialog.newInstance(itemClicado).show(childFragmentManager, "EditItemDialog")
-    }
-
+    private lateinit var adapter: ItemCronogramaAdapter
     private var diaDaSemana: String? = null
     private var rotinasDisponiveis: List<Rotina> = emptyList()
 
@@ -56,7 +51,9 @@ class DiaCronogramaFragment : Fragment() {
 
         viewModel.todasAsRotinas.observe(viewLifecycleOwner) { rotinas ->
             rotinasDisponiveis = rotinas
-            adapter.setData(adapter.getItensAtuais(), rotinasDisponiveis)
+            if (::adapter.isInitialized) {
+                adapter.setRotinas(rotinas)
+            }
         }
 
         diaDaSemana?.let { dia ->
@@ -68,17 +65,21 @@ class DiaCronogramaFragment : Fragment() {
                     binding.recyclerViewItensDoDia.visibility = View.VISIBLE
                     binding.emptyStateLayoutFragment.visibility = View.GONE
                 }
-                adapter.setData(itensDoDia, rotinasDisponiveis)
+                if (::adapter.isInitialized) {
+                    adapter.submitList(itensDoDia)
+                }
             }
         }
     }
 
     private fun setupRecyclerView() {
+        adapter = ItemCronogramaAdapter { itemClicado ->
+            AddItemCronogramaDialog.newInstance(itemClicado).show(childFragmentManager, "EditItemDialog")
+        }
         binding.recyclerViewItensDoDia.adapter = adapter
         binding.recyclerViewItensDoDia.layoutManager = LinearLayoutManager(requireContext())
 
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 1. Precisamos de uma referência ao ViewPager que está na Activity PAI.
+        // Esta é a referência ao componente que causa o conflito
         val viewPager = requireActivity().findViewById<ViewPager2>(R.id.viewPager)
 
         val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(
@@ -103,25 +104,21 @@ class DiaCronogramaFragment : Fragment() {
                     .show()
             }
 
-            // 2. Sobrescrevemos a função 'onSelectedChanged'.
-            // Ela é chamada QUANDO o usuário começa a arrastar/deslizar um item.
+            // A LÓGICA QUE RESOLVE O CONFLITO ESTÁ AQUI
             override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
                 super.onSelectedChanged(viewHolder, actionState)
-                // Se a ação for um deslize, nós DESATIVAMOS o deslize do ViewPager.
+                // Desativa o deslize do ViewPager quando o usuário começa a deslizar um item
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                     viewPager.isUserInputEnabled = false
                 }
             }
 
-            // 3. Sobrescrevemos a função 'clearView'.
-            // Ela é chamada QUANDO o usuário solta o item (termina o gesto).
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
-                // Nós REATIVAMOS o deslize do ViewPager, devolvendo o controle a ele.
+                // Reativa o deslize do ViewPager quando o usuário solta o item
                 viewPager.isUserInputEnabled = true
             }
         }
-        // --- MODIFICAÇÃO TERMINA AQUI ---
 
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.recyclerViewItensDoDia)
     }
@@ -138,12 +135,5 @@ class DiaCronogramaFragment : Fragment() {
                 arguments = Bundle().apply { putString(ARG_DIA_DA_SEMANA, dia) }
             }
         }
-    }
-
-    private fun ItemCronogramaAdapter.getItensAtuais(): List<ItemCronograma> {
-        val field = javaClass.getDeclaredField("itens")
-        field.isAccessible = true
-        @Suppress("UNCHECK_CAST")
-        return field.get(this) as List<ItemCronograma>
     }
 }

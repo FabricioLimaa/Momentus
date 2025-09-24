@@ -5,17 +5,19 @@ package br.com.fabriciolima.momentus.ui
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.databinding.ItemRotinaBinding
 
 // --- MODIFICAÇÃO INICIA AQUI ---
-// 1. Adicionamos um parâmetro ao construtor: uma função que será chamada quando um item for clicado.
-// Esta função recebe um objeto 'Rotina' como argumento.
+// 1. A classe agora herda de ListAdapter em vez de RecyclerView.Adapter.
+//    Ele requer dois parâmetros: o tipo de dado (Rotina) e o ViewHolder.
+// 2. Removemos a lista do construtor. O ListAdapter gerencia a lista internamente.
 class RotinaAdapter(
-    private var rotinas: List<Rotina>,
     private val onItemClicked: (Rotina) -> Unit
-) : RecyclerView.Adapter<RotinaAdapter.RotinaViewHolder>() {
+) : ListAdapter<Rotina, RotinaAdapter.RotinaViewHolder>(DiffCallback) {
 // --- MODIFICAÇÃO TERMINA AQUI ---
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RotinaViewHolder {
@@ -28,22 +30,14 @@ class RotinaAdapter(
     }
 
     override fun onBindViewHolder(holder: RotinaViewHolder, position: Int) {
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 2. Passamos a rotina atual para o método bind do ViewHolder.
-        val rotinaAtual = rotinas[position]
+        // 3. Usamos getItem(position) para pegar o item da lista interna do ListAdapter.
+        val rotinaAtual = getItem(position)
         holder.bind(rotinaAtual)
-        // --- MODIFICAÇÃO TERMINA AQUI ---
     }
 
-    override fun getItemCount(): Int = rotinas.size
-
-    fun updateData(novaLista: List<Rotina>) {
-        this.rotinas = novaLista
-        notifyDataSetChanged()
-    }
-
+    // 4. A função getRotinaAt agora usa getItem(position) também.
     fun getRotinaAt(position: Int): Rotina {
-        return rotinas[position]
+        return getItem(position)
     }
 
     inner class RotinaViewHolder(private val binding: ItemRotinaBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -56,14 +50,27 @@ class RotinaAdapter(
                 binding.viewCor.setBackgroundColor(Color.GRAY)
             }
 
-            // --- MODIFICAÇÃO INICIA AQUI ---
-            // 3. Adicionamos um listener de clique ao item inteiro da lista (binding.root).
-            // Quando o item é clicado, chamamos a função 'onItemClicked' que recebemos
-            // lá no construtor, passando a rotina correspondente a este item.
             binding.root.setOnClickListener {
                 onItemClicked(rotina)
             }
-            // --- MODIFICAÇÃO TERMINA AQUI ---
         }
     }
+
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    // 5. Este objeto é a "inteligência" do ListAdapter.
+    //    Ele diz ao adapter como verificar se dois itens são os mesmos (pelo ID)
+    //    e se o conteúdo deles mudou (comparando o objeto inteiro).
+    companion object {
+        private val DiffCallback = object : DiffUtil.ItemCallback<Rotina>() {
+            override fun areItemsTheSame(oldItem: Rotina, newItem: Rotina): Boolean {
+                return oldItem.id == newItem.id
+            }
+
+            override fun areContentsTheSame(oldItem: Rotina, newItem: Rotina): Boolean {
+                return oldItem == newItem
+            }
+        }
+    }
+    // --- MODIFICAÇÃO TERMINA AQUI ---
+    // NOTA: As funções 'getItemCount()' e 'updateData()' foram removidas, pois o ListAdapter cuida disso.
 }
