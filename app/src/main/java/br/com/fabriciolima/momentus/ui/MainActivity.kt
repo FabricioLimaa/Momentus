@@ -29,6 +29,10 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import com.google.api.services.calendar.CalendarScopes
 import com.google.android.material.snackbar.Snackbar
+import android.Manifest // Adicione este import
+import android.content.pm.PackageManager // Adicione este import
+import android.os.Build // Adicione este import
+import androidx.core.content.ContextCompat // Adicione este import
 
 class MainActivity : AppCompatActivity() {
 
@@ -66,6 +70,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    // 1. Criamos um novo launcher para pedir a permissão de notificação.
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                Toast.makeText(this, "Permissão para notificações concedida.", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Permissão para notificações negada.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    // --- MODIFICAÇÃO TERMINA AQUI ---
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -95,7 +111,24 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, EditorRotinaActivity::class.java)
             editorRotinaLauncher.launch(intent)
         }
+        // --- MODIFICAÇÃO INICIA AQUI ---
+        // 2. Chamamos a função para pedir a permissão.
+        askNotificationPermission()
+        // --- MODIFICAÇÃO TERMINA AQUI ---
     }
+
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    // 3. Nova função que verifica e, se necessário, pede a permissão.
+    private fun askNotificationPermission() {
+        // A permissão só é necessária para Android 13 (API 33) e superior.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                // Se a permissão não foi concedida, nós a solicitamos.
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+    // --- MODIFICAÇÃO TERMINA AQUI ---
 
     private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)

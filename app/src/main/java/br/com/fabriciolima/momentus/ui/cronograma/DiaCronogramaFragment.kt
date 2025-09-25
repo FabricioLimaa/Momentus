@@ -28,8 +28,13 @@ class DiaCronogramaFragment : Fragment() {
     private var diaDaSemana: String? = null
     private var rotinasDisponiveis: List<Rotina> = emptyList()
 
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    // Passamos 'requireActivity().application' para a factory.
     private val viewModel: CronogramaViewModel by activityViewModels {
-        CronogramaViewModelFactory((requireActivity().application as MomentusApplication).repository)
+        CronogramaViewModelFactory(
+            (requireActivity().application as MomentusApplication).repository,
+            requireActivity().application
+        )
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {

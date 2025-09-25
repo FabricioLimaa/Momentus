@@ -22,22 +22,24 @@ import java.util.Calendar
 
 class AddItemCronogramaDialog : DialogFragment() {
 
-    private val viewModel: CronogramaViewModel by activityViewModels {
-        CronogramaViewModelFactory((requireActivity().application as MomentusApplication).repository)
-    }
-
     // --- MODIFICAÇÃO INICIA AQUI ---
-    // 1. Variável para guardar o item que estamos editando (pode ser nulo se for um novo item).
-    private var itemExistente: ItemCronograma? = null
+    // Adicionamos o segundo parâmetro 'requireActivity().application'
+    // que estava faltando na criação da Factory.
+    private val viewModel: CronogramaViewModel by activityViewModels {
+        CronogramaViewModelFactory(
+            (requireActivity().application as MomentusApplication).repository,
+            requireActivity().application
+        )
+    }
     // --- MODIFICAÇÃO TERMINA AQUI ---
 
+    private var itemExistente: ItemCronograma? = null
     private var diaDaSemana: String? = null
     private var horaSelecionada: String? = null
     private var rotinasDisponiveis = listOf<Rotina>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 2. Recebemos os dados do item a ser editado através dos argumentos.
         arguments?.let {
             diaDaSemana = it.getString(ARG_DIA_DA_SEMANA)
             val itemId = it.getString(ARG_ITEM_ID)
@@ -59,7 +61,6 @@ class AddItemCronogramaDialog : DialogFragment() {
         val spinner: Spinner = view.findViewById(R.id.spinnerRotinas)
         val buttonHora: Button = view.findViewById(R.id.buttonEscolherHora)
 
-        // 3. Se estivermos editando, já mostramos o horário no botão.
         itemExistente?.let {
             buttonHora.text = it.horarioInicio
         }
@@ -70,7 +71,6 @@ class AddItemCronogramaDialog : DialogFragment() {
             val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, nomesRotinas)
             spinner.adapter = adapter
 
-            // 4. Se estivermos editando, pré-selecionamos a rotina correta no spinner.
             itemExistente?.let { item ->
                 val rotinaIndex = rotinas.indexOfFirst { it.id == item.rotinaId }
                 if (rotinaIndex != -1) {
@@ -97,8 +97,6 @@ class AddItemCronogramaDialog : DialogFragment() {
             .setPositiveButton("Salvar") { _, _ ->
                 val rotinaSelecionada = rotinasDisponiveis.getOrNull(spinner.selectedItemPosition)
                 if (validar(rotinaSelecionada)) {
-                    // 5. Se estivermos editando, usamos o ID original. Se for novo, um novo ID é gerado.
-                    // O Room irá ATUALIZAR o item se o ID já existir no banco.
                     val itemParaSalvar = ItemCronograma(
                         id = itemExistente?.id ?: java.util.UUID.randomUUID().toString(),
                         diaDaSemana = diaDaSemana!!,
@@ -129,15 +127,12 @@ class AddItemCronogramaDialog : DialogFragment() {
         return true
     }
 
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 6. Atualizamos o companion object para criar instâncias tanto para 'novo' quanto para 'editar'.
     companion object {
         private const val ARG_DIA_DA_SEMANA = "DIA_DA_SEMANA"
         private const val ARG_ITEM_ID = "ITEM_ID"
         private const val ARG_ITEM_ROTINA_ID = "ITEM_ROTINA_ID"
         private const val ARG_ITEM_HORARIO = "ITEM_HORARIO"
 
-        // Função para criar um novo item
         fun newInstance(dia: String): AddItemCronogramaDialog {
             return AddItemCronogramaDialog().apply {
                 arguments = Bundle().apply {
@@ -146,7 +141,6 @@ class AddItemCronogramaDialog : DialogFragment() {
             }
         }
 
-        // Função para editar um item existente
         fun newInstance(item: ItemCronograma): AddItemCronogramaDialog {
             return AddItemCronogramaDialog().apply {
                 arguments = Bundle().apply {
