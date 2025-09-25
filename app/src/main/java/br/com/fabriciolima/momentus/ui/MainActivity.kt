@@ -159,22 +159,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 2. O adapter não precisa mais da lista vazia no construtor.
+        // --- MODIFICAÇÃO: O adapter agora espera 'Rotina' no clique ---
         rotinaAdapter = RotinaAdapter { rotinaClicada ->
             val intent = Intent(this, EditorRotinaActivity::class.java)
+            // A tela de edição continua recebendo apenas o objeto 'Rotina'
             intent.putExtra("ROTINA_PARA_EDITAR", rotinaClicada)
             editorRotinaLauncher.launch(intent)
         }
-        // --- MODIFICAÇÃO TERMINA AQUI ---
         binding.recyclerViewRotinas.apply {
             adapter = rotinaAdapter
             layoutManager = LinearLayoutManager(this@MainActivity)
         }
 
         val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(
-            0,
-            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+            0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
         ) {
             override fun onMove(
                 recyclerView: RecyclerView,
@@ -185,21 +183,15 @@ class MainActivity : AppCompatActivity() {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
                 val rotinaParaDeletar = rotinaAdapter.getRotinaAt(position)
-                viewModel.deleteRotina(rotinaParaDeletar)
+                viewModel.deleteRotina(rotinaParaDeletar) // Passamos o objeto 'Rotina'
 
-                // --- MODIFICAÇÃO INICIA AQUI ---
-                // 1. Em vez de só mostrar uma mensagem, agora criamos um Snackbar com uma ação.
                 Snackbar.make(binding.root, "Rotina deletada", Snackbar.LENGTH_LONG)
                     .setAction("DESFAZER") {
-                        // 2. A ação do botão é simplesmente chamar a nova função do ViewModel
-                        // para reinserir a última rotina deletada.
                         viewModel.reinsereRotina()
                     }
                     .show()
-                // --- MODIFICAÇÃO TERMINA AQUI ---
             }
         }
-
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.recyclerViewRotinas)
     }
 

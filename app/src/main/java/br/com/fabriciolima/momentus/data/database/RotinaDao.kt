@@ -1,13 +1,9 @@
 // ARQUIVO: data/database/RotinaDao.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.data.database
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
+import androidx.room.*
 import br.com.fabriciolima.momentus.data.Rotina
+import br.com.fabriciolima.momentus.data.RotinaComMeta
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -15,13 +11,16 @@ interface RotinaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(rotina: Rotina)
 
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // Adiciona a anotação @Delete, que instrui o Room a remover
-    // o objeto 'rotina' passado como parâmetro da tabela.
     @Delete
     suspend fun delete(rotina: Rotina)
-    // --- MODIFICAÇÃO TERMINA AQUI ---
 
-    @Query("SELECT * FROM tabela_de_rotinas ORDER BY nome ASC")
-    fun getAllRotinas(): Flow<List<Rotina>>
+    // MODIFICAÇÃO: Substituímos a query antiga por esta.
+    // LEFT JOIN garante que todas as rotinas sejam retornadas,
+    // mesmo que não tenham uma meta correspondente.
+    @Query("""
+        SELECT * FROM tabela_de_rotinas
+        LEFT JOIN tabela_metas ON tabela_de_rotinas.id = tabela_metas.rotinaId
+        ORDER BY nome ASC
+    """)
+    fun getRotinasComMetas(): Flow<List<RotinaComMeta>>
 }

@@ -9,18 +9,23 @@ import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.data.RotinaRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map // Adicione este import
 import kotlinx.coroutines.launch
 
-// --- MODIFICAÇÃO INICIA AQUI ---
-// 1. Mudamos o ViewModel para herdar de AndroidViewModel,
-//    o que nos dá acesso ao "contexto" do aplicativo, necessário para o AlarmManager.
 class CronogramaViewModel(
     private val repository: RotinaRepository,
     application: Application
 ) : AndroidViewModel(application) {
-// --- MODIFICAÇÃO TERMINA AQUI ---
 
-    val todasAsRotinas: LiveData<List<Rotina>> = repository.todasAsRotinas.asLiveData()
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    // 1. Usamos a propriedade correta 'todasAsRotinasComMetas'.
+    // 2. Como ela retorna Flow<List<RotinaComMeta>>, usamos .map { it.rotina }
+    //    para transformar o fluxo em um Flow<List<Rotina>>, que é o que a tela espera.
+    val todasAsRotinas: LiveData<List<Rotina>> = repository.todasAsRotinasComMetas.map { listaComMetas ->
+        listaComMetas.map { it.rotina }
+    }.asLiveData()
+    // --- MODIFICAÇÃO TERMINA AQUI ---
+
     private var ultimoItemDeletado: ItemCronograma? = null
 
     fun getItensDoDia(dia: String): LiveData<List<ItemCronograma>> {
@@ -29,40 +34,30 @@ class CronogramaViewModel(
 
     fun insertItem(item: ItemCronograma) = viewModelScope.launch {
         repository.insertItemCronograma(item)
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 2. Após inserir (ou atualizar) um item, agendamos (ou reagendamos) o alarme.
-        val rotina = repository.todasAsRotinas.first().find { it.id == item.rotinaId }
+        // Usamos .first() para pegar o valor atual do Flow de forma síncrona dentro da coroutine
+        val rotina = repository.todasAsRotinasComMetas.first().find { it.rotina.id == item.rotinaId }?.rotina
         rotina?.let {
             AlarmScheduler.schedule(getApplication(), item, it)
         }
-        // --- MODIFICAÇÃO TERMINA AQUI ---
     }
 
     fun deleteItem(item: ItemCronograma) = viewModelScope.launch {
         ultimoItemDeletado = item
         repository.deleteItemCronograma(item)
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 3. Após deletar um item, cancelamos o alarme correspondente.
         AlarmScheduler.cancel(getApplication(), item)
-        // --- MODIFICAÇÃO TERMINA AQUI ---
     }
 
     fun reinsereItem() = viewModelScope.launch {
         ultimoItemDeletado?.let { item ->
             repository.insertItemCronograma(item)
-            // --- MODIFICAÇÃO INICIA AQUI ---
-            // 4. Se o usuário desfaz a deleção, agendamos o alarme novamente.
-            val rotina = repository.todasAsRotinas.first().find { it.id == item.rotinaId }
+            val rotina = repository.todasAsRotinasComMetas.first().find { it.rotina.id == item.rotinaId }?.rotina
             rotina?.let {
                 AlarmScheduler.schedule(getApplication(), item, it)
             }
-            // --- MODIFICAÇÃO TERMINA AQUI ---
         }
     }
 }
 
-// --- MODIFICAÇÃO INICIA AQUI ---
-// 5. Atualizamos a Factory para passar a instância de 'Application' para o ViewModel.
 class CronogramaViewModelFactory(
     private val repository: RotinaRepository,
     private val application: Application
@@ -75,4 +70,3 @@ class CronogramaViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-// --- MODIFICAÇÃO TERMINA AQUI ---

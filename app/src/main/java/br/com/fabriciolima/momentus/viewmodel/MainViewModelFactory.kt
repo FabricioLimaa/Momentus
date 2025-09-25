@@ -1,4 +1,5 @@
-// ARQUIVO: viewmodel/MainViewModelFactory.kt
+// ARQUIVO: viewmodel/MainViewModelFactory.kt (CÓDIGO COMPLETO)
+
 package br.com.fabriciolima.momentus.viewmodel
 
 import androidx.lifecycle.ViewModel

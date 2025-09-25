@@ -88,10 +88,21 @@ dependencies {
     implementation("com.google.http-client:google-http-client-gson:1.43.3")
     // --- FIM DO CONJUNTO DE BIBLIOTECAS DO GOOGLE ---
 
-    // Testes
+    // --- SEÇÃO DE TESTES ---
+    // As duas primeiras geralmente já vêm com o projeto.
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Testes
+    testImplementation(libs.androidx.core.testing) // <-- GARANTA QUE ESTA LINHA EXISTA
+    testImplementation(libs.kotlinx.coroutines.test)
+
+    // --- MODIFICAÇÃO: ADICIONE AS BIBLIOTECAS ABAIXO ---
+    // Para testes de componentes de arquitetura (como ViewModel e LiveData)
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    // Para nos ajudar a trabalhar com Coroutines em testes
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
 }
 
     // AQUI ESTÁ A MUDANÇA: Usando os arquivos locais

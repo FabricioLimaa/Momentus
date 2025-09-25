@@ -62,7 +62,12 @@ object GoogleCalendarManager {
 
             // --- FIM DA MODIFICAÇÃO ---
 
-            val rotinas = repository.todasAsRotinas.first()
+            // --- MODIFICAÇÃO INICIA AQUI ---
+            // 1. Usamos o nome correto da propriedade: 'todasAsRotinasComMetas'.
+            // 2. Como ela retorna uma lista de 'RotinaComMeta', usamos '.map { it.rotina }'
+            //    para extrair apenas a lista de 'Rotina' de que precisamos aqui.
+            val rotinas = repository.todasAsRotinasComMetas.first().map { it.rotina }
+            // --- MODIFICAÇÃO TERMINA AQUI ---
             val rotinasMap = rotinas.associateBy { it.id }
             val diasDaSemana = listOf("DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB")
 

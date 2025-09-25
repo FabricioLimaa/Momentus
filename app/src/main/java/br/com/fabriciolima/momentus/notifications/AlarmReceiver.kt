@@ -1,5 +1,4 @@
 // ARQUIVO: notifications/AlarmReceiver.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.notifications
 
 import android.app.NotificationManager
@@ -12,21 +11,23 @@ import br.com.fabriciolima.momentus.R
 class AlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        // Quando o alarme dispara, esta função é executada.
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Pegamos o nome da rotina que passamos ao criar o alarme.
-        val nomeRotina = intent.getStringExtra("NOME_ROTINA") ?: "Sua rotina está prestes a começar"
+        // --- MODIFICAÇÃO INICIA AQUI ---
+        // Pegamos a nova mensagem completa que enviamos.
+        val mensagem = intent.getStringExtra("MENSAGEM_NOTIFICACAO") ?: "Sua rotina está prestes a começar"
+        // --- MODIFICAÇÃO TERMINA AQUI ---
 
-        // Construímos a notificação.
         val notification = NotificationCompat.Builder(context, "LEMBRETE_ROTINA_CHANNEL")
-            .setSmallIcon(R.drawable.ic_schedule) // Ícone que aparecerá na barra de status.
+            .setSmallIcon(R.drawable.ic_schedule)
             .setContentTitle("Lembrete de Rotina")
-            .setContentText(nomeRotina)
+            // --- MODIFICAÇÃO INICIA AQUI ---
+            // Usamos a nova mensagem como texto da notificação.
+            .setContentText(mensagem)
+            // --- MODIFICAÇÃO TERMINA AQUI ---
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
 
-        // Mostramos a notificação.
         notificationManager.notify(1, notification)
     }
 }
