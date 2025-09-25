@@ -23,8 +23,10 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import android.content.Intent
+import br.com.fabriciolima.momentus.ui.cronograma.DiaCronogramaFragment
 
-class CronogramaActivity : AppCompatActivity() {
+// --- MODIFICAÇÃO 2: A Activity agora "assina o contrato" da interface OnSwipeListener ---
+class CronogramaActivity : AppCompatActivity(), DiaCronogramaFragment.OnSwipeListener {
 
     private lateinit var binding: ActivityCronogramaBinding
 
@@ -47,6 +49,14 @@ class CronogramaActivity : AppCompatActivity() {
         val hoje = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1
         binding.tabLayout.selectTab(binding.tabLayout.getTabAt(hoje))
     }
+
+    // --- MODIFICAÇÃO 3: Implementamos a função da interface ---
+    // Esta função será chamada pelo fragmento quando o estado do deslize mudar.
+    override fun onSwipeStateChanged(isSwiping: Boolean) {
+        // A Activity agora é responsável por controlar seu próprio componente.
+        binding.viewPager.isUserInputEnabled = !isSwiping
+    }
+    // --- FIM DA MODIFICAÇÃO ---
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.cronograma_menu, menu)
