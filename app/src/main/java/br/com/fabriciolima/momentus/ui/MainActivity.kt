@@ -108,7 +108,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.fab.setOnClickListener {
-            val intent = Intent(this, EditorRotinaActivity::class.java)
+            // --- MODIFICAÇÃO: VOLTAMOS A USAR O LAUNCHER ---
+            val intent = Intent(this, EditorRotinaComposeActivity::class.java)
             editorRotinaLauncher.launch(intent)
         }
         // --- MODIFICAÇÃO INICIA AQUI ---
@@ -159,11 +160,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        // --- MODIFICAÇÃO: O adapter agora espera 'Rotina' no clique ---
         rotinaAdapter = RotinaAdapter { rotinaClicada ->
-            val intent = Intent(this, EditorRotinaActivity::class.java)
-            // A tela de edição continua recebendo apenas o objeto 'Rotina'
-            intent.putExtra("ROTINA_PARA_EDITAR", rotinaClicada)
+            // --- MODIFICAÇÃO: VOLTAMOS A USAR O LAUNCHER ---
+            val intent = Intent(this, EditorRotinaComposeActivity::class.java)
+            // No futuro, podemos passar a rotina para edição aqui
+            // intent.putExtra("ROTINA_PARA_EDITAR", rotinaClicada)
             editorRotinaLauncher.launch(intent)
         }
         binding.recyclerViewRotinas.apply {

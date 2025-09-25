@@ -27,13 +27,6 @@ android {
         }
     }
 
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "META-INF/DEPENDENCIES" // Linha que resolve o seu erro
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
@@ -43,12 +36,39 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        // --- MODIFICAÇÃO INICIA AQUI ---
+        // 1. Habilitamos o Jetpack Compose no projeto.
+        compose = true
+        // --- MODIFICAÇÃO TERMINA AQUI ---
+    }
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    // 2. Definimos a versão do compilador do Compose.
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.10"
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES" // Linha que resolve o seu erro
+        }
     }
 }
 
 dependencies {
     // Declaração de variável para a versão do Room
     val room_version = "2.6.1"
+
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    // 3. Adicionamos as bibliotecas do Compose.
+    // O Bill of Materials (BOM) gerencia as versões de outras bibliotecas Compose para nós.
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    // --- MODIFICAÇÃO TERMINA AQUI ---
 
     // Bibliotecas Padrão e de UI
     implementation(libs.androidx.core.ktx)

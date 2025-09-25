@@ -30,6 +30,7 @@
         <activity android:name=".ui.CronogramaActivity" />
         <activity android:name=".ui.StatsActivity" />
         <activity android:name=".ui.TemplatesActivity" />
+        <activity android:name=".ui.EditorRotinaComposeActivity" />
         <receiver
             android:name=".notifications.AlarmReceiver"
             android:enabled="true"
