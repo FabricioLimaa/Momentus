@@ -6,4 +6,10 @@
         android:title="Gerar na Agenda"
         android:icon="@android:drawable/ic_menu_send"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_manage_templates"
+        android:title="Gerenciar Templates"
+        android:icon="@drawable/ic_template"
+        app:showAsAction="ifRoom" />
 </menu>

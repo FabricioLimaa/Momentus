@@ -27,6 +27,7 @@
         <activity android:name=".ui.EditorRotinaActivity" />
         <activity android:name=".ui.CronogramaActivity" />
         <activity android:name=".ui.StatsActivity" />
+        <activity android:name=".ui.TemplatesActivity" />
     </application>
 
 </manifest>

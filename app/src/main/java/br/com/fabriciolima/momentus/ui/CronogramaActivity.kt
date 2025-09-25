@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import android.content.Intent
 
 class CronogramaActivity : AppCompatActivity() {
 
@@ -58,6 +59,13 @@ class CronogramaActivity : AppCompatActivity() {
                 iniciarGeracaoDeEventos()
                 true
             }
+            // --- MODIFICAÇÃO INICIA AQUI ---
+            R.id.action_manage_templates -> {
+                val intent = Intent(this, TemplatesActivity::class.java)
+                startActivity(intent)
+                true
+            }
+            // --- MODIFICAÇÃO TERMINA AQUI ---
             else -> super.onOptionsItemSelected(item)
         }
     }
