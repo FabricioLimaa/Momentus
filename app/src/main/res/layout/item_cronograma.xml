@@ -9,41 +9,78 @@
     android:layout_marginVertical="8dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/itemContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
-
-        <TextView
-            android:id="@+id/textViewHorario"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceHeadline6"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="09:00" />
 
         <View
             android:id="@+id/viewCor"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:layout_marginStart="16dp"
-            app:layout_constraintBottom_toBottomOf="@+id/textViewHorario"
-            app:layout_constraintStart_toEndOf="@+id/textViewHorario"
-            app:layout_constraintTop_toTopOf="@+id/textViewHorario"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             tools:background="#4CAF50" />
 
         <TextView
             android:id="@+id/textViewNomeRotina"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textAppearance="?attr/textAppearanceBody1"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="@+id/viewCor"
+            android:layout_marginStart="16dp"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            app:layout_constraintEnd_toStartOf="@id/checkBoxConcluido"
+            app:layout_constraintStart_toEndOf="@id/viewCor"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Estudo de Ciência da Computação" />
+
+        <TextView
+            android:id="@+id/textViewHorario"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:drawablePadding="4dp"
+            android:gravity="center"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?android:attr/textColorSecondary"
+            app:drawableStartCompat="@drawable/ic_schedule"
+            app:drawableTint="?android:attr/textColorSecondary"
+            app:layout_constraintStart_toStartOf="@id/textViewNomeRotina"
+            app:layout_constraintTop_toBottomOf="@id/textViewNomeRotina"
+            tools:text="17:30 - 18:30" />
+
+        <TextView
+            android:id="@+id/textViewDescricao"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?android:attr/textColorSecondary"
+            app:layout_constraintEnd_toStartOf="@id/checkBoxConcluido"
+            app:layout_constraintStart_toStartOf="@id/textViewHorario"
+            app:layout_constraintTop_toBottomOf="@id/textViewHorario"
+            tools:text="Dedicação aos estudos técnicos" />
+
+        <TextView
+            android:id="@+id/textViewTag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/chip_background"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            app:layout_constraintStart_toStartOf="@id/textViewDescricao"
+            app:layout_constraintTop_toBottomOf="@id/textViewDescricao"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:text="estudo" />
+
+        <CheckBox
+            android:id="@+id/checkBoxConcluido"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/viewCor"
-            app:layout_constraintTop_toTopOf="@+id/viewCor"
-            tools:text="Estudo de Sistemas Operacionais" />
+            app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

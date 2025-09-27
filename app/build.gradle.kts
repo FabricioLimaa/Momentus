@@ -58,37 +58,47 @@ android {
 dependencies {
     // Declaração de variável para a versão do Room
     val room_version = "2.6.1"
+    val compose_bom_version = "2024.05.00"
 
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 3. Adicionamos as bibliotecas do Compose.
-    // O Bill of Materials (BOM) gerencia as versões de outras bibliotecas Compose para nós.
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    // --- MODIFICAÇÃO TERMINA AQUI ---
+    // Core e UI (Views)
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
-    // Bibliotecas Padrão e de UI
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.activity.ktx)
-    implementation(libs.androidx.fragment.ktx) // Garante que temos o KTX para fragmentos
+    // Componentes de Arquitetura (ViewModel, LiveData)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.2")
+    implementation("androidx.activity:activity-ktx:1.9.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.1")
 
-    // ViewModel e LiveData
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.lifecycle.livedata.ktx)
-
-    // Biblioteca de Gráficos
-    implementation(libs.mpandroidchart) // <-- ADICIONE ESTA LINHA
+    // Jetpack Compose
+    implementation(platform("androidx.compose:compose-bom:$compose_bom_version"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.9.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
+    implementation("androidx.compose.runtime:runtime-livedata") // <-- BIBLIOTECA ADICIONADA
 
     // Room (Banco de Dados)
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
     ksp("androidx.room:room-compiler:$room_version")
+
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+    // Biblioteca de Gráficos
+    //implementation(libs.mpandroidchart) // <-- ADICIONE ESTA LINHA
+
+    // Room (Banco de Dados)
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
+    implementation("androidx.compose.runtime:runtime-livedata")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
 
     // Google Sign-In
     implementation(libs.play.services.auth)
@@ -125,18 +135,18 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
 }
 
-    // AQUI ESTÁ A MUDANÇA: Usando os arquivos locais
-    //implementation(files("libs/google-api-client-android-2.2.0.jar"))
-    //implementation(files("libs/google-api-services-calendar-v3-rev20220715-2.0.0.jar"))
-    //implementation(files("libs/google-api-client-2.2.0.jar"))
-    //implementation(files("libs/google-http-client-1.44.2.jar"))
-    // implementation(files("libs/gson-2.13.2.jar"))
+// AQUI ESTÁ A MUDANÇA: Usando os arquivos locais
+//implementation(files("libs/google-api-client-android-2.2.0.jar"))
+//implementation(files("libs/google-api-services-calendar-v3-rev20220715-2.0.0.jar"))
+//implementation(files("libs/google-api-client-2.2.0.jar"))
+//implementation(files("libs/google-http-client-1.44.2.jar"))
+// implementation(files("libs/gson-2.13.2.jar"))
 
-    // Google APIs
-    // COMENTE AS LINHAS ABAIXO POR ENQUANTO
-    //     implementation(libs.google.api.client.android) {
-    //          exclude(group = "org.apache.httpcomponents")
-    //      }
-    //      implementation(libs.google.api.services.calendar) {
-    //          exclude(group = "org.apache.httpcomponents")
-    //      }
+// Google APIs
+// COMENTE AS LINHAS ABAIXO POR ENQUANTO
+//     implementation(libs.google.api.client.android) {
+//          exclude(group = "org.apache.httpcomponents")
+//      }
+//      implementation(libs.google.api.services.calendar) {
+//          exclude(group = "org.apache.httpcomponents")
+//      }

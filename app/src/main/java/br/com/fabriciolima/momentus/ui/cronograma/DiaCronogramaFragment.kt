@@ -1,5 +1,3 @@
-// ARQUIVO: ui/cronograma/DiaCronogramaFragment.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.ui.cronograma
 
 import android.content.Context
@@ -14,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import br.com.fabriciolima.momentus.MomentusApplication
 import br.com.fabriciolima.momentus.data.ItemCronograma
+import br.com.fabriciolima.momentus.data.ItemCronogramaCompletado
 import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.databinding.FragmentDiaCronogramaBinding
 import br.com.fabriciolima.momentus.viewmodel.CronogramaViewModel
@@ -25,15 +24,23 @@ class DiaCronogramaFragment : Fragment() {
     private var _binding: FragmentDiaCronogramaBinding? = null
     private val binding get() = _binding!!
 
-    // --- MODIFICAÇÃO 1: Definimos a interface de comunicação ---
     interface OnSwipeListener {
         fun onSwipeStateChanged(isSwiping: Boolean)
     }
-
     private var swipeListener: OnSwipeListener? = null
-    // --- FIM DA MODIFICAÇÃO ---
 
-    private lateinit var adapter: ItemCronogramaAdapter
+    // --- SEU TRECHO DE CÓDIGO VAI AQUI ---
+    // Atualizamos a inicialização do adapter para passar os dois listeners
+    private val adapter = ItemCronogramaAdapter(
+        onItemClicked = { itemClicado ->
+            AddItemCronogramaDialog.newInstance(itemClicado).show(childFragmentManager, "EditItemDialog")
+        },
+        onCheckedChange = { item, isChecked ->
+            viewModel.onHabitoConcluidoChanged(item, isChecked)
+        }
+    )
+    // --- FIM DO TRECHO ---
+
     private var diaDaSemana: String? = null
     private var rotinasDisponiveis: List<Rotina> = emptyList()
 
@@ -44,7 +51,6 @@ class DiaCronogramaFragment : Fragment() {
         )
     }
 
-    // --- MODIFICAÇÃO 2: Garantimos que a Activity implementa a interface ao anexar o fragmento ---
     override fun onAttach(context: Context) {
         super.onAttach(context)
         if (context is OnSwipeListener) {
@@ -53,7 +59,6 @@ class DiaCronogramaFragment : Fragment() {
             throw RuntimeException("$context must implement OnSwipeListener")
         }
     }
-    // --- FIM DA MODIFICAÇÃO ---
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentDiaCronogramaBinding.inflate(inflater, container, false)
@@ -73,35 +78,26 @@ class DiaCronogramaFragment : Fragment() {
 
         viewModel.todasAsRotinas.observe(viewLifecycleOwner) { rotinas ->
             rotinasDisponiveis = rotinas
-            if (::adapter.isInitialized) {
-                adapter.setRotinas(rotinas)
-            }
+            adapter.setRotinas(rotinas)
         }
 
         diaDaSemana?.let { dia ->
-            viewModel.getItensDoDia(dia).observe(viewLifecycleOwner) { itensDoDia ->
-                if (itensDoDia.isEmpty()) {
+            viewModel.getItensDoDiaCompletados(dia).observe(viewLifecycleOwner) { itensCompletados ->
+                if (itensCompletados.isEmpty()) {
                     binding.recyclerViewItensDoDia.visibility = View.GONE
                     binding.emptyStateLayoutFragment.visibility = View.VISIBLE
                 } else {
                     binding.recyclerViewItensDoDia.visibility = View.VISIBLE
                     binding.emptyStateLayoutFragment.visibility = View.GONE
                 }
-                if (::adapter.isInitialized) {
-                    adapter.submitList(itensDoDia)
-                }
+                adapter.submitList(itensCompletados)
             }
         }
     }
 
     private fun setupRecyclerView() {
-        adapter = ItemCronogramaAdapter { itemClicado ->
-            AddItemCronogramaDialog.newInstance(itemClicado).show(childFragmentManager, "EditItemDialog")
-        }
         binding.recyclerViewItensDoDia.adapter = adapter
         binding.recyclerViewItensDoDia.layoutManager = LinearLayoutManager(requireContext())
-
-        // --- MODIFICAÇÃO 3: Removemos a referência direta ao ViewPager daqui ---
 
         val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(
             0,
@@ -125,31 +121,26 @@ class DiaCronogramaFragment : Fragment() {
                     .show()
             }
 
-            // A LÓGICA QUE RESOLVE O CONFLITO ESTÁ AQUI
             override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
                 super.onSelectedChanged(viewHolder, actionState)
-                // --- MODIFICAÇÃO 4: Usamos a interface para avisar a Activity ---
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
-                    swipeListener?.onSwipeStateChanged(true) // Avisa: "Comecei a deslizar"
+                    swipeListener?.onSwipeStateChanged(true)
                 }
             }
 
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
-                // --- MODIFICAÇÃO 5: Usamos a interface para avisar a Activity ---
-                swipeListener?.onSwipeStateChanged(false) // Avisa: "Parei de deslizar"
+                swipeListener?.onSwipeStateChanged(false)
             }
         }
 
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.recyclerViewItensDoDia)
     }
 
-    // --- MODIFICAÇÃO 6: Limpamos a referência ao listener para evitar vazamento de memória ---
     override fun onDetach() {
         super.onDetach()
         swipeListener = null
     }
-    // --- FIM DA MODIFICAÇÃO ---
 
     override fun onDestroyView() {
         super.onDestroyView()

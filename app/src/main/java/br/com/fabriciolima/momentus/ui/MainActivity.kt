@@ -1,241 +1,186 @@
-// ARQUIVO: ui/MainActivity.kt (CÓDIGO COMPLETO)
+// ARQUIVO: ui/MainActivity.kt (CÓDIGO COMPLETO E FINAL)
 
 package br.com.fabriciolima.momentus.ui
 
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.MomentusApplication
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.Rotina
-import br.com.fabriciolima.momentus.databinding.ActivityMainBinding
+import br.com.fabriciolima.momentus.ui.components.AppDrawer
+import br.com.fabriciolima.momentus.ui.components.RotinaListItem
+import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.viewmodel.MainViewModel
 import br.com.fabriciolima.momentus.viewmodel.MainViewModelFactory
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.Scope
 import com.google.api.services.calendar.CalendarScopes
-import com.google.android.material.snackbar.Snackbar
-import android.Manifest // Adicione este import
-import android.content.pm.PackageManager // Adicione este import
-import android.os.Build // Adicione este import
-import androidx.core.content.ContextCompat // Adicione este import
+import com.google.android.gms.common.api.Scope
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
-
-    private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels {
         MainViewModelFactory((application as MomentusApplication).repository)
     }
-    private lateinit var rotinaAdapter: RotinaAdapter
-    private var googleAccount: GoogleSignInAccount? = null
     private lateinit var googleSignInClient: GoogleSignInClient
-
-    private val editorRotinaLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val rotinaSalva = result.data?.getSerializableExtra("ROTINA_SALVA") as? Rotina
-            rotinaSalva?.let {
-                viewModel.addRotina(it)
-            }
-        }
-    }
-
-    private val googleSignInLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                googleAccount = task.getResult(ApiException::class.java)
-                Toast.makeText(this, "Login bem-sucedido!", Toast.LENGTH_SHORT).show()
-                invalidateOptionsMenu()
-            } catch (e: ApiException) {
-                Toast.makeText(this, "Falha no login. Código: ${e.statusCode}", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 1. Criamos um novo launcher para pedir a permissão de notificação.
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) {
-                Toast.makeText(this, "Permissão para notificações concedida.", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Permissão para notificações negada.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    // --- MODIFICAÇÃO TERMINA AQUI ---
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        setSupportActionBar(binding.toolbar)
-        setupRecyclerView()
-        setupGoogleSignIn()
-
-        viewModel.rotinas.observe(this) { listaDeRotinas ->
-            if (listaDeRotinas.isEmpty()) {
-                binding.recyclerViewRotinas.visibility = View.GONE
-                binding.emptyStateLayout.visibility = View.VISIBLE
-            } else {
-                binding.recyclerViewRotinas.visibility = View.VISIBLE
-                binding.emptyStateLayout.visibility = View.GONE
-            }
-            // --- MODIFICAÇÃO INICIA AQUI ---
-            // 1. Em vez de chamar 'updateData', agora usamos 'submitList'.
-            //    O ListAdapter receberá a nova lista, calculará as diferenças
-            //    e animará as mudanças automaticamente.
-            rotinaAdapter.submitList(listaDeRotinas)
-            // --- MODIFICAÇÃO TERMINA AQUI ---
-        }
-
-        binding.fab.setOnClickListener {
-            // --- MODIFICAÇÃO: VOLTAMOS A USAR O LAUNCHER ---
-            val intent = Intent(this, EditorRotinaComposeActivity::class.java)
-            editorRotinaLauncher.launch(intent)
-        }
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 2. Chamamos a função para pedir a permissão.
-        askNotificationPermission()
-        // --- MODIFICAÇÃO TERMINA AQUI ---
-    }
-
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 3. Nova função que verifica e, se necessário, pede a permissão.
-    private fun askNotificationPermission() {
-        // A permissão só é necessária para Android 13 (API 33) e superior.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                // Se a permissão não foi concedida, nós a solicitamos.
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
-    }
-    // --- MODIFICAÇÃO TERMINA AQUI ---
-
-    private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestEmail()
-            .requestScopes(Scope(CalendarScopes.CALENDAR))
-            .build()
+            .requestEmail().requestScopes(Scope(CalendarScopes.CALENDAR)).build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        googleAccount = GoogleSignIn.getLastSignedInAccount(this)
-        if (googleAccount != null) {
-            Toast.makeText(this, "Logado como ${googleAccount?.email}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        val signInItem = menu?.findItem(R.id.action_google_sign_in)
-        val signOutItem = menu?.findItem(R.id.action_google_sign_out)
-
-        if (googleAccount != null) {
-            signInItem?.isVisible = false
-            signOutItem?.isVisible = true
-            signOutItem?.title = "Logout (${googleAccount?.email})"
-        } else {
-            signInItem?.isVisible = true
-            signOutItem?.isVisible = false
-        }
-        return super.onPrepareOptionsMenu(menu)
-    }
-
-    private fun setupRecyclerView() {
-        rotinaAdapter = RotinaAdapter { rotinaClicada ->
-            // --- MODIFICAÇÃO: VOLTAMOS A USAR O LAUNCHER ---
-            val intent = Intent(this, EditorRotinaComposeActivity::class.java)
-            // No futuro, podemos passar a rotina para edição aqui
-            // intent.putExtra("ROTINA_PARA_EDITAR", rotinaClicada)
-            editorRotinaLauncher.launch(intent)
-        }
-        binding.recyclerViewRotinas.apply {
-            adapter = rotinaAdapter
-            layoutManager = LinearLayoutManager(this@MainActivity)
-        }
-
-        val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(
-            0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
-        ) {
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ) = false
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.adapterPosition
-                val rotinaParaDeletar = rotinaAdapter.getRotinaAt(position)
-                viewModel.deleteRotina(rotinaParaDeletar) // Passamos o objeto 'Rotina'
-
-                Snackbar.make(binding.root, "Rotina deletada", Snackbar.LENGTH_LONG)
-                    .setAction("DESFAZER") {
-                        viewModel.reinsereRotina()
+        setContent {
+            MomentusTheme {
+                val googleAccount by remember { mutableStateOf(GoogleSignIn.getLastSignedInAccount(this)) }
+                AppNavigation(
+                    viewModel = viewModel,
+                    googleAccount = googleAccount,
+                    onNavigateToCalendar = { startActivity(Intent(this, CalendarActivity::class.java)) },
+                    onNavigateToTemplates = { startActivity(Intent(this, TemplatesActivity::class.java)) },
+                    onNavigateToStats = { startActivity(Intent(this, StatsActivity::class.java)) },
+                    onLogout = {
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            val intent = Intent(this, LoginActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            }
+                            startActivity(intent)
+                        }
                     }
-                    .show()
+                )
             }
         }
-        ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.recyclerViewRotinas)
     }
+}
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
-        return true
-    }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppNavigation(
+    viewModel: MainViewModel,
+    googleAccount: GoogleSignInAccount?,
+    onNavigateToCalendar: () -> Unit,
+    onNavigateToTemplates: () -> Unit,
+    onNavigateToStats: () -> Unit,
+    onLogout: () -> Unit
+) {
+    val context = LocalContext.current
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_schedule -> {
-                val intent = Intent(this, CronogramaActivity::class.java)
-                startActivity(intent)
-                true
-            }
-            // --- MODIFICAÇÃO INICIA AQUI ---
-            R.id.action_stats -> {
-                val intent = Intent(this, StatsActivity::class.java)
-                startActivity(intent)
-                true
-            }
-            // --- MODIFICAÇÃO TERMINA AQUI ---
-            R.id.action_google_sign_in -> {
-                signInWithGoogle()
-                true
-            }
-            R.id.action_google_sign_out -> {
-                signOut()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+    val editorRotinaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // A lógica para atualizar a lista ao voltar da tela de edição já é
+            // gerenciada pelo LiveData, então não precisamos fazer nada aqui.
         }
     }
 
-    private fun signInWithGoogle() {
-        googleSignInLauncher.launch(googleSignInClient.signInIntent)
-    }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                googleAccount = googleAccount,
+                onCalendarClicked = onNavigateToCalendar,
+                onTemplatesClicked = onNavigateToTemplates,
+                onLogoutClicked = onLogout,
+                onCloseDrawer = { scope.launch { drawerState.close() } }
+            )
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Minhas Rotinas") },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(painterResource(id = R.drawable.ic_menu), contentDescription = "Abrir Menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onNavigateToStats) {
+                            Icon(painterResource(id = R.drawable.ic_statistics), contentDescription = "Estatísticas")
+                        }
+                    }
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = {
+                    val intent = Intent(context, EditorRotinaComposeActivity::class.java)
+                    editorRotinaLauncher.launch(intent)
+                }) {
+                    Icon(painter = painterResource(id = R.drawable.ic_add), contentDescription = "Adicionar Rotina")
+                }
+            }
+        ) { paddingValues ->
+            // --- MODIFICAÇÃO: Substituímos o AndroidView por uma LazyColumn ---
 
-    private fun signOut() {
-        googleSignInClient.signOut().addOnCompleteListener(this) {
-            googleAccount = null
-            Toast.makeText(this, "Logout realizado.", Toast.LENGTH_SHORT).show()
-            invalidateOptionsMenu()
+            // 1. Observamos a lista de rotinas do ViewModel.
+            val rotinasComMetas by viewModel.rotinas.observeAsState(initial = emptyList())
+
+            // 2. Usamos uma Box para mostrar a lista ou a mensagem de estado vazio.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                if (rotinasComMetas.isEmpty()) {
+                    // Estado Vazio
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_empty_list),
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Text("Nenhuma rotina cadastrada.", style = MaterialTheme.typography.titleMedium)
+                        Text("Clique no '+' para começar", style = MaterialTheme.typography.bodyMedium)
+                    }
+                } else {
+                    // Lista de Rotinas (LazyColumn é a RecyclerView do Compose)
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(rotinasComMetas, key = { it.rotina.id }) { rotinaComMeta ->
+                            RotinaListItem(
+                                rotinaComMeta = rotinaComMeta,
+                                onItemClicked = {
+                                    val intent = Intent(context, EditorRotinaComposeActivity::class.java)
+                                    intent.putExtra("ROTINA_PARA_EDITAR", it.rotina)
+                                    editorRotinaLauncher.launch(intent)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -9,23 +9,27 @@ import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.children
-import br.com.fabriciolima.momentus.R
+import br.com.fabriciolima.momentus.MomentusApplication
+import br.com.fabriciolima.momentus.data.Meta
 import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.databinding.ActivityEditorRotinaBinding
-import com.google.android.material.textfield.TextInputEditText
-import android.widget.Toast
+import br.com.fabriciolima.momentus.viewmodel.MainViewModel
+import br.com.fabriciolima.momentus.viewmodel.MainViewModelFactory
 
 class EditorRotinaActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityEditorRotinaBinding
     private var rotinaExistente: Rotina? = null
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 1. Variável para guardar o código hexadecimal da cor selecionada.
     private var corSelecionada: String? = null
-    // --- MODIFICAÇÃO TERMINA AQUI ---
+
+    // --- MODIFICAÇÃO: Usamos o mesmo ViewModel da MainActivity para salvar a meta ---
+    private val viewModel: MainViewModel by viewModels {
+        MainViewModelFactory((application as MomentusApplication).repository)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,13 +37,22 @@ class EditorRotinaActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         rotinaExistente = intent.getSerializableExtra("ROTINA_PARA_EDITAR") as? Rotina
-        setupColorSelector() // 2. Chamamos a nova função para configurar o seletor.
+        setupColorSelector()
 
         rotinaExistente?.let {
             binding.editTextNome.setText(it.nome)
+            binding.editTextDescricao.setText(it.descricao)
+            binding.editTextTag.setText(it.tag)
             binding.editTextDuracao.setText(it.duracaoPadraoMinutos.toString())
-            // 3. Selecionamos a cor da rotina existente.
             selecionarCorPeloCodigo(it.cor)
+
+            // Carrega e exibe a meta, se existir
+            viewModel.rotinas.observe(this) { rotinasComMetas ->
+                val rotinaAtual = rotinasComMetas.find { r -> r.rotina.id == it.id }
+                rotinaAtual?.meta?.let { meta ->
+                    binding.editTextMeta.setText((meta.metaMinutosSemanal / 60).toString())
+                }
+            }
         }
 
         binding.buttonSalvar.setOnClickListener {
@@ -47,35 +60,31 @@ class EditorRotinaActivity : AppCompatActivity() {
         }
     }
 
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 4. Nova função para configurar os cliques nos círculos de cores.
     private fun setupColorSelector() {
-        // Percorremos todos os 'FrameLayouts' dentro do nosso container de cores.
         binding.colorSelectorContainer.children.forEach { colorView ->
-            // Acessamos o círculo colorido (o primeiro ImageView dentro do FrameLayout)
             val colorCircle = (colorView as FrameLayout).getChildAt(0) as ImageView
-            // Pegamos a cor de fundo dele, que definimos no XML.
             val colorStateList = colorCircle.backgroundTintList
             val colorHex = colorStateList?.toHex()
 
             colorView.setOnClickListener {
-                // Ao clicar, atualizamos a UI e guardamos o código da cor.
                 selecionarCor(colorView, colorHex)
             }
         }
+
+        // --- MODIFICAÇÃO: Se nenhuma cor for selecionada (ao criar uma nova rotina),
+        // selecionamos a primeira cor da paleta como padrão.
+        if (corSelecionada == null) {
+            (binding.colorSelectorContainer.getChildAt(0) as FrameLayout).performClick()
+        }
     }
 
-    // 5. Função para atualizar a UI do seletor.
     private fun selecionarCor(viewSelecionada: View, corHex: String?) {
-        // Primeiro, limpamos a seleção de todos os outros círculos.
         binding.colorSelectorContainer.children.forEach { child ->
             val border = (child as FrameLayout).getChildAt(1) as ImageView
             border.visibility = View.GONE
         }
-        // Depois, mostramos a borda apenas no círculo que foi clicado.
         val border = (viewSelecionada as FrameLayout).getChildAt(1) as ImageView
         border.visibility = View.VISIBLE
-        // E guardamos o código da cor.
         corSelecionada = corHex
     }
 
@@ -95,15 +104,13 @@ class EditorRotinaActivity : AppCompatActivity() {
     private fun ColorStateList.toHex(): String {
         return String.format("#%06X", (0xFFFFFF and this.defaultColor))
     }
-    // --- MODIFICAÇÃO TERMINA AQUI ---
 
     private fun salvarEFechar() {
         val nome = binding.editTextNome.text.toString()
         val duracaoStr = binding.editTextDuracao.text.toString()
-
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 8. Apagamos a referência ao editTextCor, pois ele não existe mais.
-        // --- MODIFICAÇÃO TERMINA AQUI ---
+        val descricao = binding.editTextDescricao.text.toString()
+        val tag = binding.editTextTag.text.toString()
+        val metaHorasStr = binding.editTextMeta.text.toString()
 
         var isValid = true
 
@@ -121,22 +128,31 @@ class EditorRotinaActivity : AppCompatActivity() {
             binding.layoutDuracao.error = null
         }
 
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 9. A validação agora checa se a variável 'corSelecionada' não é nula.
+        // Esta validação agora deve passar sempre, pois garantimos uma cor padrão.
         if (corSelecionada == null) {
             Toast.makeText(this, "Por favor, selecione uma cor.", Toast.LENGTH_SHORT).show()
             isValid = false
         }
-        // --- MODIFICAÇÃO TERMINA AQUI ---
 
         if (isValid) {
             val rotinaParaSalvar = Rotina(
                 id = rotinaExistente?.id ?: java.util.UUID.randomUUID().toString(),
                 nome = nome,
                 duracaoPadraoMinutos = duracaoStr.toInt(),
-                // 10. Usamos a cor da variável 'corSelecionada'.
-                cor = corSelecionada!!
+                cor = corSelecionada!!,
+                descricao = descricao.takeIf { it.isNotBlank() },
+                tag = tag.takeIf { it.isNotBlank() }
             )
+
+            viewModel.addRotina(rotinaParaSalvar)
+
+            val metaHoras = if (metaHorasStr.isNotBlank()) metaHorasStr.toInt() else 0
+            if (metaHoras > 0) {
+                // --- MODIFICAÇÃO: Corrigimos a chamada da função ---
+                // Em vez de: viewModel.salvarMeta(novaMeta)
+                // Chamamos com os parâmetros que a função espera: um ID (String) e as horas (Int)
+                viewModel.salvarMeta(rotinaParaSalvar.id, metaHoras)
+            }
 
             val resultIntent = Intent()
             resultIntent.putExtra("ROTINA_SALVA", rotinaParaSalvar)

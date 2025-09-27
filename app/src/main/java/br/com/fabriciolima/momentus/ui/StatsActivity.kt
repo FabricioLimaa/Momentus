@@ -1,107 +1,151 @@
-// ARQUIVO: ui/StatsActivity.kt (CÓDIGO COMPLETO)
+// ARQUIVO: ui/StatsActivity.kt (CÓDIGO COMPLETO E FINAL)
 
 package br.com.fabriciolima.momentus.ui
 
 import android.graphics.Color
 import android.os.Bundle
-import android.view.MenuItem
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.MomentusApplication
 import br.com.fabriciolima.momentus.data.StatsResult
-import br.com.fabriciolima.momentus.databinding.ActivityStatsBinding
+import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.viewmodel.StatsViewModel
 import br.com.fabriciolima.momentus.viewmodel.StatsViewModelFactory
-import com.github.mikephil.charting.data.PieData
-import com.github.mikephil.charting.data.PieDataSet
-import com.github.mikephil.charting.data.PieEntry
-import com.github.mikephil.charting.formatter.PercentFormatter
-import com.github.mikephil.charting.utils.ColorTemplate
+class StatsActivity : ComponentActivity() {
 
-class StatsActivity : AppCompatActivity() {
-
-    private lateinit var binding: ActivityStatsBinding
-
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 1. Instanciamos o novo ViewModel usando a Factory.
     private val viewModel: StatsViewModel by viewModels {
         StatsViewModelFactory((application as MomentusApplication).repository)
     }
-    // --- MODIFICAÇÃO TERMINA AQUI ---
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityStatsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        // --- MODIFICAÇÃO INICIA AQUI ---
-        // 2. Configuramos a aparência inicial do nosso gráfico.
-        setupChart()
-
-        // 3. Observamos o LiveData do ViewModel.
-        viewModel.stats.observe(this) { statsList ->
-            // Quando os dados chegam do banco, chamamos a função para atualizar o gráfico.
-            if (statsList.isNotEmpty()) {
-                updateChart(statsList)
+        setContent {
+            MomentusTheme {
+                val stats by viewModel.stats.observeAsState(initial = emptyList())
+                StatsScreen(statsData = stats)
             }
         }
-        // --- MODIFICAÇÃO TERMINA AQUI ---
     }
+}
 
-    private fun setupChart() {
-        binding.pieChart.apply {
-            // Usamos o formatador de porcentagem para os valores no gráfico.
-            setUsePercentValues(true)
-            // Texto de descrição do gráfico.
-            description.text = "Distribuição de tempo por rotina"
-            // Desativamos a legenda, pois os nomes ficarão no próprio gráfico.
-            legend.isEnabled = false
-            // Animação de entrada.
-            animateY(1400)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StatsScreen(statsData: List<StatsResult>) {
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Estatísticas de Rotinas") })
         }
-    }
-
-    private fun updateChart(data: List<StatsResult>) {
-        // 1. Convertendo nossa lista de 'StatsResult' para uma lista de 'PieEntry' que o gráfico entende.
-        val entries = ArrayList<PieEntry>()
-        for (item in data) {
-            entries.add(PieEntry(item.totalMinutos.toFloat(), item.nomeRotina))
-        }
-
-        // 2. Convertendo nossas cores hexadecimais para uma lista de inteiros que o gráfico entende.
-        val colors = ArrayList<Int>()
-        for (item in data) {
-            try {
-                colors.add(Color.parseColor(item.corRotina))
-            } catch (e: Exception) {
-                colors.add(Color.GRAY) // Cor padrão em caso de erro
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (statsData.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Nenhum dado de cronograma para exibir.")
+                }
+            } else {
+                val totalMinutos = statsData.sumOf { it.totalMinutos }
+                val pieChartData = statsData.map {
+                    PieChartEntry(
+                        color = androidx.compose.ui.graphics.Color(Color.parseColor(it.corRotina)),
+                        percentage = (it.totalMinutos.toFloat() / totalMinutos.toFloat()),
+                        label = it.nomeRotina
+                    )
+                }
+                PieChart(
+                    entries = pieChartData,
+                    modifier = Modifier
+                        .size(250.dp)
+                        .padding(16.dp)
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                StatsLegend(entries = pieChartData)
             }
         }
-
-        // 3. Criando o conjunto de dados para o gráfico.
-        val dataSet = PieDataSet(entries, "Rotinas")
-        dataSet.colors = colors // Aplicando nossa paleta de cores
-        dataSet.valueTextSize = 14f
-        dataSet.valueTextColor = Color.BLACK
-
-        // 4. Criando o objeto de dados final e aplicando o formatador de porcentagem.
-        val pieData = PieData(dataSet)
-        pieData.setValueFormatter(PercentFormatter(binding.pieChart))
-
-        // 5. Entregando os dados para o gráfico e atualizando-o.
-        binding.pieChart.data = pieData
-        binding.pieChart.invalidate()
     }
+}
 
-    // Função para fazer o botão de "voltar" na toolbar funcionar.
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
+@Composable
+fun PieChart(
+    entries: List<PieChartEntry>,
+    modifier: Modifier = Modifier,
+    strokeWidth: Float = 50f
+) {
+    var startAngle = -90f
+    Canvas(modifier = modifier) {
+        entries.forEach { entry ->
+            val sweepAngle = entry.percentage * 360f
+            drawArc(
+                color = entry.color,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                style = Stroke(width = strokeWidth)
+            )
+            startAngle += sweepAngle
         }
-        return super.onOptionsItemSelected(item)
+    }
+}
+
+@Composable
+fun StatsLegend(entries: List<PieChartEntry>) {
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(entries) { entry ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(entry.color, CircleShape)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${entry.label} (${"%.1f".format(entry.percentage * 100)}%)",
+                    fontSize = 16.sp
+                )
+            }
+        }
+    }
+}
+
+data class PieChartEntry(
+    val color: androidx.compose.ui.graphics.Color,
+    val percentage: Float,
+    val label: String
+)
+
+@Preview(showBackground = true)
+@Composable
+fun StatsScreenPreview() {
+    MomentusTheme {
+        val previewData = listOf(
+            StatsResult("Estudo", "#4CAF50", 120),
+            StatsResult("Família", "#2196F3", 180),
+            StatsResult("Lazer", "#FFC107", 60)
+        )
+        StatsScreen(statsData = previewData)
     }
 }

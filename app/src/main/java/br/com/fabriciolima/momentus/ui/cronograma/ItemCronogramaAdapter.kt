@@ -1,24 +1,24 @@
 // ARQUIVO: ui/cronograma/ItemCronogramaAdapter.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.ui.cronograma
 
 import android.graphics.Color
+import android.graphics.Paint
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import br.com.fabriciolima.momentus.data.ItemCronograma
-import br.com.fabriciolima.momentus.data.Rotina
+import br.com.fabriciolima.momentus.data.* // Wildcard
 import br.com.fabriciolima.momentus.databinding.ItemCronogramaBinding
+import java.util.concurrent.TimeUnit
 
-// --- MODIFICAÇÃO INICIA AQUI ---
-// 1. Herda de ListAdapter e remove a lista do construtor.
+// 1. MODIFICAÇÃO: O adapter agora espera um listener para o CheckBox.
 class ItemCronogramaAdapter(
-    private val onItemClicked: (ItemCronograma) -> Unit
-) : ListAdapter<ItemCronograma, ItemCronogramaAdapter.ItemViewHolder>(DiffCallback) {
+    private val onItemClicked: (ItemCronograma) -> Unit,
+    private val onCheckedChange: (ItemCronograma, Boolean) -> Unit
+) : ListAdapter<ItemCronogramaCompletado, ItemCronogramaAdapter.ItemViewHolder>(DiffCallback) {
 
-    // 2. O mapa de rotinas ainda é útil, então o mantemos e criamos um método para atualizá-lo.
     private var rotinasMap = emptyMap<String, Rotina>()
 
     // --- MODIFICAÇÃO TERMINA AQUI ---
@@ -29,10 +29,14 @@ class ItemCronogramaAdapter(
     }
 
     override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
-        // 3. Usa getItem(position) para pegar o item.
-        val item = getItem(position)
-        val rotinaCorrespondente = rotinasMap[item.rotinaId]
-        holder.bind(item, rotinaCorrespondente)
+        val itemCompletado = getItem(position)
+        val rotinaCorrespondente = rotinasMap[itemCompletado.item.rotinaId]
+        holder.bind(itemCompletado, rotinaCorrespondente)
+    }
+
+    // ... (getItemAt agora usa .item para pegar o ItemCronograma)
+    fun getItemAt(position: Int): ItemCronograma {
+        return getItem(position).item
     }
 
     // --- MODIFICAÇÃO INICIA AQUI ---
@@ -44,18 +48,45 @@ class ItemCronogramaAdapter(
     }
     // --- MODIFICAÇÃO TERMINA AQUI ---
 
-    fun getItemAt(position: Int): ItemCronograma {
-        return getItem(position)
-    }
-
     inner class ItemViewHolder(private val binding: ItemCronogramaBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: ItemCronograma, rotina: Rotina?) {
-            binding.textViewHorario.text = item.horarioInicio
-            binding.textViewNomeRotina.text = rotina?.nome ?: "Rotina não encontrada"
+        fun bind(itemCompletado: ItemCronogramaCompletado, rotina: Rotina?) {
+            val item = itemCompletado.item
+
+            // Preenche os campos com os novos dados
+            binding.textViewNomeRotina.text = rotina?.nome ?: "Rotina desconhecida"
+
+            // Calcula o horário de término
+            val fim = item.horarioInicio.split(":").map { it.toInt() }
+            val fimCalendar = java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, fim[0]); set(java.util.Calendar.MINUTE, fim[1]); add(java.util.Calendar.MINUTE, rotina?.duracaoPadraoMinutos ?: 0) }
+            val fimStr = String.format("%02d:%02d", fimCalendar.get(java.util.Calendar.HOUR_OF_DAY), fimCalendar.get(java.util.Calendar.MINUTE))
+            binding.textViewHorario.text = "${item.horarioInicio} - $fimStr"
+
+            binding.textViewDescricao.text = rotina?.descricao
+            binding.textViewDescricao.visibility = if (rotina?.descricao.isNullOrBlank()) View.GONE else View.VISIBLE
+
+            binding.textViewTag.text = rotina?.tag
+            binding.textViewTag.visibility = if (rotina?.tag.isNullOrBlank()) View.GONE else View.VISIBLE
+
             try {
                 binding.viewCor.setBackgroundColor(Color.parseColor(rotina?.cor ?: "#808080"))
             } catch (e: Exception) {
                 binding.viewCor.setBackgroundColor(Color.GRAY)
+            }
+
+            // Lógica do CheckBox
+            binding.checkBoxConcluido.setOnCheckedChangeListener(null)
+            binding.checkBoxConcluido.isChecked = itemCompletado.completado
+            binding.checkBoxConcluido.setOnCheckedChangeListener { _, isChecked ->
+                onCheckedChange(item, isChecked)
+            }
+
+            // Altera a aparência do item se estiver concluído
+            if (itemCompletado.completado) {
+                binding.textViewNomeRotina.paintFlags = binding.textViewNomeRotina.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+                binding.itemContainer.alpha = 0.6f
+            } else {
+                binding.textViewNomeRotina.paintFlags = binding.textViewNomeRotina.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+                binding.itemContainer.alpha = 1.0f
             }
 
             binding.root.setOnClickListener {
@@ -64,18 +95,10 @@ class ItemCronogramaAdapter(
         }
     }
 
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 5. Adicionamos o DiffUtil.ItemCallback para o ItemCronograma.
     companion object {
-        private val DiffCallback = object : DiffUtil.ItemCallback<ItemCronograma>() {
-            override fun areItemsTheSame(oldItem: ItemCronograma, newItem: ItemCronograma): Boolean {
-                return oldItem.id == newItem.id
-            }
-
-            override fun areContentsTheSame(oldItem: ItemCronograma, newItem: ItemCronograma): Boolean {
-                return oldItem == newItem
-            }
+        private val DiffCallback = object : DiffUtil.ItemCallback<ItemCronogramaCompletado>() {
+            override fun areItemsTheSame(old: ItemCronogramaCompletado, new: ItemCronogramaCompletado) = old.item.id == new.item.id
+            override fun areContentsTheSame(old: ItemCronogramaCompletado, new: ItemCronogramaCompletado) = old == new
         }
     }
-    // --- MODIFICAÇÃO TERMINA AQUI ---
 }

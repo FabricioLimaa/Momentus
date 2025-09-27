@@ -3,6 +3,7 @@
 package br.com.fabriciolima.momentus.ui
 
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -16,16 +17,16 @@ import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.databinding.ActivityCronogramaBinding
 import br.com.fabriciolima.momentus.logic.GoogleCalendarManager
 import br.com.fabriciolima.momentus.ui.cronograma.CronogramaPagerAdapter
+import br.com.fabriciolima.momentus.ui.cronograma.DiaCronogramaFragment // <-- MODIFICAÇÃO: IMPORT ADICIONADO
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import android.content.Intent
-import br.com.fabriciolima.momentus.ui.cronograma.DiaCronogramaFragment
 
 // --- MODIFICAÇÃO 2: A Activity agora "assina o contrato" da interface OnSwipeListener ---
+// A Activity agora "assina o contrato" da interface OnSwipeListener
 class CronogramaActivity : AppCompatActivity(), DiaCronogramaFragment.OnSwipeListener {
 
     private lateinit var binding: ActivityCronogramaBinding
@@ -50,10 +51,8 @@ class CronogramaActivity : AppCompatActivity(), DiaCronogramaFragment.OnSwipeLis
         binding.tabLayout.selectTab(binding.tabLayout.getTabAt(hoje))
     }
 
-    // --- MODIFICAÇÃO 3: Implementamos a função da interface ---
-    // Esta função será chamada pelo fragmento quando o estado do deslize mudar.
+    // Implementamos a função da interface.
     override fun onSwipeStateChanged(isSwiping: Boolean) {
-        // A Activity agora é responsável por controlar seu próprio componente.
         binding.viewPager.isUserInputEnabled = !isSwiping
     }
     // --- FIM DA MODIFICAÇÃO ---

@@ -8,5 +8,7 @@ import br.com.fabriciolima.momentus.data.database.AppDatabase
 class MomentusApplication : Application() {
     private val database by lazy { AppDatabase.getDatabase(this) }
     // Modifique a criação do repositório para incluir o novo DAO
-    val repository by lazy { RotinaRepository(database.rotinaDao(), database.itemCronogramaDao(), database.templateDao(), database.metaDao()) }
+    val repository by lazy {
+        RotinaRepository(database.rotinaDao(), database.itemCronogramaDao(), database.templateDao(), database.metaDao(), database.habitoConcluidoDao())
+    }
 }

@@ -1,40 +1,54 @@
-// ARQUIVO: viewmodel/CronogramaViewModel.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.ItemCronograma
+import br.com.fabriciolima.momentus.data.ItemCronogramaCompletado
 import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.data.RotinaRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map // Adicione este import
+import kotlinx.coroutines.flow.map // <-- ESTE É O IMPORT CRUCIAL E CORRETO
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
 
 class CronogramaViewModel(
     private val repository: RotinaRepository,
     application: Application
 ) : AndroidViewModel(application) {
 
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // 1. Usamos a propriedade correta 'todasAsRotinasComMetas'.
-    // 2. Como ela retorna Flow<List<RotinaComMeta>>, usamos .map { it.rotina }
-    //    para transformar o fluxo em um Flow<List<Rotina>>, que é o que a tela espera.
-    val todasAsRotinas: LiveData<List<Rotina>> = repository.todasAsRotinasComMetas.map { listaComMetas ->
-        listaComMetas.map { it.rotina }
-    }.asLiveData()
-    // --- MODIFICAÇÃO TERMINA AQUI ---
+    val todasAsRotinas: LiveData<List<Rotina>> = repository.todasAsRotinasComMetas
+        .map { listaComMetas -> // Este .map agora é o do kotlinx.coroutines.flow
+            listaComMetas.map { it.rotina }
+        }
+        .asLiveData()
 
     private var ultimoItemDeletado: ItemCronograma? = null
 
-    fun getItensDoDia(dia: String): LiveData<List<ItemCronograma>> {
-        return repository.getItensDoDia(dia).asLiveData()
+    fun getItensDoDiaCompletados(dia: String): LiveData<List<ItemCronogramaCompletado>> {
+        return repository.getItensDoDia(dia).combine(repository.idsHabitosConcluidos) { itens, idsConcluidos ->
+            itens.map { item ->
+                ItemCronogramaCompletado(item = item, completado = idsConcluidos.contains(item.id))
+            }
+        }.asLiveData()
+    }
+
+    fun onHabitoConcluidoChanged(item: ItemCronograma, isChecked: Boolean) = viewModelScope.launch {
+        if (isChecked) {
+            repository.marcarHabitoComoConcluido(item.id)
+        } else {
+            repository.desmarcarHabitoComoConcluido(item.id)
+        }
     }
 
     fun insertItem(item: ItemCronograma) = viewModelScope.launch {
         repository.insertItemCronograma(item)
-        // Usamos .first() para pegar o valor atual do Flow de forma síncrona dentro da coroutine
         val rotina = repository.todasAsRotinasComMetas.first().find { it.rotina.id == item.rotinaId }?.rotina
         rotina?.let {
             AlarmScheduler.schedule(getApplication(), item, it)

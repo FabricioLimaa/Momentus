@@ -1,9 +1,8 @@
+// ARQUIVO: data/RotinaRepository.kt (CÓDIGO COMPLETO)
+
 package br.com.fabriciolima.momentus.data
 
-import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
-import br.com.fabriciolima.momentus.data.database.MetaDao
-import br.com.fabriciolima.momentus.data.database.RotinaDao
-import br.com.fabriciolima.momentus.data.database.TemplateDao
+import br.com.fabriciolima.momentus.data.database.* // Usamos wildcard
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
@@ -11,12 +10,25 @@ open class RotinaRepository(
     private val rotinaDao: RotinaDao?,
     private val itemCronogramaDao: ItemCronogramaDao?,
     private val templateDao: TemplateDao?,
-    private val metaDao: MetaDao?
+    private val metaDao: MetaDao?,
+    // 1. Adicione o novo DAO ao construtor
+    private val habitoConcluidoDao: HabitoConcluidoDao?
 ) {
     // Marcamos como 'open' para permitir a sobrescrita no FakeRepository
     open val todasAsRotinasComMetas: Flow<List<RotinaComMeta>> = rotinaDao?.getRotinasComMetas() ?: emptyFlow()
     open val stats: Flow<List<StatsResult>> = itemCronogramaDao?.getStats() ?: emptyFlow()
     open val todosOsTemplates: Flow<List<Template>> = templateDao?.getAllTemplates() ?: emptyFlow()
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    open val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao?.getIdsConcluidos() ?: emptyFlow()
+
+    suspend fun marcarHabitoComoConcluido(itemCronogramaId: String) {
+        val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
+        habitoConcluidoDao?.insert(habito)
+    }
+
+    suspend fun desmarcarHabitoComoConcluido(itemCronogramaId: String) {
+        habitoConcluidoDao?.delete(itemCronogramaId)
+    }
 
     open fun getMetaParaRotina(rotinaId: String): Flow<Meta?> {
         return metaDao?.getMetaParaRotina(rotinaId) ?: emptyFlow()
