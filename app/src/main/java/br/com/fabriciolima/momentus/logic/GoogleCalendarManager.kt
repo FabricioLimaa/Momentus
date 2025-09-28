@@ -1,5 +1,3 @@
-// ARQUIVO: logic/GoogleCalendarManager.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.logic
 
 import android.content.Context
@@ -27,6 +25,7 @@ object GoogleCalendarManager {
         endDate: JavaCalendar
     ): Result<Int> = withContext(Dispatchers.IO) {
         try {
+            // Este credential agora funcionará pois a dependência correta está presente
             val credential = GoogleAccountCredential.usingOAuth2(
                 context, listOf(CalendarScopes.CALENDAR)
             ).setSelectedAccount(account.account)

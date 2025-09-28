@@ -105,7 +105,8 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(id = R.mipmap.ic_launcher_round),
+                // --- MODIFICAÇÃO AQUI: Trocamos R.mipmap.ic_launcher_round por R.drawable.ic_launcher_foreground ---
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "Logo do App",
                 modifier = Modifier.size(100.dp)
             )
@@ -115,9 +116,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             Text("Faça login para continuar", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Botão de Login com Google
             Button(
-                // --- CORREÇÃO: O onClick agora é mais simples ---
                 onClick = {
                     isLoading = true
                     googleSignInLauncher.launch(googleSignInClient.signInIntent)

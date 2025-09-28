@@ -1,11 +1,10 @@
-// ARQUIVO: ui/MainActivity.kt (CÓDIGO COMPLETO E FINAL)
+// ARQUIVO: ui/MainActivity.kt (CÓDIGO COMPLETO E REATORADO)
 
 package br.com.fabriciolima.momentus.ui
 
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,7 +52,8 @@ class MainActivity : AppCompatActivity() {
         setContent {
             MomentusTheme {
                 val googleAccount by remember { mutableStateOf(GoogleSignIn.getLastSignedInAccount(this)) }
-                AppNavigation(
+
+                AppScaffold( // Chamamos nosso novo Composable que contém toda a tela
                     viewModel = viewModel,
                     googleAccount = googleAccount,
                     onNavigateToCalendar = { startActivity(Intent(this, CalendarActivity::class.java)) },
@@ -73,9 +73,10 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(
+fun AppScaffold(
     viewModel: MainViewModel,
     googleAccount: GoogleSignInAccount?,
     onNavigateToCalendar: () -> Unit,
@@ -91,14 +92,15 @@ fun AppNavigation(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // A lógica para atualizar a lista ao voltar da tela de edição já é
-            // gerenciada pelo LiveData, então não precisamos fazer nada aqui.
+            // A atualização da lista já é gerenciada pelo LiveData, então não precisamos fazer nada aqui.
         }
     }
 
+    // --- MODIFICAÇÃO: A estrutura principal da nossa tela agora é o ModalNavigationDrawer ---
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
+            // O conteúdo do nosso menu lateral vem do Composable que criamos.
             AppDrawer(
                 googleAccount = googleAccount,
                 onCalendarClicked = onNavigateToCalendar,
@@ -108,16 +110,19 @@ fun AppNavigation(
             )
         }
     ) {
+        // O Scaffold é o layout principal da tela (barra de título, conteúdo, botão '+')
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = { Text("Minhas Rotinas") },
                     navigationIcon = {
+                        // O ícone de navegação agora abre o drawer.
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(painterResource(id = R.drawable.ic_menu), contentDescription = "Abrir Menu")
                         }
                     },
                     actions = {
+                        // O ícone de estatísticas continua na barra de título.
                         IconButton(onClick = onNavigateToStats) {
                             Icon(painterResource(id = R.drawable.ic_statistics), contentDescription = "Estatísticas")
                         }
@@ -133,19 +138,14 @@ fun AppNavigation(
                 }
             }
         ) { paddingValues ->
-            // --- MODIFICAÇÃO: Substituímos o AndroidView por uma LazyColumn ---
-
-            // 1. Observamos a lista de rotinas do ViewModel.
+            // O conteúdo da tela (a lista de rotinas) é o mesmo de antes.
             val rotinasComMetas by viewModel.rotinas.observeAsState(initial = emptyList())
-
-            // 2. Usamos uma Box para mostrar a lista ou a mensagem de estado vazio.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
                 if (rotinasComMetas.isEmpty()) {
-                    // Estado Vazio
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.Center,
@@ -157,12 +157,10 @@ fun AppNavigation(
                             modifier = Modifier.size(80.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-
                         Text("Nenhuma rotina cadastrada.", style = MaterialTheme.typography.titleMedium)
                         Text("Clique no '+' para começar", style = MaterialTheme.typography.bodyMedium)
                     }
                 } else {
-                    // Lista de Rotinas (LazyColumn é a RecyclerView do Compose)
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),

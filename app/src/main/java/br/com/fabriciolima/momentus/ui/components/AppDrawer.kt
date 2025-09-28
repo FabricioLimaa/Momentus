@@ -2,6 +2,7 @@
 
 package br.com.fabriciolima.momentus.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -13,17 +14,18 @@ import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.R
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 
-// Esta é a função que desenha todo o conteúdo do menu lateral
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppDrawer(
-    googleAccount: GoogleSignInAccount?, // Recebe a conta do Google para exibir os dados
+    googleAccount: GoogleSignInAccount?,
     onCalendarClicked: () -> Unit,
     onTemplatesClicked: () -> Unit,
     onLogoutClicked: () -> Unit,
-    onCloseDrawer: () -> Unit
+    onCloseDrawer: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    ModalDrawerSheet {
-        // Cabeçalho com o logo e nome do App
+    ModalDrawerSheet(modifier = modifier) {
+        // Cabeçalho com o logo
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -31,7 +33,8 @@ fun AppDrawer(
             Icon(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "Logo Momentus",
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text("Minha Agenda", style = MaterialTheme.typography.titleLarge)
@@ -40,32 +43,47 @@ fun AppDrawer(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Itens de Navegação
+        Text("NAVEGAÇÃO", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.labelSmall)
         NavigationDrawerItem(
             icon = { Icon(painterResource(id = R.drawable.ic_schedule), contentDescription = null) },
             label = { Text("Calendário") },
-            selected = false, // Podemos adicionar lógica de seleção no futuro
-            onClick = { onCalendarClicked(); onCloseDrawer() }
+            selected = false, // Lógica de seleção pode ser adicionada no futuro
+            onClick = { onCalendarClicked(); onCloseDrawer() },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
         NavigationDrawerItem(
             icon = { Icon(painterResource(id = R.drawable.ic_templates), contentDescription = null) },
             label = { Text("Templates") },
             selected = false,
-            onClick = { onTemplatesClicked(); onCloseDrawer() }
+            onClick = { onTemplatesClicked(); onCloseDrawer() },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
-        // Adicione aqui outros itens de navegação, como "Estatísticas", se desejar.
 
-        // Espaçador para empurrar a seção do usuário para baixo
+        // Espaçador que empurra a seção do usuário para o final
         Spacer(modifier = Modifier.weight(1f))
 
         // Seção do Usuário
+        Divider()
         Column(modifier = Modifier.padding(16.dp)) {
             Text("USUÁRIO", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            if (googleAccount != null) {
-                Text(googleAccount.displayName ?: "", style = MaterialTheme.typography.bodyLarge)
-                Text(googleAccount.email ?: "", style = MaterialTheme.typography.bodyMedium)
-            } else {
-                Text("Não conectado", style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Simula o avatar com a primeira letra do nome
+                Box(
+                    modifier = Modifier.size(40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = googleAccount?.displayName?.firstOrNull()?.toString() ?: "U",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(googleAccount?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text(googleAccount?.email ?: "", style = MaterialTheme.typography.bodyMedium)
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(
