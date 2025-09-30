@@ -3,16 +3,19 @@ package br.com.fabriciolima.momentus.data
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index // Adicione este import
 import androidx.room.PrimaryKey
 import java.util.UUID
 
 @Entity(
     tableName = "tabela_itens_cronograma",
+    // --- MODIFICAÇÃO: Adicionamos a criação de um índice na coluna 'rotinaId' ---
+    indices = [Index(value = ["rotinaId"])],
     foreignKeys = [ForeignKey(
         entity = Rotina::class,
         parentColumns = ["id"],
         childColumns = ["rotinaId"],
-        onDelete = ForeignKey.CASCADE // Se uma rotina for deletada, os itens agendados com ela também serão.
+        onDelete = ForeignKey.CASCADE
     )]
 )
 data class ItemCronograma(

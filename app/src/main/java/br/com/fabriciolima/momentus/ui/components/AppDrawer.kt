@@ -18,7 +18,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 @Composable
 fun AppDrawer(
     googleAccount: GoogleSignInAccount?,
-    onCalendarClicked: () -> Unit,
+    // --- MODIFICAÇÃO: Trocamos onCalendarClicked por onRoutinesClicked ---
+    onRoutinesClicked: () -> Unit,
     onTemplatesClicked: () -> Unit,
     onLogoutClicked: () -> Unit,
     onCloseDrawer: () -> Unit,
@@ -42,21 +43,19 @@ fun AppDrawer(
         Divider()
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Itens de Navegação
         Text("NAVEGAÇÃO", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.labelSmall)
         NavigationDrawerItem(
-            icon = { Icon(painterResource(id = R.drawable.ic_schedule), contentDescription = null) },
-            label = { Text("Calendário") },
-            selected = false, // Lógica de seleção pode ser adicionada no futuro
-            onClick = { onCalendarClicked(); onCloseDrawer() },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            // --- MODIFICAÇÃO: O primeiro item agora leva para a lista de Rotinas ---
+            icon = { Icon(painterResource(id = R.drawable.ic_empty_list), contentDescription = null) },
+            label = { Text("Minhas Rotinas") },
+            selected = false,
+            onClick = { onRoutinesClicked(); onCloseDrawer() }
         )
         NavigationDrawerItem(
             icon = { Icon(painterResource(id = R.drawable.ic_templates), contentDescription = null) },
             label = { Text("Templates") },
             selected = false,
-            onClick = { onTemplatesClicked(); onCloseDrawer() },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            onClick = { onTemplatesClicked(); onCloseDrawer() }
         )
 
         // Espaçador que empurra a seção do usuário para o final

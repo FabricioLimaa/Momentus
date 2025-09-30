@@ -36,15 +36,11 @@ import com.google.android.gms.common.api.Scope
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Verificação de Login Prévio
-        // Se o usuário já estiver logado, ele pula a tela de login.
         val account = GoogleSignIn.getLastSignedInAccount(this)
         if (account != null) {
-            navigateToMain()
-            return // Impede o resto do onCreate de executar
+            navigateToMain() // Se já está logado, vai direto para o Calendário
+            return
         }
-
         setContent {
             MomentusTheme {
                 LoginScreen(
@@ -53,8 +49,10 @@ class LoginActivity : ComponentActivity() {
             }
         }
     }
+
     private fun navigateToMain() {
-        val intent = Intent(this, MainActivity::class.java).apply {
+        // --- MODIFICAÇÃO: O destino agora é a CalendarActivity ---
+        val intent = Intent(this, CalendarActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         startActivity(intent)
