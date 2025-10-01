@@ -1,5 +1,3 @@
-// ARQUIVO: ui/MainActivity.kt (CÓDIGO COMPLETO E SIMPLIFICADO)
-
 package br.com.fabriciolima.momentus.ui
 
 import android.app.Activity
@@ -40,10 +38,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MomentusTheme {
-                // A MainActivity agora só chama o Composable da sua própria tela.
                 RoutinesScreen(
                     viewModel = viewModel,
-                    onNavigateBack = { finish() } // Botão de voltar fecha a tela
+                    onNavigateBack = { finish() }
                 )
             }
         }
@@ -61,7 +58,7 @@ fun RoutinesScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // A atualização da lista já é gerenciada pelo LiveData.
+            // Atualização já é feita pelo LiveData
         }
     }
 
@@ -92,16 +89,8 @@ fun RoutinesScreen(
                 .padding(paddingValues)
         ) {
             if (rotinasComMetas.isEmpty()) {
-                // Estado Vazio
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // ... (UI do estado vazio)
-                }
+                // ... (Estado Vazio)
             } else {
-                // Lista de Rotinas
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),

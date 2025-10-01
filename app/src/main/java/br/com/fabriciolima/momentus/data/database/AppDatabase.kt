@@ -8,8 +8,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import br.com.fabriciolima.momentus.data.* // Usamos wildcard para importar todas as entidades
 
-// 1. Adicione HabitoConcluido::class e mude a versão para 6
-@Database(entities = [Rotina::class, ItemCronograma::class, Template::class, TemplateItem::class, Meta::class, HabitoConcluido::class], version = 6, exportSchema = false)
+// 1. Adicione HabitoConcluido::class e mude a versão para 7
+@Database(entities = [Rotina::class, ItemCronograma::class, Template::class, TemplateItem::class, Meta::class, HabitoConcluido::class], version = 7, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun rotinaDao(): RotinaDao

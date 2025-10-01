@@ -41,6 +41,12 @@ interface ItemCronogramaDao {
     @Query("SELECT * FROM tabela_itens_template WHERE templateId = :templateId")
     suspend fun getItemsForTemplate(templateId: String): List<TemplateItem>
 
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    // Nova função para buscar todos os itens do cronograma de uma vez.
+    @Query("SELECT * FROM tabela_itens_cronograma")
+    fun getAllItems(): Flow<List<ItemCronograma>>
+    // --- MODIFICAÇÃO TERMINA AQUI ---
+
     @Transaction
     suspend fun loadTemplateIntoSchedule(templateId: String) {
         // 1. Apaga o cronograma atual.
@@ -50,6 +56,7 @@ interface ItemCronogramaDao {
         // 3. Converte os itens de template para itens de cronograma.
         val cronogramaItems = templateItems.map { item ->
             ItemCronograma(
+                data = null,
                 diaDaSemana = item.diaDaSemana,
                 horarioInicio = item.horarioInicio,
                 rotinaId = item.rotinaId

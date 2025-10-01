@@ -13,6 +13,8 @@ import java.util.Calendar
 object AlarmScheduler {
 
     fun schedule(context: Context, item: ItemCronograma, rotina: Rotina, leadTimeMinutes: Int = 10) {
+        if (item.diaDaSemana == null) return
+
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         val intent = Intent(context, AlarmReceiver::class.java).apply {
@@ -30,6 +32,7 @@ object AlarmScheduler {
         val calendar = Calendar.getInstance()
         val (hora, minuto) = item.horarioInicio.split(":").map { it.toInt() }
 
+        // Agora o compilador sabe que item.diaDaSemana não é nulo aqui.
         val diaDaSemanaAlvo = getCalendarDayOfWeek(item.diaDaSemana)
         while (calendar.get(Calendar.DAY_OF_WEEK) != diaDaSemanaAlvo) {
             calendar.add(Calendar.DAY_OF_WEEK, 1)

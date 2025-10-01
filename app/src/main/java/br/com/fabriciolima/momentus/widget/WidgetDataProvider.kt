@@ -51,16 +51,15 @@ class WidgetDataProvider(
             }
             */
 
-            // 2. Adicionamos dados falsos para forçar a exibição.
+            // --- CORREÇÃO AQUI ---
+            // Adicionamos 'data = null' ao criar o ItemCronograma de teste.
             Log.d("WidgetDataProvider", "USANDO DADOS DE TESTE!")
             itensDoDia = listOf(
-                ItemCronograma(id = "teste1", diaDaSemana = "QUA", horarioInicio = "10:00", rotinaId = "rotina_teste")
+                ItemCronograma(id = "teste1", data = null, diaDaSemana = "QUA", horarioInicio = "10:00", rotinaId = "rotina_teste")
             )
             rotinasMap = mapOf("rotina_teste" to "Item de Teste")
-            coresMap = mapOf("rotina_teste" to "#FF5722") // Laranja
+            coresMap = mapOf("rotina_teste" to "#FF5722")
             Log.d("WidgetDataProvider", "Dados de teste carregados. Itens: ${itensDoDia.size}")
-
-            // --- MODIFICAÇÃO TERMINA AQUI ---
 
         } catch (e: Exception) {
             Log.e("WidgetDataProvider", "ERRO AO BUSCAR DADOS: ", e)

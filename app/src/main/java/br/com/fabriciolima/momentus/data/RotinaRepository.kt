@@ -11,7 +11,6 @@ open class RotinaRepository(
     private val itemCronogramaDao: ItemCronogramaDao?,
     private val templateDao: TemplateDao?,
     private val metaDao: MetaDao?,
-    // 1. Adicione o novo DAO ao construtor
     private val habitoConcluidoDao: HabitoConcluidoDao?
 ) {
     // Marcamos como 'open' para permitir a sobrescrita no FakeRepository
@@ -20,6 +19,10 @@ open class RotinaRepository(
     open val todosOsTemplates: Flow<List<Template>> = templateDao?.getAllTemplates() ?: emptyFlow()
     // --- MODIFICAÇÃO INICIA AQUI ---
     open val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao?.getIdsConcluidos() ?: emptyFlow()
+
+    // --- MODIFICAÇÃO INICIA AQUI ---
+    val todosOsItensDoCronograma: Flow<List<ItemCronograma>> = itemCronogramaDao?.getAllItems() ?: emptyFlow()
+    // --- MODIFICAÇÃO TERMINA AQUI ---
 
     suspend fun marcarHabitoComoConcluido(itemCronogramaId: String) {
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())

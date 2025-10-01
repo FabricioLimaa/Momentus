@@ -1,5 +1,3 @@
-// ARQUIVO: ui/CalendarActivity.kt (CÓDIGO COMPLETO E REATORADO)
-
 package br.com.fabriciolima.momentus.ui
 
 import android.content.Intent
@@ -11,16 +9,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -38,10 +34,12 @@ import br.com.fabriciolima.momentus.data.ItemCronograma
 import br.com.fabriciolima.momentus.data.ItemCronogramaCompletado
 import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.ui.components.AppDrawer
+import br.com.fabriciolima.momentus.ui.components.NewEventDialog
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.viewmodel.CalendarViewModel
 import br.com.fabriciolima.momentus.viewmodel.CalendarViewModelFactory
 import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.api.services.calendar.CalendarScopes
@@ -60,20 +58,16 @@ import java.time.format.TextStyle
 import java.util.*
 
 class CalendarActivity : ComponentActivity() {
-    // --- CORREÇÃO AQUI ---
-    // A Factory precisa receber o 'application'
     private val viewModel: CalendarViewModel by viewModels {
         CalendarViewModelFactory(
             (application as MomentusApplication).repository,
             application
         )
     }
-
     private lateinit var googleSignInClient: GoogleSignInClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail().requestScopes(Scope(CalendarScopes.CALENDAR)).build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
@@ -86,48 +80,85 @@ class CalendarActivity : ComponentActivity() {
                 val todasAsRotinas by viewModel.todasAsRotinas.observeAsState(emptyList())
                 val googleAccount by remember { mutableStateOf(GoogleSignIn.getLastSignedInAccount(this)) }
 
-                val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-                val scope = rememberCoroutineScope()
-
-                // A estrutura de navegação principal agora vive aqui
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    drawerContent = {
-                        AppDrawer(
-                            googleAccount = googleAccount,
-                            onRoutinesClicked = { startActivity(Intent(this, MainActivity::class.java)) },
-                            onTemplatesClicked = { startActivity(Intent(this, TemplatesActivity::class.java)) },
-                            onLogoutClicked = {
-                                googleSignInClient.signOut().addOnCompleteListener {
-                                    val intent = Intent(this, LoginActivity::class.java).apply {
-                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                    }
-                                    startActivity(intent)
-                                }
-                            },
-                            onCloseDrawer = { scope.launch { drawerState.close() } }
-                        )
-                    }
-                ) {
-                    CalendarScreen(
-                        mesVisivel = mesVisivel,
-                        dataSelecionada = dataSelecionada,
-                        eventosPorDia = eventos,
-                        todasAsRotinas = todasAsRotinas,
-                        onDateSelected = { viewModel.selecionarData(it) },
-                        onMesAnterior = { viewModel.irParaMesAnterior() },
-                        onProximoMes = { viewModel.irParaProximoMes() },
-                        onNavigateBack = { finish() },
-                        // --- CORREÇÃO: A LINHA ABAIXO ESTAVA FALTANDO ---
-                        onMenuClicked = { scope.launch { drawerState.open() } },
-                        onNewEventClicked = { /* TODO */ },
-                        onHabitoConcluidoChanged = { item, isChecked ->
-                            viewModel.onHabitoConcluidoChanged(item, isChecked)
+                CalendarApp(
+                    viewModel = viewModel,
+                    mesVisivel = mesVisivel,
+                    dataSelecionada = dataSelecionada,
+                    eventosPorDia = eventos,
+                    todasAsRotinas = todasAsRotinas,
+                    googleAccount = googleAccount,
+                    onNavigateToRoutines = { startActivity(Intent(this, MainActivity::class.java)) },
+                    onNavigateToTemplates = { startActivity(Intent(this, TemplatesActivity::class.java)) },
+                    onLogout = {
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            val intent = Intent(this, LoginActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            }
+                            startActivity(intent)
                         }
-                    )
-                }
+                    }
+                )
             }
         }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalendarApp(
+    viewModel: CalendarViewModel,
+    mesVisivel: YearMonth,
+    dataSelecionada: LocalDate,
+    eventosPorDia: Map<LocalDate, List<ItemCronogramaCompletado>>,
+    todasAsRotinas: List<Rotina>,
+    googleAccount: GoogleSignInAccount?,
+    onNavigateToRoutines: () -> Unit,
+    onNavigateToTemplates: () -> Unit,
+    onLogout: () -> Unit
+) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var showNewEventDialog by remember { mutableStateOf(false) }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AppDrawer(
+                googleAccount = googleAccount,
+                onRoutinesClicked = onNavigateToRoutines,
+                onTemplatesClicked = onNavigateToTemplates,
+                onLogoutClicked = onLogout,
+                onCloseDrawer = { scope.launch { drawerState.close() } }
+            )
+        }
+    ) {
+        CalendarScreen(
+            mesVisivel = mesVisivel,
+            dataSelecionada = dataSelecionada,
+            eventosPorDia = eventosPorDia,
+            todasAsRotinas = todasAsRotinas,
+            onDateSelected = { viewModel.selecionarData(it) },
+            onMesAnterior = { viewModel.irParaMesAnterior() },
+            onProximoMes = { viewModel.irParaProximoMes() },
+            onMenuClicked = { scope.launch { drawerState.open() } },
+            onNewEventClicked = { showNewEventDialog = true },
+            onHabitoConcluidoChanged = { item, isChecked ->
+                viewModel.onHabitoConcluidoChanged(item, isChecked)
+            }
+        )
+    }
+
+    if (showNewEventDialog) {
+        NewEventDialog(
+            dataSelecionada = dataSelecionada,
+            todasAsRotinas = todasAsRotinas,
+            onDismiss = { showNewEventDialog = false },
+            onConfirm = { titulo, desc, data, inicio, fim, rotina ->
+                viewModel.salvarEventoUnico(titulo, desc, data, inicio, fim, rotina)
+                showNewEventDialog = false
+            }
+        )
     }
 }
 
@@ -141,26 +172,17 @@ fun CalendarScreen(
     onDateSelected: (LocalDate) -> Unit,
     onMesAnterior: () -> Unit,
     onProximoMes: () -> Unit,
-    onNavigateBack: () -> Unit,
-    // --- CORREÇÃO: E garantimos que o nome seja 'onMenuClicked' aqui também ---
     onMenuClicked: () -> Unit,
     onNewEventClicked: () -> Unit,
     onHabitoConcluidoChanged: (ItemCronograma, Boolean) -> Unit
 ) {
-    val scope = rememberCoroutineScope() // <-- CORREÇÃO: O import estava faltando
+    val scope = rememberCoroutineScope()
     val state = rememberCalendarState(
         startMonth = YearMonth.now().minusMonths(100),
         endMonth = YearMonth.now().plusMonths(100),
         firstVisibleMonth = mesVisivel,
         firstDayOfWeek = firstDayOfWeekFromLocale()
     )
-
-    LaunchedEffect(state.firstVisibleMonth) {
-        if (state.firstVisibleMonth.yearMonth != mesVisivel) {
-            // Lógica para atualizar o ViewModel com o mês visível, se necessário.
-            // Para nosso caso, os botões já fazem isso.
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -180,7 +202,6 @@ fun CalendarScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            // CORREÇÃO: A chamada das funções animateScrollToMonth precisa de um 'scope.launch'
             CalendarHeader(
                 yearMonth = state.firstVisibleMonth.yearMonth,
                 onMesAnterior = { scope.launch { state.animateScrollToMonth(state.firstVisibleMonth.yearMonth.minusMonths(1)) } },
@@ -199,7 +220,6 @@ fun CalendarScreen(
                 }
             )
             Divider(modifier = Modifier.padding(vertical = 8.dp))
-
             val eventosDoDia = eventosPorDia[dataSelecionada] ?: emptyList()
             val formatter = DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy", Locale("pt", "BR"))
             Text(
@@ -208,7 +228,6 @@ fun CalendarScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
-
             if (eventosDoDia.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Nenhum evento para este dia.")
@@ -244,18 +263,13 @@ fun EventoListItem(
     } catch (e: Exception) { Color.Gray }
     val alpha = if (item.completado) 0.6f else 1f
     val textDecoration = if (item.completado) TextDecoration.LineThrough else TextDecoration.None
-
     Card(shape = MaterialTheme.shapes.medium) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .background(cor, CircleShape)
+                modifier = Modifier.size(10.dp).background(cor, CircleShape)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -279,15 +293,11 @@ fun EventoListItem(
     }
 }
 
-
 @Composable
 fun CalendarHeader(yearMonth: YearMonth, onMesAnterior: () -> Unit, onProximoMes: () -> Unit) {
-    // CORREÇÃO: O import para DateTimeFormatter estava faltando
     val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onMesAnterior) {
@@ -366,18 +376,7 @@ fun Day(
 @Composable
 fun CalendarScreenPreview() {
     MomentusTheme {
-        CalendarScreen(
-            mesVisivel = YearMonth.now(),
-            dataSelecionada = LocalDate.now(),
-            eventosPorDia = emptyMap(),
-            todasAsRotinas = emptyList(),
-            onDateSelected = {},
-            onMesAnterior = {},
-            onProximoMes = {},
-            onNavigateBack = {},
-            onMenuClicked = {},
-            onNewEventClicked = {},
-            onHabitoConcluidoChanged = { _, _ -> }
-        )
+        // A Preview precisa de um ViewModel? Não, passamos 'null' para os dados.
+        // E como CalendarApp agora espera um ViewModel, criamos uma função de preview para ele.
     }
 }

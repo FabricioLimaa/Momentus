@@ -1,3 +1,5 @@
+// ARQUIVO: viewmodel/CalendarViewModel.kt (CÓDIGO COMPLETO E FINAL)
+
 package br.com.fabriciolima.momentus.viewmodel
 
 import android.app.Application
@@ -10,10 +12,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
-// O ViewModel precisa herdar de AndroidViewModel para o Application Context
 class CalendarViewModel(private val repository: RotinaRepository, application: Application) : AndroidViewModel(application) {
 
     private val _mesVisivel = MutableLiveData(YearMonth.now())
@@ -26,30 +30,42 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
         listaComMetas.map { it.rotina }
     }.asLiveData()
 
+    // --- GRANDE MODIFICAÇÃO: Lógica final para mapear todos os tipos de evento ---
     val eventosDoCronograma: LiveData<Map<LocalDate, List<ItemCronogramaCompletado>>> =
-        combine(
-            repository.getItensDoDia("DOM"), repository.getItensDoDia("SEG"),
-            repository.getItensDoDia("TER"), repository.getItensDoDia("QUA"),
-            repository.getItensDoDia("QUI"), repository.getItensDoDia("SEX"),
-            repository.getItensDoDia("SÁB"), repository.idsHabitosConcluidos
-        ) { arrays ->
-            val itensPorDiaDaSemana = arrays.take(7).map { it as List<ItemCronograma> }
-            val idsConcluidos = arrays[7] as List<String>
+        // Combina o fluxo de todos os itens agendados com o fluxo dos hábitos concluídos
+        repository.todosOsItensDoCronograma.combine(repository.idsHabitosConcluidos) { todosOsItens, idsConcluidos ->
             val mapaEventos = mutableMapOf<LocalDate, MutableList<ItemCronogramaCompletado>>()
-            val hoje = LocalDate.now()
 
-            for (i in -365..365) {
-                val dataAtual = hoje.plusDays(i.toLong())
-                val diaDaSemanaIndex = if (dataAtual.dayOfWeek == DayOfWeek.SUNDAY) 0 else dataAtual.dayOfWeek.value
+            // Separa os itens em dois grupos: recorrentes e únicos
+            val itensRecorrentes = todosOsItens.filter { it.diaDaSemana != null }
+            val eventosUnicos = todosOsItens.filter { it.data != null }
 
-                val itensParaEsteDia = itensPorDiaDaSemana[diaDaSemanaIndex]
-                if (itensParaEsteDia.isNotEmpty()) {
-                    val itensCompletados = itensParaEsteDia.map { item ->
-                        ItemCronogramaCompletado(item = item, completado = idsConcluidos.contains(item.id))
+            // 1. Adiciona os eventos únicos ao mapa
+            eventosUnicos.forEach { evento ->
+                val data = Instant.ofEpochMilli(evento.data!!).atZone(ZoneId.systemDefault()).toLocalDate()
+                val eventoCompletado = ItemCronogramaCompletado(item = evento, completado = idsConcluidos.contains(evento.id))
+                mapaEventos.getOrPut(data) { mutableListOf() }.add(eventoCompletado)
+            }
+
+            // 2. Adiciona os eventos recorrentes (rotinas) ao mapa
+            if (itensRecorrentes.isNotEmpty()) {
+                val hoje = LocalDate.now()
+                for (i in -365..365) { // Gera para um ano no passado e um no futuro
+                    val dataAtual = hoje.plusDays(i.toLong())
+                    val diaDaSemanaAtual = if (dataAtual.dayOfWeek == DayOfWeek.SUNDAY) "DOM" else dataAtual.dayOfWeek.name.substring(0, 3)
+
+                    itensRecorrentes.filter { it.diaDaSemana == diaDaSemanaAtual }.forEach { itemRecorrente ->
+                        val itemCompletado = ItemCronogramaCompletado(item = itemRecorrente, completado = idsConcluidos.contains(itemRecorrente.id))
+                        mapaEventos.getOrPut(dataAtual) { mutableListOf() }.add(itemCompletado)
                     }
-                    mapaEventos[dataAtual] = itensCompletados.sortedBy { it.item.horarioInicio }.toMutableList()
                 }
             }
+
+            // Ordena os itens de cada dia por horário
+            mapaEventos.forEach { (_, lista) ->
+                lista.sortBy { it.item.horarioInicio }
+            }
+
             mapaEventos
         }.asLiveData()
 
@@ -66,7 +82,6 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
         _mesVisivel.value = _mesVisivel.value?.plusMonths(1)
     }
 
-    // --- FUNÇÃO QUE ESTAVA FALTANDO ---
     fun onHabitoConcluidoChanged(item: ItemCronograma, isChecked: Boolean) = viewModelScope.launch {
         if (isChecked) {
             repository.marcarHabitoComoConcluido(item.id)
@@ -74,9 +89,34 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
             repository.desmarcarHabitoComoConcluido(item.id)
         }
     }
+
+    fun salvarEventoUnico(
+        titulo: String,
+        descricao: String?,
+        data: LocalDate,
+        inicio: java.time.LocalTime,
+        fim: java.time.LocalTime,
+        rotina: Rotina
+    ) = viewModelScope.launch {
+        val duracao = java.time.Duration.between(inicio, fim).toMinutes().toInt()
+        val rotinaEventoUnico = Rotina(
+            nome = titulo,
+            descricao = descricao,
+            tag = rotina.tag,
+            cor = rotina.cor,
+            duracaoPadraoMinutos = duracao
+        )
+        repository.insert(rotinaEventoUnico)
+        val novoItem = ItemCronograma(
+            data = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            diaDaSemana = null,
+            horarioInicio = inicio.format(DateTimeFormatter.ofPattern("HH:mm")),
+            rotinaId = rotinaEventoUnico.id
+        )
+        repository.insertItemCronograma(novoItem)
+    }
 }
 
-// A Factory precisa passar o Application para o ViewModel
 class CalendarViewModelFactory(
     private val repository: RotinaRepository,
     private val application: Application

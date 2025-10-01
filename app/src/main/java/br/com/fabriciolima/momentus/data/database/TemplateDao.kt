@@ -31,12 +31,15 @@ interface TemplateDao {
     suspend fun saveCurrentScheduleAsTemplate(template: Template) {
         insertTemplate(template)
         val cronogramaAtual = getItensCronogramaAtuais()
-        val templateItems = cronogramaAtual.map { item ->
+        // --- CORREÇÃO AQUI ---
+        // Adicionamos um '.filter { it.rotinaId != null }' para garantir
+        // que estamos lidando apenas com itens que têm uma rotina associada.
+        val templateItems = cronogramaAtual.filter { it.rotinaId != null }.map { item ->
             TemplateItem(
                 templateId = template.id,
-                diaDaSemana = item.diaDaSemana,
+                diaDaSemana = item.diaDaSemana ?: "", // Garante que não seja nulo
                 horarioInicio = item.horarioInicio,
-                rotinaId = item.rotinaId
+                rotinaId = item.rotinaId // Agora o compilador sabe que não é nulo
             )
         }
         insertAllTemplateItems(templateItems)
