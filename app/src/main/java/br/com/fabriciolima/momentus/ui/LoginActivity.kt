@@ -14,13 +14,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -96,34 +99,45 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     // --- FIM DA CORREÇÃO ---
 
     // Função para iniciar o fluxo de login
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background // Usa a cor de fundo do novo tema
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(32.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Logo
             Image(
-                // --- MODIFICAÇÃO AQUI: Trocamos R.mipmap.ic_launcher_round por R.drawable.ic_launcher_foreground ---
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                // 1. Usamos o novo logo que você importou
+                painter = painterResource(id = R.drawable.app_logo),
                 contentDescription = "Logo do App",
-                modifier = Modifier.size(100.dp)
+                modifier = Modifier.size(120.dp) // Aumentamos um pouco o tamanho
             )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Bem-vindo ao Momentus", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("Faça login para continuar", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(48.dp))
 
-            Button(
+            // Textos de Boas-vindas
+            Text("Bem-vindo ao Momentus", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text("Faça login para continuar", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Botão de Login com Google
+            OutlinedButton( // 2. Trocamos para OutlinedButton para um visual mais leve
                 onClick = {
                     isLoading = true
                     googleSignInLauncher.launch(googleSignInClient.signInIntent)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                shape = RoundedCornerShape(50) // Bordas mais arredondadas
             ) {
-                Icon(painterResource(id = R.drawable.ic_google_logo), contentDescription = null, modifier = Modifier.size(24.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_google_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.Unspecified // Mantém a cor original do logo do Google
+                )
                 Text("Continuar com o Google", modifier = Modifier.padding(start = 16.dp))
             }
 
@@ -134,7 +148,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 Divider(modifier = Modifier.weight(1f))
             }
 
-            // Campos de Email e Senha (sem lógica por enquanto)
+            // Campos de Email e Senha
             var email by remember { mutableStateOf("") }
             var password by remember { mutableStateOf("") }
 
@@ -142,7 +156,8 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
@@ -150,25 +165,23 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 onValueChange = { password = it },
                 label = { Text("Senha") },
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation()
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
             Spacer(modifier = Modifier.height(16.dp))
 
             // Botão de Entrar
             Button(
-                onClick = { /* TODO: Implementar lógica de login com email/senha */ },
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                onClick = { /* TODO */ },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                // 3. Usamos as cores primárias do nosso novo tema
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
             ) {
                 Text("Entrar")
             }
 
-            // Link de "Esqueci a senha"
-            TextButton(onClick = { /* TODO */ }) {
-                Text("Esqueceu a senha?")
-            }
-
             if (isLoading) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
             }
         }
     }
