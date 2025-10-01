@@ -4,10 +4,12 @@ package br.com.fabriciolima.momentus.viewmodel
 import androidx.lifecycle.*
 import br.com.fabriciolima.momentus.data.RotinaRepository
 import br.com.fabriciolima.momentus.data.Template
+import br.com.fabriciolima.momentus.data.TemplateComItens
 import kotlinx.coroutines.launch
 
 class TemplateViewModel(private val repository: RotinaRepository) : ViewModel() {
-    val todosOsTemplates: LiveData<List<Template>> = repository.todosOsTemplates.asLiveData()
+    // Agora o LiveData é do tipo TemplateComItens
+    val todosOsTemplates: LiveData<List<TemplateComItens>> = repository.todosOsTemplatesComItens.asLiveData()
 
     fun saveTemplate(nome: String) = viewModelScope.launch {
         repository.saveCurrentScheduleAsTemplate(nome)

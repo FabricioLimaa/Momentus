@@ -47,7 +47,7 @@ fun AppDrawer(
         NavigationDrawerItem(
             // --- MODIFICAÇÃO: O primeiro item agora leva para a lista de Rotinas ---
             icon = { Icon(painterResource(id = R.drawable.ic_empty_list), contentDescription = null) },
-            label = { Text("Minhas Rotinas") },
+            label = { Text("Minhas Categorias") },
             selected = false,
             onClick = { onRoutinesClicked(); onCloseDrawer() }
         )

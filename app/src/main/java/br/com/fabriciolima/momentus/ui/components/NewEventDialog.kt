@@ -1,3 +1,5 @@
+// ARQUIVO: ui/components/NewEventDialog.kt (CÓDIGO COMPLETO E CORRIGIDO)
+
 package br.com.fabriciolima.momentus.ui.components
 
 import androidx.compose.foundation.background
@@ -12,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import br.com.fabriciolima.momentus.data.Rotina
 import java.time.Instant
 import java.time.LocalDate
@@ -25,7 +28,7 @@ fun NewEventDialog(
     dataSelecionada: LocalDate,
     todasAsRotinas: List<Rotina>,
     onDismiss: () -> Unit,
-    onConfirm: (titulo: String, desc: String, data: LocalDate, inicio: LocalTime, fim: LocalTime, rotina: Rotina) -> Unit
+    onConfirm: (titulo: String, desc: String, data: LocalDate, inicio: LocalTime, fim: LocalTime, categoria: Rotina) -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
@@ -41,6 +44,7 @@ fun NewEventDialog(
     val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
+    // --- Diálogo de Seleção de Data ---
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -61,18 +65,22 @@ fun NewEventDialog(
         }
     }
 
+    // --- Diálogo de Seleção de Hora (Início) ---
     if (showTimePickerInicio) {
+        // CORREÇÃO: Criamos o 'state' aqui, como 'remember'.
         val timePickerState = rememberTimePickerState(initialHour = horarioInicio.hour, initialMinute = horarioInicio.minute, is24Hour = true)
         TimePickerDialog(
             onDismissRequest = { showTimePickerInicio = false },
             onConfirm = {
+                // CORREÇÃO: Usamos o 'state' para pegar a hora e o minuto selecionados.
                 horarioInicio = LocalTime.of(timePickerState.hour, timePickerState.minute)
                 showTimePickerInicio = false
             },
-            state = timePickerState
+            state = timePickerState // Passamos o estado para o diálogo
         )
     }
 
+    // --- Diálogo de Seleção de Hora (Término) ---
     if (showTimePickerTermino) {
         val timePickerState = rememberTimePickerState(initialHour = horarioTermino.hour, initialMinute = horarioTermino.minute, is24Hour = true)
         TimePickerDialog(
@@ -89,24 +97,24 @@ fun NewEventDialog(
         onDismissRequest = onDismiss,
         title = { Text("Novo Evento") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = titulo, onValueChange = { titulo = it }, label = { Text("Título") })
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(value = titulo, onValueChange = { titulo = it }, label = { Text("Título") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     value = data.format(dateFormatter), onValueChange = {}, readOnly = true,
-                    label = { Text("Data") }, modifier = Modifier.clickable { showDatePicker = true },
-                    trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) }
+                    label = { Text("Data") }, modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
+                    trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Selecionar Data") }
                 )
-                OutlinedTextField(value = descricao, onValueChange = { descricao = it }, label = { Text("Descrição") })
+                OutlinedTextField(value = descricao, onValueChange = { descricao = it }, label = { Text("Descrição (opcional)") }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = horarioInicio.format(timeFormatter), onValueChange = {}, readOnly = true,
                         label = { Text("Início") }, modifier = Modifier.weight(1f).clickable { showTimePickerInicio = true },
-                        trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null) }
+                        trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") }
                     )
                     OutlinedTextField(
                         value = horarioTermino.format(timeFormatter), onValueChange = {}, readOnly = true,
                         label = { Text("Término") }, modifier = Modifier.weight(1f).clickable { showTimePickerTermino = true },
-                        trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null) }
+                        trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") }
                     )
                 }
                 CategorySelector(
@@ -118,8 +126,9 @@ fun NewEventDialog(
         },
         confirmButton = {
             Button(onClick = {
-                rotinaSelecionada?.let {
-                    onConfirm(titulo, descricao, data, horarioInicio, horarioTermino, it)
+                // Validação para garantir que uma categoria foi selecionada
+                rotinaSelecionada?.let { categoria ->
+                    onConfirm(titulo, descricao, data, horarioInicio, horarioTermino, categoria)
                 }
             }) { Text("Criar Evento") }
         },
@@ -181,20 +190,19 @@ fun TimePickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("Selecionar Horário") },
+        modifier = Modifier.fillMaxWidth(),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        title = { Text("Selecionar Horário", modifier = Modifier.padding(start = 24.dp, top = 24.dp)) },
         text = {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 TimePicker(state = state)
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text("Cancelar")
+            Row(modifier = Modifier.fillMaxWidth().padding(end = 16.dp, bottom = 16.dp), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onDismissRequest) { Text("Cancelar") }
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onConfirm) { Text("OK") }
             }
         }
     )

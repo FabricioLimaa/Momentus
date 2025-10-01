@@ -65,7 +65,8 @@ fun RoutinesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Minhas Rotinas") },
+                // --- MODIFICAÇÃO: Alteramos o título da tela ---
+                title = { Text("Minhas Categorias") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")

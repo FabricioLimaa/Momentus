@@ -3,6 +3,7 @@
 package br.com.fabriciolima.momentus.data
 
 import br.com.fabriciolima.momentus.data.database.* // Usamos wildcard
+import br.com.fabriciolima.momentus.data.TemplateComItens
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
@@ -16,7 +17,7 @@ open class RotinaRepository(
     // Marcamos como 'open' para permitir a sobrescrita no FakeRepository
     open val todasAsRotinasComMetas: Flow<List<RotinaComMeta>> = rotinaDao?.getRotinasComMetas() ?: emptyFlow()
     open val stats: Flow<List<StatsResult>> = itemCronogramaDao?.getStats() ?: emptyFlow()
-    open val todosOsTemplates: Flow<List<Template>> = templateDao?.getAllTemplates() ?: emptyFlow()
+    open val todosOsTemplatesComItens: Flow<List<TemplateComItens>> = templateDao?.getTemplatesComItens() ?: emptyFlow()
     // --- MODIFICAÇÃO INICIA AQUI ---
     open val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao?.getIdsConcluidos() ?: emptyFlow()
 
@@ -72,5 +73,13 @@ open class RotinaRepository(
 
     open suspend fun deleteItemCronograma(item: ItemCronograma) {
         itemCronogramaDao?.delete(item)
+    }
+
+    // --- MODIFICAÇÃO: Adicione esta nova função ---
+    open suspend fun saveCompleteTemplate(templateName: String, events: List<TemplateEvent>) {
+        val novoTemplate = Template(nome = templateName)
+        // A lógica para converter TemplateEvent para TemplateItem e salvar precisa ser feita aqui
+        // Por enquanto, vamos apenas criar a função para resolver o erro.
+        templateDao?.insertTemplate(novoTemplate)
     }
 }

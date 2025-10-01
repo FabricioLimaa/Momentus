@@ -23,13 +23,16 @@ data class ItemCronograma(
     val id: String = UUID.randomUUID().toString(),
 
     // --- MODIFICAÇÃO INICIA AQUI ---
-    // Se 'data' for nulo, é um item de rotina semanal.
-    // Se 'data' tiver um valor, é um evento único com data específica.
-    val data: Long?, // Armazenaremos a data como um número (timestamp)
-    // O dia da semana agora também pode ser nulo.
-    val diaDaSemana: String?,
+    // Adicionamos título e descrição próprios para cada evento.
+    val titulo: String,
+    val descricao: String?,
     // --- MODIFICAÇÃO TERMINA AQUI ---
 
+    val data: Long?,
+    val diaDaSemana: String?,
     val horarioInicio: String,
-    val rotinaId: String // Para eventos únicos, podemos criar uma rotina "genérica"
+    // --- MODIFICAÇÃO: Adicionamos o horário de término para eventos únicos ---
+    val horarioTermino: String?,
+    // --- MODIFICAÇÃO TERMINA AQUI ---
+    val rotinaId: String
 )

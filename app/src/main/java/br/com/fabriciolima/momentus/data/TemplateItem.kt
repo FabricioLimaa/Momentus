@@ -9,8 +9,8 @@ import java.util.UUID
 
 @Entity(
     tableName = "tabela_itens_template",
-    // --- MODIFICAÇÃO: Adicionamos a criação de um índice na coluna 'templateId' ---
-    indices = [Index(value = ["templateId"])],
+    // --- MODIFICAÇÃO: Adicionamos o índice recomendado pelo Room ---
+    indices = [Index(value = ["templateId"]), Index(value = ["rotinaId"])],
     foreignKeys = [ForeignKey(
         entity = Template::class,
         parentColumns = ["id"],
@@ -18,6 +18,7 @@ import java.util.UUID
         onDelete = ForeignKey.CASCADE
     )]
 )
+
 data class TemplateItem(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),

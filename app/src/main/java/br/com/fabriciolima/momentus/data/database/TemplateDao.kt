@@ -5,12 +5,14 @@ import androidx.room.*
 import br.com.fabriciolima.momentus.data.ItemCronograma
 import br.com.fabriciolima.momentus.data.Template
 import br.com.fabriciolima.momentus.data.TemplateItem
+import br.com.fabriciolima.momentus.data.TemplateComItens
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TemplateDao {
+    @Transaction
     @Query("SELECT * FROM tabela_templates ORDER BY nome ASC")
-    fun getAllTemplates(): Flow<List<Template>>
+    fun getTemplatesComItens(): Flow<List<TemplateComItens>>
 
     @Insert
     suspend fun insertTemplate(template: Template)

@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -90,28 +91,26 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
         }
     }
 
+    // --- MODIFICAÇÃO INICIA AQUI: Lógica de salvar evento único corrigida ---
     fun salvarEventoUnico(
         titulo: String,
         descricao: String?,
         data: LocalDate,
-        inicio: java.time.LocalTime,
-        fim: java.time.LocalTime,
-        rotina: Rotina
+        inicio: LocalTime,
+        fim: LocalTime,
+        categoria: Rotina // Recebemos a categoria selecionada
     ) = viewModelScope.launch {
-        val duracao = java.time.Duration.between(inicio, fim).toMinutes().toInt()
-        val rotinaEventoUnico = Rotina(
-            nome = titulo,
-            descricao = descricao,
-            tag = rotina.tag,
-            cor = rotina.cor,
-            duracaoPadraoMinutos = duracao
-        )
-        repository.insert(rotinaEventoUnico)
+        // NÃO criamos mais uma nova rotina.
+
+        // Criamos o ItemCronograma com seus próprios dados e o linkamos à categoria existente.
         val novoItem = ItemCronograma(
+            titulo = titulo,
+            descricao = descricao,
             data = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
             diaDaSemana = null,
             horarioInicio = inicio.format(DateTimeFormatter.ofPattern("HH:mm")),
-            rotinaId = rotinaEventoUnico.id
+            horarioTermino = fim.format(DateTimeFormatter.ofPattern("HH:mm")),
+            rotinaId = categoria.id // Link para a categoria
         )
         repository.insertItemCronograma(novoItem)
     }

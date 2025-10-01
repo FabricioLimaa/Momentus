@@ -56,9 +56,13 @@ interface ItemCronogramaDao {
         // 3. Converte os itens de template para itens de cronograma.
         val cronogramaItems = templateItems.map { item ->
             ItemCronograma(
+                // Precisamos encontrar a rotina para pegar o título
+                titulo = "Título do Template", // Placeholder
+                descricao = null,
                 data = null,
                 diaDaSemana = item.diaDaSemana,
                 horarioInicio = item.horarioInicio,
+                horarioTermino = null, // Templates não têm horário de término definido
                 rotinaId = item.rotinaId
             )
         }

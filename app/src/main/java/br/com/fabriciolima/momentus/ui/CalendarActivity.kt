@@ -154,8 +154,9 @@ fun CalendarApp(
             dataSelecionada = dataSelecionada,
             todasAsRotinas = todasAsRotinas,
             onDismiss = { showNewEventDialog = false },
-            onConfirm = { titulo, desc, data, inicio, fim, rotina ->
-                viewModel.salvarEventoUnico(titulo, desc, data, inicio, fim, rotina)
+            // --- MODIFICAÇÃO: Chamamos a nova função do ViewModel ---
+            onConfirm = { titulo, desc, data, inicio, fim, categoria ->
+                viewModel.salvarEventoUnico(titulo, desc, data, inicio, fim, categoria)
                 showNewEventDialog = false
             }
         )

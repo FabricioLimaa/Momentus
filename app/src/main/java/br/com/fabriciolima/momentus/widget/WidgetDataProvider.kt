@@ -55,7 +55,16 @@ class WidgetDataProvider(
             // Adicionamos 'data = null' ao criar o ItemCronograma de teste.
             Log.d("WidgetDataProvider", "USANDO DADOS DE TESTE!")
             itensDoDia = listOf(
-                ItemCronograma(id = "teste1", data = null, diaDaSemana = "QUA", horarioInicio = "10:00", rotinaId = "rotina_teste")
+                ItemCronograma(
+                    id = "teste1",
+                    titulo = "Item de Teste", // Adicionamos o título
+                    descricao = "Esta é uma descrição de teste", // Adicionamos a descrição
+                    data = null,
+                    diaDaSemana = "QUA",
+                    horarioInicio = "10:00",
+                    horarioTermino = "11:00", // Adicionamos o horário de término
+                    rotinaId = "rotina_teste"
+                )
             )
             rotinasMap = mapOf("rotina_teste" to "Item de Teste")
             coresMap = mapOf("rotina_teste" to "#FF5722")
