@@ -193,14 +193,26 @@ fun CalendarScreen(
                     IconButton(onClick = onMenuClicked) {
                         Icon(Icons.Default.Menu, contentDescription = "Abrir Menu")
                     }
-                }
+                },
+                // --- MODIFICAÇÃO: Cores da barra de título alinhadas ao tema ---
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNewEventClicked) {
+            FloatingActionButton(
+                onClick = onNewEventClicked,
+                // --- MODIFICAÇÃO: Cores do botão alinhadas ao tema ---
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Novo Evento")
             }
-        }
+        },
+        // --- MODIFICAÇÃO: Cor de fundo da tela ---
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             CalendarHeader(
@@ -254,6 +266,97 @@ fun CalendarScreen(
 }
 
 @Composable
+fun CalendarHeader(yearMonth: YearMonth, onMesAnterior: () -> Unit, onProximoMes: () -> Unit) {
+    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onMesAnterior) {
+            Icon(Icons.Default.ChevronLeft, contentDescription = "Mês Anterior")
+        }
+        Text(
+            text = yearMonth.format(formatter).replaceFirstChar { it.uppercase() },
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f),
+            // --- MODIFICAÇÃO: Cor do texto alinhada ao tema ---
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        IconButton(onClick = onProximoMes) {
+            Icon(Icons.Default.ChevronRight, contentDescription = "Próximo Mês")
+        }
+    }
+}
+
+@Composable
+fun DaysOfWeekHeader() {
+    val dias = remember { DayOfWeek.values() }
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 16.dp)) {
+        for (dia in dias) {
+            Text(
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                text = dia.getDisplayName(TextStyle.SHORT, Locale("pt", "BR")).uppercase(),
+                // --- MODIFICAÇÃO: Cor do texto alinhada ao tema ---
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun Day(
+    day: CalendarDay,
+    isSelected: Boolean,
+    hasEvent: Boolean,
+    onClick: (CalendarDay) -> Unit
+) {
+    val isFromCurrentMonth = day.position == DayPosition.MonthDate
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .padding(2.dp)
+            .clip(CircleShape)
+            // --- MODIFICAÇÃO: Lógica de cores do dia selecionado aprimorada ---
+            .background(
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = CircleShape
+            )
+            .clickable(
+                enabled = isFromCurrentMonth,
+                onClick = { onClick(day) }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(
+                text = day.date.dayOfMonth.toString(),
+                // --- MODIFICAÇÃO: Cor do texto do dia selecionado/não selecionado ---
+                color = when {
+                    isSelected -> MaterialTheme.colorScheme.onPrimary
+                    isFromCurrentMonth -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                }
+            )
+            if (hasEvent) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        // --- MODIFICAÇÃO: Cor do indicador de evento ---
+                        .background(
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                            shape = CircleShape
+                        )
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun EventoListItem(
     item: ItemCronogramaCompletado,
     rotina: Rotina?,
@@ -261,10 +364,17 @@ fun EventoListItem(
 ) {
     val cor = try {
         Color(android.graphics.Color.parseColor(rotina?.cor ?: "#808080"))
-    } catch (e: Exception) { Color.Gray }
+    } catch (e: Exception) {
+        Color.Gray
+    }
     val alpha = if (item.completado) 0.6f else 1f
     val textDecoration = if (item.completado) TextDecoration.LineThrough else TextDecoration.None
-    Card(shape = MaterialTheme.shapes.medium) {
+
+    Card(
+        shape = MaterialTheme.shapes.medium,
+        // --- MODIFICAÇÃO: Cores do card alinhadas ao tema ---
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -288,87 +398,10 @@ fun EventoListItem(
             }
             Checkbox(
                 checked = item.completado,
-                onCheckedChange = { isChecked -> onCheckedChange(item.item, isChecked) }
+                onCheckedChange = { isChecked -> onCheckedChange(item.item, isChecked) },
+                // --- MODIFICAÇÃO: Cores do Checkbox alinhadas ao tema ---
+                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
             )
-        }
-    }
-}
-
-@Composable
-fun CalendarHeader(yearMonth: YearMonth, onMesAnterior: () -> Unit, onProximoMes: () -> Unit) {
-    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onMesAnterior) {
-            Icon(Icons.Default.ChevronLeft, contentDescription = "Mês Anterior")
-        }
-        Text(
-            text = yearMonth.format(formatter).replaceFirstChar { it.uppercase() },
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f)
-        )
-        IconButton(onClick = onProximoMes) {
-            Icon(Icons.Default.ChevronRight, contentDescription = "Próximo Mês")
-        }
-    }
-}
-
-@Composable
-fun DaysOfWeekHeader() {
-    val dias = remember { DayOfWeek.values() }
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 16.dp)) {
-        for (dia in dias) {
-            Text(
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold,
-                text = dia.getDisplayName(TextStyle.SHORT, Locale("pt", "BR")).uppercase()
-            )
-        }
-    }
-}
-
-@Composable
-fun Day(
-    day: CalendarDay,
-    isSelected: Boolean,
-    hasEvent: Boolean,
-    onClick: (CalendarDay) -> Unit
-) {
-    val isFromCurrentMonth = day.position == DayPosition.MonthDate
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .padding(2.dp)
-            .clip(CircleShape)
-            .background(
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = CircleShape
-            )
-            .clickable(
-                enabled = isFromCurrentMonth,
-                onClick = { onClick(day) }
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(
-                text = day.date.dayOfMonth.toString(),
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else if (isFromCurrentMonth) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                }
-            )
-            if (hasEvent) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Box(modifier = Modifier.size(6.dp).background(if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary, CircleShape))
-            }
         }
     }
 }
