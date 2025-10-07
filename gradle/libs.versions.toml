@@ -10,19 +10,26 @@ material = "1.12.0"
 constraintlayout = "2.1.4"
 activityKtx = "1.9.0"
 lifecycleViewmodelKtx = "2.8.2"
-lifecycleLivedataKtx = "2.8.2" # <-- ADICIONE ESTA LINHA
+lifecycleLivedataKtx = "2.8.2"
 ksp = "1.9.22-1.0.17"
 room = "2.6.1"
 playServicesAuth = "21.2.0"
 googleApiClientAndroid = "2.2.0"
 googleApiServicesCalendar = "v3-rev20220715-2.0.0"
-fragmentKtx = "1.8.1" # <-- ADICIONE ESTA LINHA
-# mpandroidchart = "v3.1.0" # <-- ADICIONE ESTA LINHA
+fragmentKtx = "1.8.1"
 coreTesting = "2.2.0"
 coroutinesTest = "1.7.1"
 activityCompose = "1.9.0"
 composeBom = "2024.05.00"
-
+lifecycleViewmodelCompose = "2.8.2"
+runtimeLivedata = "1.6.7"
+materialIconsExtended = "1.6.7"
+googleAuthOauth2 = "1.24.1"
+googleHttpClientGson = "1.44.2"
+kizitonwoseCalendar = "2.5.1"
+composeReorderable = "0.9.6"
+androidDesugar = "2.0.4"
+googleGmsServices = "4.4.2" # Nova versão para o plugin
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,15 +41,14 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
-androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" } # <-- ADICIONE ESTA LINHA
+androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 google-api-client-android = { group = "com.google.api-client", name = "google-api-client-android", version.ref = "googleApiClientAndroid" }
 google-api-services-calendar = { group = "com.google.api.services", name = "google-api-services-calendar", version.ref = "googleApiServicesCalendar" }
-androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" } # <-- ADICIONE ESTA LINHA
-# mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpandroidchart" } # // <-- ADICIONE ESTA LINHA
+androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
 androidx-core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "coreTesting" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -52,8 +58,19 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
+# Dependências que estavam faltando ou inconsistentes
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
+google-auth-library-oauth2-http = { group = "com.google.auth", name = "google-auth-library-oauth2-http", version.ref = "googleAuthOauth2" }
+google-http-client-gson = { group = "com.google.http-client", name = "google-http-client-gson", version.ref = "googleHttpClientGson" }
+kizitonwose-calendar-compose = { group = "com.kizitonwose.calendar", name = "compose", version.ref = "kizitonwoseCalendar" }
+compose-reorderable = { group = "org.burnoutcrew", name = "compose-reorderable", version.ref = "composeReorderable" }
+android-desugar = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "androidDesugar" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 jetbrainsKotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+# CORREÇÃO: Adicionando o alias para o plugin do Google Services
+google-gms-services = { id = "com.google.gms.google-services", version.ref = "googleGmsServices" }

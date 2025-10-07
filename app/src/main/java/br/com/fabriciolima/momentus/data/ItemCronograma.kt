@@ -1,38 +1,47 @@
-// ARQUIVO: data/ItemCronograma.kt
 package br.com.fabriciolima.momentus.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.util.UUID
+import java.time.LocalTime
 
 @Entity(
     tableName = "tabela_itens_cronograma",
-    indices = [Index(value = ["rotinaId"])],
-    foreignKeys = [ForeignKey(
-        entity = Rotina::class,
-        parentColumns = ["id"],
-        childColumns = ["rotinaId"],
-        onDelete = ForeignKey.CASCADE
-    )]
+    foreignKeys = [
+        ForeignKey(
+            entity = Rotina::class,
+            parentColumns = ["id"],
+            childColumns = ["rotinaId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = Template::class,
+            parentColumns = ["id"],
+            childColumns = ["templateId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["rotinaId"]), Index(value = ["templateId"])]
 )
-
 data class ItemCronograma(
-    @PrimaryKey
-    val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey // IDs agora são Strings, então removemos o autoGenerate
+    val id: String = java.util.UUID.randomUUID().toString(),
 
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    // Adicionamos título e descrição próprios para cada evento.
     val titulo: String,
     val descricao: String?,
-    // --- MODIFICAÇÃO TERMINA AQUI ---
 
-    val data: Long?,
-    val diaDaSemana: String?,
-    val horarioInicio: String,
-    // --- MODIFICAÇÃO: Adicionamos o horário de término para eventos únicos ---
-    val horarioTermino: String?,
-    // --- MODIFICAÇÃO TERMINA AQUI ---
-    val rotinaId: String
+    val data: Long?, // Para eventos únicos
+    val diaDaSemana: String?, // Para eventos de template (SEG, TER, etc.)
+
+    val horarioInicio: LocalTime,
+    val horarioTermino: LocalTime,
+
+    @ColumnInfo(defaultValue = "0")
+    val ordem: Int = 0, // Ordem ainda pode ser um Int
+
+    // CORREÇÃO: Alinhando os tipos de chaves estrangeiras com os pais
+    val rotinaId: String,
+    val templateId: String?
 )

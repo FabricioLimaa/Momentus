@@ -1,5 +1,3 @@
-// ARQUIVO: ui/EditorRotinaActivity.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.ui
 
 import android.app.Activity
@@ -26,7 +24,6 @@ class EditorRotinaActivity : AppCompatActivity() {
     private var rotinaExistente: Rotina? = null
     private var corSelecionada: String? = null
 
-    // --- MODIFICAÇÃO: Usamos o mesmo ViewModel da MainActivity para salvar a meta ---
     private val viewModel: MainViewModel by viewModels {
         MainViewModelFactory((application as MomentusApplication).repository)
     }
@@ -39,16 +36,16 @@ class EditorRotinaActivity : AppCompatActivity() {
         rotinaExistente = intent.getSerializableExtra("ROTINA_PARA_EDITAR") as? Rotina
         setupColorSelector()
 
-        rotinaExistente?.let {
-            binding.editTextNome.setText(it.nome)
-            binding.editTextDescricao.setText(it.descricao)
-            binding.editTextTag.setText(it.tag)
-            binding.editTextDuracao.setText(it.duracaoPadraoMinutos.toString())
-            selecionarCorPeloCodigo(it.cor)
+        rotinaExistente?.let { rotina ->
+            binding.editTextNome.setText(rotina.nome)
+            binding.editTextDescricao.setText(rotina.descricao)
+            binding.editTextTag.setText(rotina.tag)
+            binding.editTextDuracao.setText(rotina.duracaoPadraoMinutos.toString())
+            selecionarCorPeloCodigo(rotina.cor)
 
-            // Carrega e exibe a meta, se existir
-            viewModel.rotinas.observe(this) { rotinasComMetas ->
-                val rotinaAtual = rotinasComMetas.find { r -> r.rotina.id == it.id }
+            // CORREÇÃO: a propriedade correta é 'rotinasComMetas'
+            viewModel.rotinasComMetas.observe(this) { rotinasComMetas ->
+                val rotinaAtual = rotinasComMetas.find { r -> r.rotina.id == rotina.id }
                 rotinaAtual?.meta?.let { meta ->
                     binding.editTextMeta.setText((meta.metaMinutosSemanal / 60).toString())
                 }
@@ -67,12 +64,10 @@ class EditorRotinaActivity : AppCompatActivity() {
             val colorHex = colorStateList?.toHex()
 
             colorView.setOnClickListener {
-                selecionarCor(colorView, colorHex)
+                selecionarCor(it, colorHex)
             }
         }
 
-        // --- MODIFICAÇÃO: Se nenhuma cor for selecionada (ao criar uma nova rotina),
-        // selecionamos a primeira cor da paleta como padrão.
         if (corSelecionada == null) {
             (binding.colorSelectorContainer.getChildAt(0) as FrameLayout).performClick()
         }
@@ -88,19 +83,16 @@ class EditorRotinaActivity : AppCompatActivity() {
         corSelecionada = corHex
     }
 
-    // 6. Função para selecionar uma cor com base no código hexadecimal (usado ao editar).
     private fun selecionarCorPeloCodigo(codigoHex: String) {
         binding.colorSelectorContainer.children.forEach { colorView ->
             val colorCircle = (colorView as FrameLayout).getChildAt(0) as ImageView
             val colorStateList = colorCircle.backgroundTintList
             if (colorStateList?.toHex().equals(codigoHex, ignoreCase = true)) {
-                // Se encontrarmos o círculo com a cor correspondente, simulamos um clique nele.
                 colorView.performClick()
             }
         }
     }
 
-    // 7. Função auxiliar para converter a cor para o formato hexadecimal.
     private fun ColorStateList.toHex(): String {
         return String.format("#%06X", (0xFFFFFF and this.defaultColor))
     }
@@ -128,7 +120,6 @@ class EditorRotinaActivity : AppCompatActivity() {
             binding.layoutDuracao.error = null
         }
 
-        // Esta validação agora deve passar sempre, pois garantimos uma cor padrão.
         if (corSelecionada == null) {
             Toast.makeText(this, "Por favor, selecione uma cor.", Toast.LENGTH_SHORT).show()
             isValid = false
@@ -144,14 +135,17 @@ class EditorRotinaActivity : AppCompatActivity() {
                 tag = tag.takeIf { it.isNotBlank() }
             )
 
-            viewModel.addRotina(rotinaParaSalvar)
+            // CORREÇÃO: O método correto é 'insertRotina'
+            viewModel.insertRotina(rotinaParaSalvar)
 
             val metaHoras = if (metaHorasStr.isNotBlank()) metaHorasStr.toInt() else 0
             if (metaHoras > 0) {
-                // --- MODIFICAÇÃO: Corrigimos a chamada da função ---
-                // Em vez de: viewModel.salvarMeta(novaMeta)
-                // Chamamos com os parâmetros que a função espera: um ID (String) e as horas (Int)
-                viewModel.salvarMeta(rotinaParaSalvar.id, metaHoras)
+                // CORREÇÃO: Criamos o objeto 'Meta' que a função espera
+                val metaParaSalvar = Meta(
+                    rotinaId = rotinaParaSalvar.id,
+                    metaMinutosSemanal = metaHoras * 60 // Convertendo horas para minutos
+                )
+                viewModel.salvarMeta(metaParaSalvar)
             }
 
             val resultIntent = Intent()

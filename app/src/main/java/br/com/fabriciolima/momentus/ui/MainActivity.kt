@@ -76,7 +76,8 @@ fun RoutinesScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val rotinasComMetas by viewModel.rotinas.observeAsState(initial = emptyList())
+    // CORREÇÃO: A propriedade correta na ViewModel é 'rotinasComMetas'
+    val rotinasComMetas by viewModel.rotinasComMetas.observeAsState(initial = emptyList())
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },

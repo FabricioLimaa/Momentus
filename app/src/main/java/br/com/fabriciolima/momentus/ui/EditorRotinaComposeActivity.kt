@@ -74,7 +74,6 @@ fun EditorScreen(
     val context = LocalContext.current
 
     var nome by remember { mutableStateOf(rotinaInicial?.nome ?: "") }
-    // --- MODIFICAÇÃO: Adicionamos o estado para os novos campos ---
     var descricao by remember { mutableStateOf(rotinaInicial?.descricao ?: "") }
     var tag by remember { mutableStateOf(rotinaInicial?.tag ?: "") }
     var duracao by remember { mutableStateOf(rotinaInicial?.duracaoPadraoMinutos?.toString() ?: "") }
@@ -97,7 +96,6 @@ fun EditorScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- MODIFICAÇÃO: Adicionamos os novos TextFields ---
         OutlinedTextField(
             value = descricao, onValueChange = { descricao = it },
             label = { Text("Descrição (opcional)") }, modifier = Modifier.fillMaxWidth()
@@ -109,7 +107,6 @@ fun EditorScreen(
             label = { Text("Tag (ex: estudo)") }, modifier = Modifier.fillMaxWidth(), singleLine = true
         )
         Spacer(modifier = Modifier.height(16.dp))
-        // --- FIM DA MODIFICAÇÃO ---
 
         OutlinedTextField(
             value = duracao, onValueChange = { duracao = it },
@@ -138,12 +135,13 @@ fun EditorScreen(
                     nome = nome,
                     duracaoPadraoMinutos = duracao.toIntOrNull() ?: 0,
                     cor = String.format("#%06X", (0xFFFFFF and corSelecionada.toArgb())),
-                    // --- MODIFICAÇÃO: Incluímos os novos campos no objeto a ser salvo ---
                     descricao = descricao.takeIf { it.isNotBlank() },
                     tag = tag.takeIf { it.isNotBlank() }
                 )
 
-                viewModel?.addRotina(rotinaParaSalvar)
+                // CORREÇÃO: O método correto é 'insertRotina' e não 'addRotina'
+                viewModel?.insertRotina(rotinaParaSalvar)
+                
                 Toast.makeText(context, "Rotina salva!", Toast.LENGTH_SHORT).show()
                 onSave(rotinaParaSalvar)
             },

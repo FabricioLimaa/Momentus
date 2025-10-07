@@ -1,7 +1,14 @@
+// Define a versão do Room para ser usada nas dependências
+val room_version = "2.6.1"
+
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.androidApplication)
+    alias(libs.plugins.jetbrainsKotlinAndroid)
+    alias(libs.plugins.google.devtools.ksp)
+    id("androidx.room") version "2.6.1"
+    // Add the Google services Gradle plugin
+    id("com.google.gms.google-services")
+
 }
 
 android {
@@ -27,10 +34,7 @@ android {
         }
     }
     compileOptions {
-        // --- ADICIONE ESTA LINHA ---
-        // 1. Ativa o Core Library Desugaring
         isCoreLibraryDesugaringEnabled = true
-
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
@@ -49,18 +53,17 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "META-INF/DEPENDENCIES"
             excludes += "META-INF/license.md"
-            // --- ADICIONE A LINHA ABAIXO ---
             excludes += "META-INF/INDEX.LIST"
         }
+    }
+    
+    room {
+        schemaDirectory("$projectDir/schemas")
     }
 }
 
 dependencies {
-    // --- ADICIONE ESTA LINHA NO TOPO DAS DEPENDÊNCIAS ---
-    // 2. Adiciona a biblioteca que faz a "tradução"
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-
-    val room_version = "2.6.1"
 
     // Core e UI (Views e Compose)
     implementation("androidx.core:core-ktx:1.13.1")
@@ -68,6 +71,8 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.activity:activity-compose:1.9.0")
+    // CORREÇÃO: Adicionando a dependência explícita do RecyclerView
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // Componentes de Arquitetura
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2")
@@ -83,27 +88,34 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.runtime:runtime-livedata")
-    implementation("androidx.compose.material:material-icons-extended") // Importante para os ícones
+    implementation("androidx.compose.material:material-icons-extended")
 
-    // Room (Banco de Dados)
+    // CORREÇÃO: Adicionando a dependência para a lista reordenável
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+
+    // Room (Banco de Dados) - a variável room_version é visível aqui
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
     ksp("androidx.room:room-compiler:$room_version")
 
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
+    implementation("com.google.firebase:firebase-analytics")
+
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
-    // --- CONJUNTO COMPLETO E CORRETO DAS BIBLIOTECAS DA API DO GOOGLE ---
-    implementation("com.google.auth:google-auth-library-oauth2-http:1.24.1")
+    // Google APIs & Calendar - VERSÕES MAIS NOVAS E ESTÁVEIS
     implementation("com.google.api-client:google-api-client-android:2.2.0") {
+        exclude(group = "org.apache.httpcomponents")
+    }
+    implementation("com.google.api-client:google-api-client-gson:2.2.0") {
         exclude(group = "org.apache.httpcomponents")
     }
     implementation("com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0") {
         exclude(group = "org.apache.httpcomponents")
     }
-    implementation("com.google.http-client:google-http-client-gson:1.44.2") {
-        exclude(group = "org.apache.httpcomponents")
-    }
+    
     // Calendário Compose (kizitonwose)
     implementation("com.kizitonwose.calendar:compose:2.5.1")
 

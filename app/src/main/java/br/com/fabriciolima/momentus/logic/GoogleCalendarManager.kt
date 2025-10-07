@@ -1,11 +1,13 @@
 package br.com.fabriciolima.momentus.logic
 
 import android.content.Context
+import android.util.Log
 import br.com.fabriciolima.momentus.data.RotinaRepository
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
+import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.model.Event
@@ -13,10 +15,60 @@ import com.google.api.services.calendar.model.EventDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Calendar as JavaCalendar
 
 object GoogleCalendarManager {
 
+    private const val TAG = "GoogleCalendarManager"
+
+    /**
+     * Insere um único evento no calendário principal do usuário.
+     */
+    suspend fun insertEvent(
+        context: Context,
+        account: GoogleSignInAccount,
+        title: String,
+        description: String?,
+        startDateTime: LocalDateTime,
+        endDateTime: LocalDateTime
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val credential = GoogleAccountCredential.usingOAuth2(
+                context, listOf(CalendarScopes.CALENDAR)
+            ).setSelectedAccount(account.account)
+
+            val calendarService = Calendar.Builder(
+                NetHttpTransport(), GsonFactory.getDefaultInstance(), credential
+            ).setApplicationName("Momentus").build()
+
+            val event = Event().apply {
+                summary = title
+                this.description = description
+                start = EventDateTime().apply {
+                    dateTime = DateTime(startDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
+                    timeZone = ZoneId.systemDefault().id
+                }
+                end = EventDateTime().apply {
+                    dateTime = DateTime(endDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
+                    timeZone = ZoneId.systemDefault().id
+                }
+            }
+
+            calendarService.events().insert("primary", event).execute()
+            Log.d(TAG, "Evento '$title' inserido com sucesso no Google Calendar.")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e(TAG, "Erro ao inserir evento no Google Calendar", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Gera eventos em lote com base nas rotinas do usuário para um período.
+     */
     suspend fun generateEvents(
         context: Context,
         account: GoogleSignInAccount,
@@ -25,7 +77,6 @@ object GoogleCalendarManager {
         endDate: JavaCalendar
     ): Result<Int> = withContext(Dispatchers.IO) {
         try {
-            // Este credential agora funcionará pois a dependência correta está presente
             val credential = GoogleAccountCredential.usingOAuth2(
                 context, listOf(CalendarScopes.CALENDAR)
             ).setSelectedAccount(account.account)
@@ -35,16 +86,16 @@ object GoogleCalendarManager {
             ).setApplicationName("Momentus").build()
 
             val existingEventsList = calendarService.events().list("primary")
-                .setTimeMin(com.google.api.client.util.DateTime(startDate.time))
-                .setTimeMax(com.google.api.client.util.DateTime(endDate.time))
+                .setTimeMin(DateTime(startDate.time))
+                .setTimeMax(DateTime(endDate.time))
                 .setOrderBy("startTime")
                 .setSingleEvents(true)
                 .execute()
                 .items
 
-            val existingEventsFingerprints = existingEventsList.mapNotNull {
-                it.summary?.let { summary ->
-                    it.start?.dateTime?.let { dateTime ->
+            val existingEventsFingerprints = existingEventsList.mapNotNull { event ->
+                event.summary?.let { summary ->
+                    event.start?.dateTime?.let { dateTime ->
                         "$summary#${dateTime.value}"
                     }
                 }
@@ -69,7 +120,10 @@ object GoogleCalendarManager {
 
                 for (item in itensDoDia) {
                     val rotina = rotinasMap[item.rotinaId] ?: continue
-                    val (hora, minuto) = item.horarioInicio.split(":").map { it.toInt() }
+                    
+                    // CORREÇÃO: Acessando as propriedades de LocalTime diretamente
+                    val hora = item.horarioInicio.hour
+                    val minuto = item.horarioInicio.minute
 
                     val inicioEvento = dataCorrente.clone() as JavaCalendar
                     inicioEvento.set(JavaCalendar.HOUR_OF_DAY, hora)
@@ -80,7 +134,7 @@ object GoogleCalendarManager {
                     val fimEvento = inicioEvento.clone() as JavaCalendar
                     fimEvento.add(JavaCalendar.MINUTE, rotina.duracaoPadraoMinutos)
 
-                    val inicioDateTime = com.google.api.client.util.DateTime(inicioEvento.time)
+                    val inicioDateTime = DateTime(inicioEvento.time)
                     val newEventFingerprint = "${rotina.nome}#${inicioDateTime.value}"
 
                     if (existingEventsFingerprints.contains(newEventFingerprint)) {
@@ -94,7 +148,7 @@ object GoogleCalendarManager {
                             timeZone = "America/Sao_Paulo"
                         }
                         end = EventDateTime().apply {
-                            dateTime = com.google.api.client.util.DateTime(fimEvento.time)
+                            dateTime = DateTime(fimEvento.time)
                             timeZone = "America/Sao_Paulo"
                         }
                     }

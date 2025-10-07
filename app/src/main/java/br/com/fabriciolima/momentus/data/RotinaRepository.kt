@@ -1,85 +1,93 @@
-// ARQUIVO: data/RotinaRepository.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.data
 
-import br.com.fabriciolima.momentus.data.database.* // Usamos wildcard
-import br.com.fabriciolima.momentus.data.TemplateComItens
+import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
+import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
+import br.com.fabriciolima.momentus.data.database.MetaDao
+import br.com.fabriciolima.momentus.data.database.RotinaDao
+import br.com.fabriciolima.momentus.data.database.TemplateDao
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 
+/**
+ * Repositório central que abstrai o acesso às fontes de dados (DAOs).
+ */
 open class RotinaRepository(
-    private val rotinaDao: RotinaDao?,
-    private val itemCronogramaDao: ItemCronogramaDao?,
-    private val templateDao: TemplateDao?,
-    private val metaDao: MetaDao?,
-    private val habitoConcluidoDao: HabitoConcluidoDao?
+    private val rotinaDao: RotinaDao,
+    private val itemCronogramaDao: ItemCronogramaDao,
+    private val templateDao: TemplateDao,
+    private val metaDao: MetaDao,
+    private val habitoConcluidoDao: HabitoConcluidoDao
 ) {
-    // Marcamos como 'open' para permitir a sobrescrita no FakeRepository
-    open val todasAsRotinasComMetas: Flow<List<RotinaComMeta>> = rotinaDao?.getRotinasComMetas() ?: emptyFlow()
-    open val stats: Flow<List<StatsResult>> = itemCronogramaDao?.getStats() ?: emptyFlow()
-    open val todosOsTemplatesComItens: Flow<List<TemplateComItens>> = templateDao?.getTemplatesComItens() ?: emptyFlow()
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    open val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao?.getIdsConcluidos() ?: emptyFlow()
 
-    // --- MODIFICAÇÃO INICIA AQUI ---
-    val todosOsItensDoCronograma: Flow<List<ItemCronograma>> = itemCronogramaDao?.getAllItems() ?: emptyFlow()
-    // --- MODIFICAÇÃO TERMINA AQUI ---
+    // --- Fluxos de Dados (para observação pela UI) ---
+
+    open val todasAsRotinasComMetas: Flow<List<RotinaComMeta>> = rotinaDao.getRotinasComMetas()
+    open val todosOsTemplatesComEventos: Flow<List<TemplateComEventos>> = templateDao.getTemplatesComEventos()
+    val todosOsItensDoCronograma: Flow<List<ItemCronograma>> = itemCronogramaDao.getAllItems()
+    val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao.getIdsConcluidos()
+
+    /**
+     * NOVO: Fluxo de dados para as estatísticas.
+     */
+    open val stats: Flow<List<StatsResult>> = rotinaDao.getStats()
+
+    // --- Funções de Template ---
+
+    fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos> {
+        return templateDao.getTemplateComEventos(templateId)
+    }
+
+    suspend fun insertTemplate(template: Template) {
+        templateDao.insert(template)
+    }
+
+    suspend fun deleteTemplate(template: Template) {
+        templateDao.delete(template)
+    }
+
+    // --- Funções de ItemCronograma (Evento) ---
+
+    fun getItensDoDia(dia: String): Flow<List<ItemCronograma>> {
+        return itemCronogramaDao.getItemsByDayOfWeek(dia)
+    }
+
+    suspend fun insertItemCronograma(item: ItemCronograma) {
+        itemCronogramaDao.insert(item)
+    }
+
+    suspend fun deleteItemCronograma(item: ItemCronograma) {
+        itemCronogramaDao.delete(item)
+    }
+
+    open suspend fun updateItensCronograma(items: List<ItemCronograma>) {
+        itemCronogramaDao.updateAll(items)
+    }
+
+    // --- Funções de Rotina (Categoria) ---
+
+    suspend fun insertRotina(rotina: Rotina) {
+        rotinaDao.insert(rotina)
+    }
+
+    suspend fun deleteRotina(rotina: Rotina) {
+        rotinaDao.delete(rotina)
+    }
+
+    // --- Funções de Meta e Hábitos ---
+
+    fun getMetaParaRotina(rotinaId: String): Flow<Meta?> {
+        return metaDao.getMetaParaRotina(rotinaId)
+    }
+
+    suspend fun salvarMeta(meta: Meta) {
+        metaDao.insertOrUpdate(meta)
+    }
 
     suspend fun marcarHabitoComoConcluido(itemCronogramaId: String) {
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
-        habitoConcluidoDao?.insert(habito)
+        habitoConcluidoDao.insert(habito)
     }
 
     suspend fun desmarcarHabitoComoConcluido(itemCronogramaId: String) {
-        habitoConcluidoDao?.delete(itemCronogramaId)
-    }
-
-    open fun getMetaParaRotina(rotinaId: String): Flow<Meta?> {
-        return metaDao?.getMetaParaRotina(rotinaId) ?: emptyFlow()
-    }
-
-    open suspend fun salvarMeta(meta: Meta) {
-        metaDao?.insertOrUpdate(meta)
-    }
-
-    open suspend fun saveCurrentScheduleAsTemplate(templateName: String) {
-        val novoTemplate = Template(nome = templateName)
-        templateDao?.saveCurrentScheduleAsTemplate(novoTemplate)
-    }
-
-    open suspend fun loadTemplateIntoSchedule(templateId: String) {
-        itemCronogramaDao?.loadTemplateIntoSchedule(templateId)
-    }
-
-    open suspend fun deleteTemplate(template: Template) {
-        templateDao?.deleteTemplate(template)
-    }
-
-    open suspend fun insert(rotina: Rotina) {
-        rotinaDao?.insert(rotina)
-    }
-
-    open suspend fun delete(rotina: Rotina) {
-        rotinaDao?.delete(rotina)
-    }
-
-    open fun getItensDoDia(dia: String): Flow<List<ItemCronograma>> {
-        return itemCronogramaDao?.getItensDoDia(dia) ?: emptyFlow()
-    }
-
-    open suspend fun insertItemCronograma(item: ItemCronograma) {
-        itemCronogramaDao?.insert(item)
-    }
-
-    open suspend fun deleteItemCronograma(item: ItemCronograma) {
-        itemCronogramaDao?.delete(item)
-    }
-
-    // --- MODIFICAÇÃO: Adicione esta nova função ---
-    open suspend fun saveCompleteTemplate(templateName: String, events: List<TemplateEvent>) {
-        val novoTemplate = Template(nome = templateName)
-        // A lógica para converter TemplateEvent para TemplateItem e salvar precisa ser feita aqui
-        // Por enquanto, vamos apenas criar a função para resolver o erro.
-        templateDao?.insertTemplate(novoTemplate)
+        habitoConcluidoDao.delete(itemCronogramaId)
     }
 }

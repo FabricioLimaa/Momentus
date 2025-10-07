@@ -1,209 +1,208 @@
-// ARQUIVO: ui/components/NewEventDialog.kt (CÓDIGO COMPLETO E CORRIGIDO)
-
 package br.com.fabriciolima.momentus.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
 import br.com.fabriciolima.momentus.data.Rotina
-import java.time.Instant
+import br.com.fabriciolima.momentus.ui.theme.TimePickerDialog
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewEventDialog(
-    dataSelecionada: LocalDate,
-    todasAsRotinas: List<Rotina>,
+    selectedDate: LocalDate,
+    rotinas: List<Rotina>,
     onDismiss: () -> Unit,
-    onConfirm: (titulo: String, desc: String, data: LocalDate, inicio: LocalTime, fim: LocalTime, categoria: Rotina) -> Unit
+    onConfirm: (String, String?, LocalDate, LocalTime, LocalTime, Rotina) -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
-    var data by remember { mutableStateOf(dataSelecionada) }
-    var horarioInicio by remember { mutableStateOf(LocalTime.now().withMinute(0).withSecond(0)) }
-    var horarioTermino by remember { mutableStateOf(horarioInicio.plusHours(1)) }
-    var rotinaSelecionada by remember { mutableStateOf(todasAsRotinas.firstOrNull()) }
+    var horarioInicio by remember { mutableStateOf(LocalTime.of(9, 0)) }
+    var horarioTermino by remember { mutableStateOf(LocalTime.of(10, 0)) }
+    var selectedRotina by remember { mutableStateOf(rotinas.firstOrNull()) }
+    var showDropdown by remember { mutableStateOf(false) }
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePickerInicio by remember { mutableStateOf(false) }
-    var showTimePickerTermino by remember { mutableStateOf(false) }
-
-    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
-    // --- Diálogo de Seleção de Data ---
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        data = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
-                    }
-                    showDatePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") } }
+    if (showStartTimePicker) {
+        val state = rememberTimePickerState(initialHour = horarioInicio.hour, initialMinute = horarioInicio.minute, is24Hour = true)
+        TimePickerDialog(
+            onDismissRequest = { showStartTimePicker = false },
+            onConfirm = {
+                horarioInicio = LocalTime.of(state.hour, state.minute)
+                showStartTimePicker = false
+            }
         ) {
-            DatePicker(state = datePickerState)
+            TimePicker(state = state)
         }
     }
 
-    // --- Diálogo de Seleção de Hora (Início) ---
-    if (showTimePickerInicio) {
-        // CORREÇÃO: Criamos o 'state' aqui, como 'remember'.
-        val timePickerState = rememberTimePickerState(initialHour = horarioInicio.hour, initialMinute = horarioInicio.minute, is24Hour = true)
+    if (showEndTimePicker) {
+        val state = rememberTimePickerState(initialHour = horarioTermino.hour, initialMinute = horarioTermino.minute, is24Hour = true)
         TimePickerDialog(
-            onDismissRequest = { showTimePickerInicio = false },
+            onDismissRequest = { showEndTimePicker = false },
             onConfirm = {
-                // CORREÇÃO: Usamos o 'state' para pegar a hora e o minuto selecionados.
-                horarioInicio = LocalTime.of(timePickerState.hour, timePickerState.minute)
-                showTimePickerInicio = false
-            },
-            state = timePickerState // Passamos o estado para o diálogo
-        )
+                horarioTermino = LocalTime.of(state.hour, state.minute)
+                showEndTimePicker = false
+            }
+        ) {
+            TimePicker(state = state)
+        }
     }
 
-    // --- Diálogo de Seleção de Hora (Término) ---
-    if (showTimePickerTermino) {
-        val timePickerState = rememberTimePickerState(initialHour = horarioTermino.hour, initialMinute = horarioTermino.minute, is24Hour = true)
-        TimePickerDialog(
-            onDismissRequest = { showTimePickerTermino = false },
-            onConfirm = {
-                horarioTermino = LocalTime.of(timePickerState.hour, timePickerState.minute)
-                showTimePickerTermino = false
-            },
-            state = timePickerState
-        )
-    }
+    Dialog(onDismissRequest = onDismiss) {
+        Card {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Novo Evento", style = MaterialTheme.typography.titleLarge)
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Fechar")
+                    }
+                }
+                Text("Para ${selectedDate.format(DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy"))}")
+                Spacer(modifier = Modifier.height(16.dp))
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Novo Evento") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(value = titulo, onValueChange = { titulo = it }, label = { Text("Título") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
-                    value = data.format(dateFormatter), onValueChange = {}, readOnly = true,
-                    label = { Text("Data") }, modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
-                    trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Selecionar Data") }
+                    value = titulo,
+                    onValueChange = { titulo = it },
+                    label = { Text("Título") },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(value = descricao, onValueChange = { descricao = it }, label = { Text("Descrição (opcional)") }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Data") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = descricao,
+                    onValueChange = { descricao = it },
+                    label = { Text("Descrição") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = horarioInicio.format(timeFormatter), onValueChange = {}, readOnly = true,
-                        label = { Text("Início") }, modifier = Modifier.weight(1f).clickable { showTimePickerInicio = true },
+                        value = horarioInicio.format(timeFormatter),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Início") },
+                        modifier = Modifier.weight(1f).clickable { showStartTimePicker = true },
                         trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") }
                     )
                     OutlinedTextField(
-                        value = horarioTermino.format(timeFormatter), onValueChange = {}, readOnly = true,
-                        label = { Text("Término") }, modifier = Modifier.weight(1f).clickable { showTimePickerTermino = true },
+                        value = horarioTermino.format(timeFormatter),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Término") },
+                        modifier = Modifier.weight(1f).clickable { showEndTimePicker = true },
                         trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") }
                     )
                 }
-                CategorySelector(
-                    rotinas = todasAsRotinas,
-                    selecionada = rotinaSelecionada,
-                    onSelected = { rotinaSelecionada = it }
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                // Validação para garantir que uma categoria foi selecionada
-                rotinaSelecionada?.let { categoria ->
-                    onConfirm(titulo, descricao, data, horarioInicio, horarioTermino, categoria)
-                }
-            }) { Text("Criar Evento") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
-}
+                Spacer(modifier = Modifier.height(8.dp))
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CategorySelector(
-    rotinas: List<Rotina>,
-    selecionada: Rotina?,
-    onSelected: (Rotina) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        OutlinedTextField(
-            value = selecionada?.nome ?: "Selecione a Categoria",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Categoria") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            rotinas.forEach { rotina ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val cor = try { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { androidx.compose.ui.graphics.Color.Gray }
-                            Box(modifier = Modifier.size(12.dp).background(cor, CircleShape))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(rotina.nome)
+                Column {
+                    OutlinedTextField(
+                        value = selectedRotina?.nome ?: "Selecione uma categoria",
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Categoria") },
+                        modifier = Modifier.fillMaxWidth().clickable { showDropdown = true },
+                        leadingIcon = {
+                            selectedRotina?.cor?.let {
+                                Box(modifier = Modifier.size(12.dp).background(Color(android.graphics.Color.parseColor(it)), CircleShape))
+                            }
                         }
-                    },
-                    onClick = {
-                        onSelected(rotina)
-                        expanded = false
+                    )
+                    DropdownMenu(expanded = showDropdown, onDismissRequest = { showDropdown = false }) {
+                        rotinas.forEach { rotina ->
+                            DropdownMenuItem(
+                                text = { Text(rotina.nome) },
+                                onClick = { 
+                                    selectedRotina = rotina
+                                    showDropdown = false
+                                }
+                            )
+                        }
                     }
-                )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancelar")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        if (selectedRotina != null && titulo.isNotBlank()) {
+                            onConfirm(
+                                titulo,
+                                descricao,
+                                selectedDate,
+                                horarioInicio,
+                                horarioTermino,
+                                selectedRotina!!
+                            )
+                        }
+                    }) {
+                        Text("Criar Evento")
+                    }
+                }
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TimePickerDialog(
-    onDismissRequest: () -> Unit,
-    onConfirm: () -> Unit,
-    state: TimePickerState
-) {
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        modifier = Modifier.fillMaxWidth(),
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        title = { Text("Selecionar Horário", modifier = Modifier.padding(start = 24.dp, top = 24.dp)) },
-        text = {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                TimePicker(state = state)
-            }
-        },
-        confirmButton = {
-            Row(modifier = Modifier.fillMaxWidth().padding(end = 16.dp, bottom = 16.dp), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismissRequest) { Text("Cancelar") }
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = onConfirm) { Text("OK") }
-            }
-        }
-    )
 }

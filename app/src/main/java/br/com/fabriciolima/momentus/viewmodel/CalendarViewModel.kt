@@ -1,130 +1,150 @@
-// ARQUIVO: viewmodel/CalendarViewModel.kt (CÓDIGO COMPLETO E FINAL)
-
 package br.com.fabriciolima.momentus.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.*
+import android.content.Context
+import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.ItemCronograma
-import br.com.fabriciolima.momentus.data.ItemCronogramaCompletado
 import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.data.RotinaRepository
+import br.com.fabriciolima.momentus.data.RotinaComMeta
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
+import com.google.api.client.util.DateTime
+import com.google.api.services.calendar.CalendarScopes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.YearMonth
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
-class CalendarViewModel(private val repository: RotinaRepository, application: Application) : AndroidViewModel(application) {
+// Representa um evento vindo da API do Google Calendar
+data class GoogleCalendarEvent(
+    val summary: String,
+    val start: DateTime
+)
 
-    private val _mesVisivel = MutableLiveData(YearMonth.now())
-    val mesVisivel: LiveData<YearMonth> = _mesVisivel
+data class CalendarUiState(
+    val allScheduleItems: List<ItemCronograma> = emptyList(),
+    val rotinasMap: Map<String, Rotina> = emptyMap(),
+    val completedHabitIds: Set<String> = emptySet(),
+    val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList() // Novo campo
+)
 
-    private val _dataSelecionada = MutableLiveData(LocalDate.now())
-    val dataSelecionada: LiveData<LocalDate> = _dataSelecionada
+class CalendarViewModel(private val repository: RotinaRepository, application: Application) : ViewModel() {
 
-    val todasAsRotinas: LiveData<List<Rotina>> = repository.todasAsRotinasComMetas.map { listaComMetas ->
-        listaComMetas.map { it.rotina }
+    private val _selectedDate = MutableLiveData(LocalDate.now())
+    val selectedDate: LiveData<LocalDate> = _selectedDate
+
+    private val _googleCalendarEvents = MutableStateFlow<List<GoogleCalendarEvent>>(emptyList())
+
+    val uiState: LiveData<CalendarUiState> = combine(
+        repository.todosOsItensDoCronograma,
+        repository.todasAsRotinasComMetas,
+        repository.idsHabitosConcluidos,
+        _googleCalendarEvents // Usa o StateFlow diretamente
+    ) { allItems, rotinasComMetas, completedIds, googleEvents ->
+        val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
+        val completedIdsSet = completedIds.toSet()
+        CalendarUiState(allItems, rotinasMap, completedIdsSet, googleEvents)
     }.asLiveData()
 
-    // --- GRANDE MODIFICAÇÃO: Lógica final para mapear todos os tipos de evento ---
-    val eventosDoCronograma: LiveData<Map<LocalDate, List<ItemCronogramaCompletado>>> =
-        // Combina o fluxo de todos os itens agendados com o fluxo dos hábitos concluídos
-        repository.todosOsItensDoCronograma.combine(repository.idsHabitosConcluidos) { todosOsItens, idsConcluidos ->
-            val mapaEventos = mutableMapOf<LocalDate, MutableList<ItemCronogramaCompletado>>()
+    val todasAsRotinas: LiveData<List<Rotina>> = repository.todasAsRotinasComMetas.map { rotinasComMetas ->
+        rotinasComMetas.map(RotinaComMeta::rotina)
+    }.asLiveData()
 
-            // Separa os itens em dois grupos: recorrentes e únicos
-            val itensRecorrentes = todosOsItens.filter { it.diaDaSemana != null }
-            val eventosUnicos = todosOsItens.filter { it.data != null }
-
-            // 1. Adiciona os eventos únicos ao mapa
-            eventosUnicos.forEach { evento ->
-                val data = Instant.ofEpochMilli(evento.data!!).atZone(ZoneId.systemDefault()).toLocalDate()
-                val eventoCompletado = ItemCronogramaCompletado(item = evento, completado = idsConcluidos.contains(evento.id))
-                mapaEventos.getOrPut(data) { mutableListOf() }.add(eventoCompletado)
-            }
-
-            // 2. Adiciona os eventos recorrentes (rotinas) ao mapa
-            if (itensRecorrentes.isNotEmpty()) {
-                val hoje = LocalDate.now()
-                for (i in -365..365) { // Gera para um ano no passado e um no futuro
-                    val dataAtual = hoje.plusDays(i.toLong())
-                    val diaDaSemanaAtual = if (dataAtual.dayOfWeek == DayOfWeek.SUNDAY) "DOM" else dataAtual.dayOfWeek.name.substring(0, 3)
-
-                    itensRecorrentes.filter { it.diaDaSemana == diaDaSemanaAtual }.forEach { itemRecorrente ->
-                        val itemCompletado = ItemCronogramaCompletado(item = itemRecorrente, completado = idsConcluidos.contains(itemRecorrente.id))
-                        mapaEventos.getOrPut(dataAtual) { mutableListOf() }.add(itemCompletado)
-                    }
-                }
-            }
-
-            // Ordena os itens de cada dia por horário
-            mapaEventos.forEach { (_, lista) ->
-                lista.sortBy { it.item.horarioInicio }
-            }
-
-            mapaEventos
-        }.asLiveData()
-
-
-    fun selecionarData(data: LocalDate) {
-        _dataSelecionada.value = data
+    fun selectDate(date: LocalDate) {
+        _selectedDate.value = date
     }
 
-    fun irParaMesAnterior() {
-        _mesVisivel.value = _mesVisivel.value?.minusMonths(1)
-    }
-
-    fun irParaProximoMes() {
-        _mesVisivel.value = _mesVisivel.value?.plusMonths(1)
-    }
-
-    fun onHabitoConcluidoChanged(item: ItemCronograma, isChecked: Boolean) = viewModelScope.launch {
-        if (isChecked) {
-            repository.marcarHabitoComoConcluido(item.id)
-        } else {
-            repository.desmarcarHabitoComoConcluido(item.id)
-        }
-    }
-
-    // --- MODIFICAÇÃO INICIA AQUI: Lógica de salvar evento único corrigida ---
     fun salvarEventoUnico(
         titulo: String,
         descricao: String?,
         data: LocalDate,
-        inicio: LocalTime,
-        fim: LocalTime,
-        categoria: Rotina // Recebemos a categoria selecionada
-    ) = viewModelScope.launch {
-        // NÃO criamos mais uma nova rotina.
-
-        // Criamos o ItemCronograma com seus próprios dados e o linkamos à categoria existente.
-        val novoItem = ItemCronograma(
-            titulo = titulo,
-            descricao = descricao,
-            data = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-            diaDaSemana = null,
-            horarioInicio = inicio.format(DateTimeFormatter.ofPattern("HH:mm")),
-            horarioTermino = fim.format(DateTimeFormatter.ofPattern("HH:mm")),
-            rotinaId = categoria.id // Link para a categoria
-        )
-        repository.insertItemCronograma(novoItem)
-    }
-}
-
-class CalendarViewModelFactory(
-    private val repository: RotinaRepository,
-    private val application: Application
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(CalendarViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return CalendarViewModel(repository, application) as T
+        horarioInicio: LocalTime,
+        horarioTermino: LocalTime,
+        rotina: Rotina
+    ) {
+        viewModelScope.launch {
+            val novoItem = ItemCronograma(
+                titulo = titulo,
+                descricao = descricao,
+                data = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                diaDaSemana = null,
+                horarioInicio = horarioInicio,
+                horarioTermino = horarioTermino,
+                rotinaId = rotina.id,
+                templateId = null
+            )
+            repository.insertItemCronograma(novoItem)
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+
+    fun marcarHabitoComoConcluido(itemCronogramaId: String) {
+        viewModelScope.launch {
+            repository.marcarHabitoComoConcluido(itemCronogramaId)
+        }
+    }
+
+    fun desmarcarHabitoComoConcluido(itemCronogramaId: String) {
+        viewModelScope.launch {
+            repository.desmarcarHabitoComoConcluido(itemCronogramaId)
+        }
+    }
+
+    fun fetchGoogleCalendarEvents(context: Context) {
+        val account = GoogleSignIn.getLastSignedInAccount(context)
+        if (account == null) {
+            Log.w("CalendarViewModel", "Nenhuma conta do Google conectada.")
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val credentials = GoogleAccountCredential.usingOAuth2(
+                    context,
+                    listOf(CalendarScopes.CALENDAR)
+                ).apply {
+                    selectedAccount = account.account
+                }
+
+                val transport = NetHttpTransport()
+                val jsonFactory = GsonFactory.getDefaultInstance()
+                val service = com.google.api.services.calendar.Calendar.Builder(
+                    transport,
+                    jsonFactory,
+                    credentials
+                )
+                .setApplicationName("Momentus")
+                .build()
+
+                val now = DateTime(System.currentTimeMillis())
+                val events = service.events().list("primary")
+                    .setMaxResults(10)
+                    .setTimeMin(now)
+                    .setOrderBy("startTime")
+                    .setSingleEvents(true)
+                    .execute()
+
+                val items = events.items?.map { event ->
+                    GoogleCalendarEvent(event.summary, event.start.dateTime ?: event.start.date)
+                } ?: emptyList()
+
+                _googleCalendarEvents.value = items
+
+            } catch (e: Exception) {
+                Log.e("CalendarViewModel", "Erro ao buscar eventos do Google Calendar", e)
+                 _googleCalendarEvents.value = emptyList() // Limpa em caso de erro
+            }
+        }
     }
 }

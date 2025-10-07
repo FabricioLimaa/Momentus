@@ -1,49 +1,45 @@
-// ARQUIVO: data/database/TemplateDao.kt (CÓDIGO COMPLETO)
 package br.com.fabriciolima.momentus.data.database
 
-import androidx.room.*
-import br.com.fabriciolima.momentus.data.ItemCronograma
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Transaction
 import br.com.fabriciolima.momentus.data.Template
-import br.com.fabriciolima.momentus.data.TemplateItem
-import br.com.fabriciolima.momentus.data.TemplateComItens
+import br.com.fabriciolima.momentus.data.TemplateComEventos
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * DAO para a entidade Template.
+ * Esta versão foi limpa para remover funções obsoletas que usavam a entidade TemplateItem.
+ */
 @Dao
 interface TemplateDao {
+
+    /**
+     * Busca todos os templates com seus respectivos eventos (itens do cronograma).
+     */
     @Transaction
     @Query("SELECT * FROM tabela_templates ORDER BY nome ASC")
-    fun getTemplatesComItens(): Flow<List<TemplateComItens>>
+    fun getTemplatesComEventos(): Flow<List<TemplateComEventos>>
 
-    @Insert
-    suspend fun insertTemplate(template: Template)
-
-    @Delete
-    suspend fun deleteTemplate(template: Template)
-
-    // As próximas funções são para a lógica de "Salvar como Template"
-    @Query("SELECT * FROM tabela_itens_cronograma")
-    suspend fun getItensCronogramaAtuais(): List<ItemCronograma>
-
-    @Insert
-    suspend fun insertAllTemplateItems(items: List<TemplateItem>)
-
-    // Uma transação garante que todas as operações dentro dela aconteçam
-    // com sucesso, ou nenhuma delas acontece. Isso evita corrupção de dados.
+    /**
+     * Busca um template específico com seus eventos.
+     */
     @Transaction
-    suspend fun saveCurrentScheduleAsTemplate(template: Template) {
-        insertTemplate(template)
-        val cronogramaAtual = getItensCronogramaAtuais()
-        // --- CORREÇÃO AQUI ---
-        // Adicionamos um '.filter { it.rotinaId != null }' para garantir
-        // que estamos lidando apenas com itens que têm uma rotina associada.
-        val templateItems = cronogramaAtual.filter { it.rotinaId != null }.map { item ->
-            TemplateItem(
-                templateId = template.id,
-                diaDaSemana = item.diaDaSemana ?: "", // Garante que não seja nulo
-                horarioInicio = item.horarioInicio,
-                rotinaId = item.rotinaId // Agora o compilador sabe que não é nulo
-            )
-        }
-        insertAllTemplateItems(templateItems)
-    }
+    @Query("SELECT * FROM tabela_templates WHERE id = :templateId")
+    fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos>
+
+    /**
+     * Insere um novo template.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(template: Template)
+
+    /**
+     * Deleta um template. A deleção dos eventos associados ocorre em cascata (onDelete = CASCADE).
+     */
+    @Delete
+    suspend fun delete(template: Template)
 }

@@ -6,411 +6,491 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.MomentusApplication
+import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.data.ItemCronograma
-import br.com.fabriciolima.momentus.data.ItemCronogramaCompletado
 import br.com.fabriciolima.momentus.data.Rotina
-import br.com.fabriciolima.momentus.ui.components.AppDrawer
+import br.com.fabriciolima.momentus.data.database.AppDatabase
+import br.com.fabriciolima.momentus.ui.components.EventListItem
 import br.com.fabriciolima.momentus.ui.components.NewEventDialog
-import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
+import br.com.fabriciolima.momentus.viewmodel.CalendarUiState
 import br.com.fabriciolima.momentus.viewmodel.CalendarViewModel
-import br.com.fabriciolima.momentus.viewmodel.CalendarViewModelFactory
+import br.com.fabriciolima.momentus.viewmodel.GoogleCalendarEvent
+import br.com.fabriciolima.momentus.viewmodel.ViewModelFactory
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.api.services.calendar.CalendarScopes
-import com.google.android.gms.common.api.Scope
-import com.kizitonwose.calendar.compose.HorizontalCalendar
-import com.kizitonwose.calendar.compose.rememberCalendarState
-import com.kizitonwose.calendar.core.CalendarDay
-import com.kizitonwose.calendar.core.DayPosition
-import com.kizitonwose.calendar.core.firstDayOfWeekFromLocale
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.*
+import java.util.Locale
 
 class CalendarActivity : ComponentActivity() {
+
     private val viewModel: CalendarViewModel by viewModels {
-        CalendarViewModelFactory(
-            (application as MomentusApplication).repository,
-            application
-        )
+        ViewModelFactory(AppDatabase.getDatabase(this), this.application)
     }
-    private lateinit var googleSignInClient: GoogleSignInClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestEmail().requestScopes(Scope(CalendarScopes.CALENDAR)).build()
-        googleSignInClient = GoogleSignIn.getClient(this, gso)
+
+        // Chama a busca de eventos através do ViewModel
+        viewModel.fetchGoogleCalendarEvents(this)
 
         setContent {
-            MomentusTheme {
-                val mesVisivel by viewModel.mesVisivel.observeAsState(YearMonth.now())
-                val dataSelecionada by viewModel.dataSelecionada.observeAsState(LocalDate.now())
-                val eventos by viewModel.eventosDoCronograma.observeAsState(emptyMap())
-                val todasAsRotinas by viewModel.todasAsRotinas.observeAsState(emptyList())
-                val googleAccount by remember { mutableStateOf(GoogleSignIn.getLastSignedInAccount(this)) }
+            val uiState by viewModel.uiState.observeAsState()
+            val selectedDate by viewModel.selectedDate.observeAsState(LocalDate.now())
 
-                CalendarApp(
-                    viewModel = viewModel,
-                    mesVisivel = mesVisivel,
-                    dataSelecionada = dataSelecionada,
-                    eventosPorDia = eventos,
-                    todasAsRotinas = todasAsRotinas,
-                    googleAccount = googleAccount,
-                    onNavigateToRoutines = { startActivity(Intent(this, MainActivity::class.java)) },
-                    onNavigateToTemplates = { startActivity(Intent(this, TemplatesActivity::class.java)) },
-                    onLogout = {
-                        googleSignInClient.signOut().addOnCompleteListener {
-                            val intent = Intent(this, LoginActivity::class.java).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+            val scope = rememberCoroutineScope()
+
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    AppDrawerContent(
+                        onNavigate = {
+                            scope.launch { drawerState.close() }
+                        },
+                        onLogout = { 
+                            val gso = GoogleAuthUtils.getGoogleSignInOptions(this)
+                            GoogleSignIn.getClient(this, gso).signOut().addOnCompleteListener {
+                                val intent = Intent(this, LoginActivity::class.java)
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                                finish()
                             }
-                            startActivity(intent)
                         }
-                    }
+                    )
+                }
+            ) {
+                CalendarScreen(
+                    uiState = uiState,
+                    selectedDate = selectedDate,
+                    onDateSelected = { viewModel.selectDate(it) },
+                    onPreviousMonth = { viewModel.selectDate(it.minusMonths(1)) },
+                    onNextMonth = { viewModel.selectDate(it.plusMonths(1)) },
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    viewModel = viewModel
                 )
             }
         }
-    }
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CalendarApp(
-    viewModel: CalendarViewModel,
-    mesVisivel: YearMonth,
-    dataSelecionada: LocalDate,
-    eventosPorDia: Map<LocalDate, List<ItemCronogramaCompletado>>,
-    todasAsRotinas: List<Rotina>,
-    googleAccount: GoogleSignInAccount?,
-    onNavigateToRoutines: () -> Unit,
-    onNavigateToTemplates: () -> Unit,
-    onLogout: () -> Unit
-) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    var showNewEventDialog by remember { mutableStateOf(false) }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            AppDrawer(
-                googleAccount = googleAccount,
-                onRoutinesClicked = onNavigateToRoutines,
-                onTemplatesClicked = onNavigateToTemplates,
-                onLogoutClicked = onLogout,
-                onCloseDrawer = { scope.launch { drawerState.close() } }
-            )
-        }
-    ) {
-        CalendarScreen(
-            mesVisivel = mesVisivel,
-            dataSelecionada = dataSelecionada,
-            eventosPorDia = eventosPorDia,
-            todasAsRotinas = todasAsRotinas,
-            onDateSelected = { viewModel.selecionarData(it) },
-            onMesAnterior = { viewModel.irParaMesAnterior() },
-            onProximoMes = { viewModel.irParaProximoMes() },
-            onMenuClicked = { scope.launch { drawerState.open() } },
-            onNewEventClicked = { showNewEventDialog = true },
-            onHabitoConcluidoChanged = { item, isChecked ->
-                viewModel.onHabitoConcluidoChanged(item, isChecked)
-            }
-        )
-    }
-
-    if (showNewEventDialog) {
-        NewEventDialog(
-            dataSelecionada = dataSelecionada,
-            todasAsRotinas = todasAsRotinas,
-            onDismiss = { showNewEventDialog = false },
-            // --- MODIFICAÇÃO: Chamamos a nova função do ViewModel ---
-            onConfirm = { titulo, desc, data, inicio, fim, categoria ->
-                viewModel.salvarEventoUnico(titulo, desc, data, inicio, fim, categoria)
-                showNewEventDialog = false
-            }
-        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
-    mesVisivel: YearMonth,
-    dataSelecionada: LocalDate,
-    eventosPorDia: Map<LocalDate, List<ItemCronogramaCompletado>>,
-    todasAsRotinas: List<Rotina>,
+    uiState: CalendarUiState?,
+    selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
-    onMesAnterior: () -> Unit,
-    onProximoMes: () -> Unit,
-    onMenuClicked: () -> Unit,
-    onNewEventClicked: () -> Unit,
-    onHabitoConcluidoChanged: (ItemCronograma, Boolean) -> Unit
+    onPreviousMonth: (LocalDate) -> Unit,
+    onNextMonth: (LocalDate) -> Unit,
+    onMenuClick: () -> Unit,
+    viewModel: CalendarViewModel
 ) {
-    val scope = rememberCoroutineScope()
-    val state = rememberCalendarState(
-        startMonth = YearMonth.now().minusMonths(100),
-        endMonth = YearMonth.now().plusMonths(100),
-        firstVisibleMonth = mesVisivel,
-        firstDayOfWeek = firstDayOfWeekFromLocale()
-    )
+    var showDialog by remember { mutableStateOf(false) }
+
+    if (showDialog) {
+        NewEventDialog(
+            selectedDate = selectedDate,
+            rotinas = uiState?.rotinasMap?.values?.toList() ?: emptyList(),
+            onDismiss = { showDialog = false },
+            onConfirm = {
+                titulo, descricao, data, inicio, fim, rotina ->
+                viewModel.salvarEventoUnico(titulo, descricao, data, inicio, fim, rotina)
+                showDialog = false
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Calendário") },
+                title = { Text(text = "Minha Agenda") },
                 navigationIcon = {
-                    IconButton(onClick = onMenuClicked) {
-                        Icon(Icons.Default.Menu, contentDescription = "Abrir Menu")
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 },
-                // --- MODIFICAÇÃO: Cores da barra de título alinhadas ao tema ---
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                actions = {
+                    IconButton(onClick = { /* TODO: Abrir perfil do usuário */ }) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("F", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNewEventClicked,
-                // --- MODIFICAÇÃO: Cores do botão alinhadas ao tema ---
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                onClick = { showDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Novo Evento")
+                Icon(Icons.Default.Add, contentDescription = "Adicionar Evento")
+                Spacer(modifier = Modifier.padding(4.dp))
+                Text("Novo Evento")
             }
-        },
-        // --- MODIFICAÇÃO: Cor de fundo da tela ---
-        containerColor = MaterialTheme.colorScheme.background
+        }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            CalendarHeader(
-                yearMonth = state.firstVisibleMonth.yearMonth,
-                onMesAnterior = { scope.launch { state.animateScrollToMonth(state.firstVisibleMonth.yearMonth.minusMonths(1)) } },
-                onProximoMes = { scope.launch { state.animateScrollToMonth(state.firstVisibleMonth.yearMonth.plusMonths(1)) } }
-            )
-            DaysOfWeekHeader()
-            HorizontalCalendar(
-                state = state,
-                dayContent = { day ->
-                    Day(
-                        day = day,
-                        isSelected = dataSelecionada == day.date,
-                        hasEvent = eventosPorDia.containsKey(day.date),
-                        onClick = { onDateSelected(it.date) }
-                    )
-                }
-            )
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            val eventosDoDia = eventosPorDia[dataSelecionada] ?: emptyList()
-            val formatter = DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy", Locale("pt", "BR"))
-            Text(
-                text = dataSelecionada.format(formatter),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            if (eventosDoDia.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Nenhum evento para este dia.")
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(eventosDoDia, key = { it.item.id }) { evento ->
-                        val rotina = todasAsRotinas.find { it.id == evento.item.rotinaId }
-                        EventoListItem(
-                            item = evento,
-                            rotina = rotina,
-                            onCheckedChange = onHabitoConcluidoChanged
-                        )
+            CalendarHeader(selectedDate, onPreviousMonth, onNextMonth)
+            CalendarGrid(selectedDate, onDateSelected, uiState)
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+            EventsForDay(uiState, selectedDate)
+        }
+    }
+}
+
+@Composable
+fun AppDrawerContent(onNavigate: () -> Unit, onLogout: () -> Unit) {
+    val context = LocalContext.current
+    val account = GoogleSignIn.getLastSignedInAccount(context)
+
+    ModalDrawerSheet {
+        Column(
+            modifier = Modifier.fillMaxHeight(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(40.dp))
+                    Spacer(modifier = Modifier.padding(8.dp))
+                    Column {
+                        Text(text = "Minha Agenda", style = MaterialTheme.typography.titleLarge)
+                        Text(text = "Organize seu tempo", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun CalendarHeader(yearMonth: YearMonth, onMesAnterior: () -> Unit, onProximoMes: () -> Unit) {
-    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onMesAnterior) {
-            Icon(Icons.Default.ChevronLeft, contentDescription = "Mês Anterior")
-        }
-        Text(
-            text = yearMonth.format(formatter).replaceFirstChar { it.uppercase() },
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f),
-            // --- MODIFICAÇÃO: Cor do texto alinhada ao tema ---
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        IconButton(onClick = onProximoMes) {
-            Icon(Icons.Default.ChevronRight, contentDescription = "Próximo Mês")
-        }
-    }
-}
-
-@Composable
-fun DaysOfWeekHeader() {
-    val dias = remember { DayOfWeek.values() }
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 16.dp)) {
-        for (dia in dias) {
-            Text(
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold,
-                text = dia.getDisplayName(TextStyle.SHORT, Locale("pt", "BR")).uppercase(),
-                // --- MODIFICAÇÃO: Cor do texto alinhada ao tema ---
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-fun Day(
-    day: CalendarDay,
-    isSelected: Boolean,
-    hasEvent: Boolean,
-    onClick: (CalendarDay) -> Unit
-) {
-    val isFromCurrentMonth = day.position == DayPosition.MonthDate
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .padding(2.dp)
-            .clip(CircleShape)
-            // --- MODIFICAÇÃO: Lógica de cores do dia selecionado aprimorada ---
-            .background(
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = CircleShape
-            )
-            .clickable(
-                enabled = isFromCurrentMonth,
-                onClick = { onClick(day) }
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(
-                text = day.date.dayOfMonth.toString(),
-                // --- MODIFICAÇÃO: Cor do texto do dia selecionado/não selecionado ---
-                color = when {
-                    isSelected -> MaterialTheme.colorScheme.onPrimary
-                    isFromCurrentMonth -> MaterialTheme.colorScheme.onSurface
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                }
-            )
-            if (hasEvent) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        // --- MODIFICAÇÃO: Cor do indicador de evento ---
-                        .background(
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
-                            shape = CircleShape
-                        )
+                Divider()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = "NAVEGAÇÃO", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 16.dp))
+                NavigationDrawerItem(
+                    label = { Text("Calendário") },
+                    selected = true,
+                    onClick = onNavigate,
+                    icon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    label = { Text("Templates") },
+                    selected = false,
+                    onClick = {
+                        context.startActivity(Intent(context, TemplatesActivity::class.java))
+                        onNavigate()
+                    },
+                    icon = { Icon(Icons.Default.GridView, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    label = { Text("Categorias") },
+                    selected = false,
+                    onClick = {
+                        context.startActivity(Intent(context, CategoryActivity::class.java))
+                        onNavigate()
+                    },
+                    icon = { Icon(Icons.Default.Category, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }
+            Column(modifier = Modifier.padding(16.dp)) {
+                Divider()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = "USUÁRIO", style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
+                         Text(
+                            text = account?.displayName?.firstOrNull()?.toString() ?: "U", 
+                            color = MaterialTheme.colorScheme.onPrimary, 
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.padding(8.dp))
+                    Column {
+                        Text(text = account?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text(text = account?.email ?: "", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                TextButton(onClick = onLogout) {
+                    Text("Sair")
+                }
+            }
         }
     }
 }
 
 @Composable
-fun EventoListItem(
-    item: ItemCronogramaCompletado,
-    rotina: Rotina?,
-    onCheckedChange: (ItemCronograma, Boolean) -> Unit
-) {
-    val cor = try {
-        Color(android.graphics.Color.parseColor(rotina?.cor ?: "#808080"))
-    } catch (e: Exception) {
-        Color.Gray
+fun CalendarHeader(selectedDate: LocalDate, onPreviousMonth: (LocalDate) -> Unit, onNextMonth: (LocalDate) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
+        Text(
+            text = selectedDate.format(monthFormatter).replaceFirstChar { it.titlecase(Locale.getDefault()) },
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Row {
+            IconButton(onClick = { onPreviousMonth(selectedDate) }) {
+                Icon(Icons.Default.ChevronLeft, contentDescription = "Mês Anterior")
+            }
+            IconButton(onClick = { onNextMonth(selectedDate) }) {
+                Icon(Icons.Default.ChevronRight, contentDescription = "Próximo Mês")
+            }
+        }
     }
-    val alpha = if (item.completado) 0.6f else 1f
-    val textDecoration = if (item.completado) TextDecoration.LineThrough else TextDecoration.None
+}
+
+@Composable
+fun CalendarGrid(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit, uiState: CalendarUiState?) {
+    val yearMonth = YearMonth.from(selectedDate)
+    val firstDayOfMonth = yearMonth.atDay(1)
+    val daysInMonth = yearMonth.lengthOfMonth()
+
+    val localEventsByDate = uiState?.allScheduleItems?.groupBy {
+        it.data?.let { instant -> LocalDate.ofInstant(java.time.Instant.ofEpochMilli(instant), java.time.ZoneId.systemDefault()) }
+    } ?: emptyMap()
+
+    val googleEventsByDate = uiState?.googleCalendarEvents?.groupBy { event ->
+        val instant = Instant.ofEpochMilli(event.start.value)
+        instant.atZone(ZoneId.systemDefault()).toLocalDate()
+    } ?: emptyMap()
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            val daysOfWeek = listOf("Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb")
+            daysOfWeek.forEach {
+                Text(text = it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(7),
+            userScrollEnabled = false
+        ) {
+            val startOffset = firstDayOfMonth.dayOfWeek.value % 7
+            items(startOffset) {
+                Box(modifier = Modifier.aspectRatio(1f))
+            }
+
+            items(daysInMonth) {
+                val day = firstDayOfMonth.plusDays(it.toLong())
+                val isSelected = day == selectedDate
+                val isCurrentMonth = YearMonth.from(day) == yearMonth
+                val localEventsForDay = localEventsByDate[day] ?: emptyList()
+                val googleEventsForDay = googleEventsByDate[day] ?: emptyList()
+
+                DayCell(day, isSelected, isCurrentMonth, localEventsForDay, googleEventsForDay, uiState?.rotinasMap ?: emptyMap(), onDateSelected)
+            }
+        }
+    }
+}
+
+@Composable
+fun DayCell(
+    day: LocalDate,
+    isSelected: Boolean,
+    isCurrentMonth: Boolean,
+    localEvents: List<ItemCronograma>,
+    googleEvents: List<GoogleCalendarEvent>,
+    rotinasMap: Map<String, Rotina>,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    val textColor = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else Color.Gray
+
+    var modifier = Modifier
+        .aspectRatio(1f)
+        .padding(2.dp)
+        .clip(RoundedCornerShape(4.dp))
+        .clickable { onDateSelected(day) }
+
+    if (isSelected) {
+        modifier = modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = day.dayOfMonth.toString(),
+            color = textColor,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        val totalEvents = localEvents.size + googleEvents.size
+
+        if (totalEvents > 0) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                // Mostra até 2 eventos locais
+                localEvents.take(2).forEach { event ->
+                    val rotina = rotinasMap[event.rotinaId]
+                    val color = rotina?.cor?.let { Color(android.graphics.Color.parseColor(it)) } ?: Color.Gray
+                    Box(modifier = Modifier.size(6.dp).background(color, CircleShape))
+                }
+                // Se houver eventos do Google, mostra um indicador
+                if (googleEvents.isNotEmpty()) {
+                    Box(modifier = Modifier.size(6.dp).background(Color.Red, CircleShape))
+                }
+            }
+        }
+
+        if (totalEvents > 2) {
+            Text(
+                text = "+${totalEvents - 1} mais",
+                fontSize = 8.sp,
+                color = textColor
+            )
+        }
+    }
+}
+
+@Composable
+fun EventsForDay(uiState: CalendarUiState?, selectedDate: LocalDate) {
+    val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("pt", "BR"))
+    val formattedDate = selectedDate.format(dateFormatter)
+
+    // Filtra os eventos locais para o dia selecionado
+    val localEventsForDay = uiState?.allScheduleItems?.filter {
+        it.data != null && LocalDate.ofInstant(java.time.Instant.ofEpochMilli(it.data), java.time.ZoneId.systemDefault()) == selectedDate
+    } ?: emptyList()
+
+    // Filtra os eventos do Google para o dia selecionado
+    val googleEventsForDay = uiState?.googleCalendarEvents?.filter { event ->
+        val instant = Instant.ofEpochMilli(event.start.value)
+        val eventDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+        eventDate == selectedDate
+    } ?: emptyList()
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(
+            text = formattedDate,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (localEventsForDay.isEmpty() && googleEventsForDay.isEmpty()) {
+            Text("Nenhum evento para este dia.")
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Renderiza os eventos locais
+                items(localEventsForDay) {
+                    val rotina = uiState?.rotinasMap?.get(it.rotinaId)
+                    if (rotina != null) {
+                        EventListItem(item = it, rotina = rotina)
+                    }
+                }
+
+                // Renderiza os eventos do Google
+                items(googleEventsForDay) { event ->
+                    GoogleEventListItem(event = event)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GoogleEventListItem(event: br.com.fabriciolima.momentus.viewmodel.GoogleCalendarEvent) {
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val instant = Instant.ofEpochMilli(event.start.value)
+    val startTime = instant.atZone(ZoneId.systemDefault()).toLocalTime()
 
     Card(
-        shape = MaterialTheme.shapes.medium,
-        // --- MODIFICAÇÃO: Cores do card alinhadas ao tema ---
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(10.dp).background(cor, CircleShape)
+                modifier = Modifier
+                    .size(12.dp)
+                    .background(Color.Red, CircleShape) // Cor genérica para eventos do Google
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = rotina?.nome ?: "Desconhecido",
-                    fontWeight = FontWeight.Bold,
-                    textDecoration = textDecoration,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
-                )
-                Text(
-                    text = item.item.horarioInicio,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
-                )
+            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+            Column {
+                Text(text = event.summary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text(text = "Início: ${startTime.format(timeFormatter)} - Google Agenda", style = MaterialTheme.typography.bodySmall)
             }
-            Checkbox(
-                checked = item.completado,
-                onCheckedChange = { isChecked -> onCheckedChange(item.item, isChecked) },
-                // --- MODIFICAÇÃO: Cores do Checkbox alinhadas ao tema ---
-                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-            )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CalendarScreenPreview() {
-    MomentusTheme {
-        // A Preview precisa de um ViewModel? Não, passamos 'null' para os dados.
-        // E como CalendarApp agora espera um ViewModel, criamos uma função de preview para ele.
     }
 }

@@ -1,39 +1,36 @@
-// ARQUIVO: viewmodel/MainViewModel.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.viewmodel
 
-import androidx.lifecycle.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.Meta
 import br.com.fabriciolima.momentus.data.Rotina
-import br.com.fabriciolima.momentus.data.RotinaComMeta
 import br.com.fabriciolima.momentus.data.RotinaRepository
 import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: RotinaRepository) : ViewModel() {
 
-    val rotinas: LiveData<List<RotinaComMeta>> = repository.todasAsRotinasComMetas.asLiveData()
-    private var ultimaRotinaDeletada: Rotina? = null
+    // CORREÇÃO: Adicionando a propriedade que estava faltando na EditorRotinaActivity.
+    val rotinasComMetas = repository.todasAsRotinasComMetas.asLiveData()
 
-    fun addRotina(novaRotina: Rotina) = viewModelScope.launch {
-        repository.insert(novaRotina)
+    /**
+     * Insere ou atualiza uma rotina (categoria) no banco de dados.
+     */
+    fun insertRotina(rotina: Rotina) = viewModelScope.launch {
+        repository.insertRotina(rotina)
     }
 
+    /**
+     * Deleta uma rotina do banco de dados.
+     */
     fun deleteRotina(rotina: Rotina) = viewModelScope.launch {
-        ultimaRotinaDeletada = rotina
-        repository.delete(rotina)
+        repository.deleteRotina(rotina)
     }
 
-    fun reinsereRotina() = viewModelScope.launch {
-        ultimaRotinaDeletada?.let {
-            repository.insert(it)
-        }
-    }
-
-    fun salvarMeta(rotinaId: String, metaHoras: Int) = viewModelScope.launch {
-        val metaMinutos = metaHoras * 60
-        val novaMeta = Meta(rotinaId = rotinaId, metaMinutosSemanal = metaMinutos)
-        repository.salvarMeta(novaMeta)
+    /**
+     * Insere ou atualiza uma meta no banco de dados.
+     */
+    fun salvarMeta(meta: Meta) = viewModelScope.launch {
+        repository.salvarMeta(meta)
     }
 }
-
-// A CLASSE MainViewModelFactory FOI REMOVIDA DESTE ARQUIVO

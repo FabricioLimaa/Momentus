@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "809975381863",
+    "project_id": "momentus-b267f",
+    "storage_bucket": "momentus-b267f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:809975381863:android:d79b7d5022dd6edcb9f9c2",
+        "android_client_info": {
+          "package_name": "br.com.fabriciolima.momentus"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "809975381863-2hhi0jot8fu5e57qnptc26ilv1n8pjjq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.com.fabriciolima.momentus",
+            "certificate_hash": "63099d315b0e642c1a3be20f8f09c0dd19cdbddf"
+          }
+        },
+        {
+          "client_id": "809975381863-j908mdo3bdrf1falefo4ttivaqd60lji.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1y2TLkdhYsHCnfcur_t__k_H3BbKrfQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "809975381863-j908mdo3bdrf1falefo4ttivaqd60lji.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
