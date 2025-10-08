@@ -1,10 +1,10 @@
 package br.com.fabriciolima.momentus.ui
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
@@ -27,7 +29,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -35,11 +36,14 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,9 +53,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import br.com.fabriciolima.momentus.data.ItemCronograma
 import br.com.fabriciolima.momentus.data.Rotina
@@ -89,13 +94,13 @@ class TemplatesActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplatesScreen(viewModel: TemplateViewModel) {
     val uiState by viewModel.uiState.observeAsState(TemplateUiState())
     var showCreateDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<TemplateComEventos?>(null) }
     var showApplyDialog by remember { mutableStateOf<TemplateComEventos?>(null) }
-    val context = LocalContext.current
 
     if (showCreateDialog) {
         CreateTemplateDialog(
@@ -118,7 +123,7 @@ fun TemplatesScreen(viewModel: TemplateViewModel) {
                 TextButton(onClick = {
                     viewModel.deleteTemplate(templateToDelete.template.id)
                     showDeleteDialog = null
-                }) { Text("Deletar") }
+                }) { Text("DELETAR", color = Color.Red) }
             },
             dismissButton = { TextButton(onClick = { showDeleteDialog = null }) { Text("Cancelar") } }
         )
@@ -134,31 +139,46 @@ fun TemplatesScreen(viewModel: TemplateViewModel) {
         )
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Templates de Rotina", style = MaterialTheme.typography.headlineMedium)
-        Text("Crie rotinas e aplique em múltiplos dias", style = MaterialTheme.typography.bodyLarge)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { showCreateDialog = true }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Novo Template")
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Minha Agenda") })
         }
-        Spacer(modifier = Modifier.height(16.dp))
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Templates de Rotina", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Crie rotinas e aplique em múltiplos dias",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(24.dp))
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(uiState.templates) { templateComEventos ->
-                TemplateCard(
-                    templateComEventos = templateComEventos,
-                    rotinasMap = uiState.rotinasMap,
-                    onClick = { 
-                        val intent = Intent(context, TemplateDetailActivity::class.java).apply {
-                            putExtra("TEMPLATE_ID", templateComEventos.template.id)
-                        }
-                        context.startActivity(intent)
-                    },
-                    onDeleteClick = { showDeleteDialog = templateComEventos },
-                    onApplyClick = { showApplyDialog = templateComEventos }
-                )
+            Button(
+                onClick = { showCreateDialog = true },
+                modifier = Modifier.fillMaxWidth().height(50.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Adicionar Template")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Novo Template", fontSize = 16.sp)
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if(uiState.templates.isEmpty()) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth().padding(top=32.dp)){
+                    Text("Nenhum template criado ainda.")
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    items(uiState.templates) { templateComEventos ->
+                        TemplateCard(
+                            templateComEventos = templateComEventos,
+                            rotinasMap = uiState.rotinasMap, // Passando o mapa de rotinas
+                            onDeleteClick = { showDeleteDialog = templateComEventos },
+                            onApplyClick = { showApplyDialog = templateComEventos }
+                        )
+                    }
+                }
             }
         }
     }
@@ -168,37 +188,36 @@ fun TemplatesScreen(viewModel: TemplateViewModel) {
 fun TemplateCard(
     templateComEventos: TemplateComEventos, 
     rotinasMap: Map<String, Rotina>,
-    onClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onApplyClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = templateComEventos.template.nome, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(text = "${templateComEventos.eventos.size} eventos", style = MaterialTheme.typography.bodyMedium)
-            
-            Row {
-                TextButton(onClick = onApplyClick) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = "Aplicar Template", modifier = Modifier.size(ButtonDefaults.IconSize))
-                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Text("Aplicar")
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(text = templateComEventos.template.nome, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(text = "${templateComEventos.eventos.size} eventos", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                 }
-                TextButton(onClick = onDeleteClick) {
-                    Icon(Icons.Default.Delete, contentDescription = "Deletar Template", modifier = Modifier.size(ButtonDefaults.IconSize))
-                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Text("Deletar")
+                Row {
+                     IconButton(onClick = onApplyClick) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Aplicar Template", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(Icons.Default.Delete, contentDescription = "Deletar Template", tint = Color.Red)
+                    }
                 }
             }
             
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 templateComEventos.eventos.sortedBy { it.horarioInicio }.forEach { evento ->
-                    rotinasMap[evento.rotinaId]?.let {
-                        TemplateEventItem(item = evento)
+                    rotinasMap[evento.rotinaId]?.let { rotina ->
+                        TemplateEventItem(item = evento, rotina = rotina)
                     }
                 }
             }
@@ -207,22 +226,25 @@ fun TemplateCard(
 }
 
 @Composable
-fun TemplateEventItem(item: ItemCronograma) {
+fun TemplateEventItem(item: ItemCronograma, rotina: Rotina) {
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
+    val corDaRotina = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.size(10.dp).background(corDaRotina, CircleShape))
+        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
             Text(item.titulo, fontWeight = FontWeight.SemiBold)
             if (item.descricao?.isNotBlank() == true) {
-                Text(item.descricao, style = MaterialTheme.typography.bodySmall)
+                Text(item.descricao, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         }
         Text(
             text = "${item.horarioInicio.format(timeFormatter)} - ${item.horarioTermino.format(timeFormatter)}",
-            style = MaterialTheme.typography.bodySmall
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray
         )
     }
 }
@@ -238,7 +260,7 @@ fun CreateTemplateDialog(
     var eventForms by remember { mutableStateOf(listOf(EventFormData())) }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(modifier = Modifier.padding(vertical = 32.dp)) {
+        Card(shape = RoundedCornerShape(16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Criar Template de Rotina", style = MaterialTheme.typography.titleLarge)
                 Text("Defina uma rotina com múltiplos eventos", style = MaterialTheme.typography.bodySmall)

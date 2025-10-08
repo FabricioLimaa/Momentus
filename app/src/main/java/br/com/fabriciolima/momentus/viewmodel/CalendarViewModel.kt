@@ -18,6 +18,8 @@ import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.CalendarScopes
+import com.google.api.services.calendar.model.Event
+import com.google.api.services.calendar.model.EventDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 // Representa um evento vindo da API do Google Calendar
 data class GoogleCalendarEvent(
@@ -65,16 +68,19 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
     }
-
+    
     fun salvarEventoUnico(
+        context: Context,
         titulo: String,
         descricao: String?,
         data: LocalDate,
         horarioInicio: LocalTime,
         horarioTermino: LocalTime,
-        rotina: Rotina
+        rotina: Rotina,
+        salvarNoGoogle: Boolean
     ) {
         viewModelScope.launch {
+            // 1. Salvar o evento localmente
             val novoItem = ItemCronograma(
                 titulo = titulo,
                 descricao = descricao,
@@ -86,6 +92,56 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
                 templateId = null
             )
             repository.insertItemCronograma(novoItem)
+
+            // 2. Se a opção estiver marcada, salvar no Google Calendar
+            if (salvarNoGoogle) {
+                launch(Dispatchers.IO) { // Executa em uma thread de IO
+                    try {
+                        val account = GoogleSignIn.getLastSignedInAccount(context)
+                        if (account == null) {
+                            Log.w("CalendarViewModel", "Nenhuma conta para criar evento no Google.")
+                            return@launch
+                        }
+
+                        val credentials = GoogleAccountCredential.usingOAuth2(context, listOf(CalendarScopes.CALENDAR))
+                            .setSelectedAccount(account.account)
+
+                        val transport = NetHttpTransport()
+                        val jsonFactory = GsonFactory.getDefaultInstance()
+                        val service = com.google.api.services.calendar.Calendar.Builder(transport, jsonFactory, credentials)
+                            .setApplicationName("Momentus")
+                            .build()
+
+                        val event = Event().apply {
+                            summary = titulo
+                            description = descricao
+
+                            val zoneId = ZoneId.systemDefault()
+
+                            val startInstant = data.atTime(horarioInicio).atZone(zoneId).toInstant()
+                            val startDateTime = DateTime(startInstant.toEpochMilli())
+                            start = EventDateTime()
+                                .setDateTime(startDateTime)
+                                .setTimeZone(zoneId.id)
+
+                            val endInstant = data.atTime(horarioTermino).atZone(zoneId).toInstant()
+                            val endDateTime = DateTime(endInstant.toEpochMilli())
+                            end = EventDateTime()
+                                .setDateTime(endDateTime)
+                                .setTimeZone(zoneId.id)
+                        }
+
+                        service.events().insert("primary", event).execute()
+                        Log.d("CalendarViewModel", "Evento criado no Google Calendar com sucesso.")
+
+                        // Atualiza a lista de eventos do Google para refletir a mudança
+                        fetchGoogleCalendarEvents(context)
+
+                    } catch (e: Exception) {
+                        Log.e("CalendarViewModel", "Erro ao criar evento no Google Calendar", e)
+                    }
+                }
+            }
         }
     }
 

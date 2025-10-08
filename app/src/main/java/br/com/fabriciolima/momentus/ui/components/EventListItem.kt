@@ -47,6 +47,7 @@ fun EventListItem(item: ItemCronograma, rotina: Rotina) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.Top
         ) {
+            // Ponto colorido no início
             Box(
                 modifier = Modifier
                     .padding(top = 4.dp)
@@ -54,43 +55,59 @@ fun EventListItem(item: ItemCronograma, rotina: Rotina) {
                     .background(corDaRotina, shape = CircleShape)
             )
             Spacer(modifier = Modifier.width(16.dp))
+
+            // Coluna principal de conteúdo
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = item.titulo, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                // --- LINHA DO TÍTULO E TAG ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Título do Evento
+                    Text(
+                        text = item.titulo,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f, fill = false) // Impede que o título empurre a tag
+                    )
+                    // Tag da Categoria
+                    Box(
+                        modifier = Modifier
+                            .background(corDaRotina.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = rotina.nome,
+                            color = corDaRotina,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
 
+                // --- LINHA DO HORÁRIO ---
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = "Horário",
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant // Usando cor do tema
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "${item.horarioInicio.format(formatter)} - ${item.horarioTermino.format(formatter)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant // Usando cor do tema
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
+                // --- DESCRIÇÃO ---
                 if (item.descricao?.isNotBlank() == true) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = item.descricao, style = MaterialTheme.typography.bodyMedium)
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Box(
-                    modifier = Modifier
-                        .background(corDaRotina.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = rotina.nome,
-                        color = corDaRotina,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
             }
         }

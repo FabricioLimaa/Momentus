@@ -39,7 +39,6 @@ import java.time.format.DateTimeFormatter
 
 class NewEventActivity : ComponentActivity() {
 
-    // CORREÇÃO: Removendo o parâmetro 'application' que causava o erro de 'Type mismatch'
     private val viewModel: CalendarViewModel by viewModels {
         CalendarViewModelFactory((application as MomentusApplication).repository, application)
     }
@@ -56,15 +55,14 @@ class NewEventActivity : ComponentActivity() {
 
         setContent {
             MomentusTheme {
-                // Agora a propriedade 'todasAsRotinas' existe e o código compila.
                 val todasAsRotinas by viewModel.todasAsRotinas.observeAsState(emptyList())
 
                 NewEventScreen(
                     dataInicial = initialDate,
                     todasAsRotinas = todasAsRotinas,
                     onSave = { titulo, desc, data, inicio, fim, categoria ->
-                        // Agora o método 'salvarEventoUnico' existe e o código compila.
-                        viewModel.salvarEventoUnico(titulo, desc, data, inicio, fim, categoria)
+                        // CORREÇÃO: Chamada ajustada para corresponder à nova assinatura do ViewModel.
+                        viewModel.salvarEventoUnico(this, titulo, desc, data, inicio, fim, categoria, false)
                         Toast.makeText(this, "Evento criado!", Toast.LENGTH_SHORT).show()
                         setResult(RESULT_OK)
                         finish()
@@ -102,6 +100,12 @@ fun NewEventScreen(
     LaunchedEffect(horarioInicio) {
         if (!horarioTermino.isAfter(horarioInicio)) {
             horarioTermino = horarioInicio.plusHours(1)
+        }
+    }
+    
+    LaunchedEffect(todasAsRotinas) {
+        if(rotinaSelecionada == null) {
+            rotinaSelecionada = todasAsRotinas.firstOrNull()
         }
     }
 
