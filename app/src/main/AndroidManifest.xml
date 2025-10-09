@@ -32,7 +32,6 @@
         <activity android:name=".ui.TemplatesActivity" android:exported="false" />
         <activity android:name=".ui.TemplateDetailActivity" android:exported="false" />
         <activity android:name=".ui.CategoryActivity" android:exported="false" />
-        <!-- Removendo NewEventActivity que não parece ser mais usada -->
 
         <receiver
             android:name=".notifications.AlarmReceiver"
@@ -44,6 +43,8 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- AÇÃO ADICIONADA PARA PERMITIR A ATUALIZAÇÃO DE DADOS -->
+                <action android:name="br.com.fabriciolima.momentus.widget.ACTION_DATA_UPDATED" />
             </intent-filter>
 
             <meta-data

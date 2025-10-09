@@ -1,6 +1,7 @@
 package br.com.fabriciolima.momentus.widget
 
 import android.content.Context
+import android.graphics.Color
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import br.com.fabriciolima.momentus.R
@@ -8,8 +9,7 @@ import br.com.fabriciolima.momentus.data.ItemCronograma
 import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.data.RotinaRepository
 import br.com.fabriciolima.momentus.data.database.AppDatabase
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class WidgetDataProvider(
@@ -20,31 +20,30 @@ class WidgetDataProvider(
     private var rotinasMap = mapOf<String, Rotina>()
 
     override fun onCreate() {
-        // Nada a fazer aqui
     }
 
     override fun onDataSetChanged() {
-        // Esta é a parte importante. É chamada pelo sistema para atualizar os dados.
-        // Como estamos em um processo diferente, precisamos acessar o banco de dados de forma síncrona.
-        runBlocking {
-            // CORREÇÃO: Instanciando o repositório corretamente, passando os DAOs do banco de dados.
-            val db = AppDatabase.getDatabase(context)
-            val repository = RotinaRepository(
-                rotinaDao = db.rotinaDao(),
-                itemCronogramaDao = db.itemCronogramaDao(),
-                templateDao = db.templateDao(),
-                metaDao = db.metaDao(),
-                habitoConcluidoDao = db.habitoConcluidoDao()
-            )
-            val diaDaSemana = java.time.LocalDate.now().dayOfWeek.name.substring(0, 3)
-            
-            itensDoDia = repository.getItensDoDia(diaDaSemana).first()
-            rotinasMap = repository.todasAsRotinasComMetas.first().associate { it.rotina.id to it.rotina }
-        }
+        // LÓGICA CORRIGIDA E FINAL
+        // Acesso direto e síncrono ao banco de dados, sem dados falsos.
+        val db = AppDatabase.getDatabase(context)
+        val repository = RotinaRepository(
+            rotinaDao = db.rotinaDao(),
+            itemCronogramaDao = db.itemCronogramaDao(),
+            templateDao = db.templateDao(),
+            metaDao = db.metaDao(),
+            habitoConcluidoDao = db.habitoConcluidoDao()
+        )
+
+        val hoje = LocalDate.now()
+        
+        // 1. Busca os itens do dia usando a consulta síncrona.
+        itensDoDia = repository.getItensParaWidget(hoje).sortedBy { it.horarioInicio }
+
+        // 2. Busca as rotinas usando a consulta síncrona.
+        rotinasMap = repository.getTodasAsRotinasSync().associateBy { it.id }
     }
 
     override fun onDestroy() {
-        // Nada a fazer aqui
     }
 
     override fun getCount(): Int {
@@ -52,6 +51,8 @@ class WidgetDataProvider(
     }
 
     override fun getViewAt(position: Int): RemoteViews {
+        if (position >= itensDoDia.size) return RemoteViews(context.packageName, R.layout.widget_list_item)
+
         val item = itensDoDia[position]
         val rotina = rotinasMap[item.rotinaId]
 
@@ -62,23 +63,19 @@ class WidgetDataProvider(
         remoteViews.setTextViewText(R.id.widget_item_time, "${item.horarioInicio.format(formatter)} - ${item.horarioTermino.format(formatter)}")
         remoteViews.setTextViewText(R.id.widget_item_category, rotina?.nome ?: "Sem categoria")
 
+        val cor = rotina?.cor?.let { try { Color.parseColor(it) } catch (e: IllegalArgumentException) { Color.GRAY } } ?: Color.GRAY
+        remoteViews.setInt(R.id.widget_item_color_dot, "setColorFilter", cor)
+
         return remoteViews
     }
 
-    override fun getLoadingView(): RemoteViews? {
-        return null // Pode retornar uma view de loading se desejar
-    }
+    override fun getLoadingView(): RemoteViews? = null
 
-    override fun getViewTypeCount(): Int {
-        return 1
-    }
+    override fun getViewTypeCount(): Int = 1
 
     override fun getItemId(position: Int): Long {
-        // O ID precisa ser um Long, então usamos o hashCode da nossa String ID
         return itensDoDia[position].id.hashCode().toLong()
     }
 
-    override fun hasStableIds(): Boolean {
-        return true
-    }
+    override fun hasStableIds(): Boolean = true
 }

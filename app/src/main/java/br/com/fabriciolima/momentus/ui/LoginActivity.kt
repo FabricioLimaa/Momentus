@@ -223,7 +223,7 @@ fun LoginScreen(onGoogleSignInClick: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.app_logo),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "Logo do Momentum",
                 modifier = Modifier.size(60.dp)
             )

@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Cronograma de Hoje"
-            android:textColor="?android:attr/textColorPrimary"
+            android:textColor="#000000"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -26,17 +26,17 @@
             android:id="@+id/widgetButtonRefresh"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/stat_notify_sync" />
 
     </LinearLayout>
+
     <ListView
         android:id="@+id/widgetListView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="8dp"
         android:layout_weight="1"
-        tools:listitem="@layout/item_cronograma" />
+        tools:listitem="@layout/widget_list_item" />
 
     <TextView
         android:id="@+id/widgetEmptyView"
@@ -45,7 +45,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:text="Nenhum item agendado para hoje."
-        android:textColor="?android:attr/textColorSecondary"
+        android:textColor="#808080"
         android:visibility="gone" />
 
 </LinearLayout>

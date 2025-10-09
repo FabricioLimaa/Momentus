@@ -1,5 +1,3 @@
-// ARQUIVO: ui/components/AppDrawer.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.ui.components
 
 import androidx.compose.foundation.background
@@ -15,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import br.com.fabriciolima.momentus.R
+import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,11 +28,9 @@ fun AppDrawer(
 ) {
     ModalDrawerSheet(
         modifier = modifier,
-        // --- MODIFICAÇÃO: Cores do Drawer alinhadas ao tema ---
         drawerContainerColor = MaterialTheme.colorScheme.surface,
         drawerContentColor = MaterialTheme.colorScheme.onSurface
     ) {
-        // Cabeçalho com o logo e nome do App
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -42,7 +39,7 @@ fun AppDrawer(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "Logo Momentus",
                 modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary // Usa a cor primária do tema
+                tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text("Minha Agenda", style = MaterialTheme.typography.titleLarge)
@@ -50,10 +47,8 @@ fun AppDrawer(
         Divider()
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Itens de Navegação
         Text("NAVEGAÇÃO", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.labelSmall)
         NavigationDrawerItem(
-            // --- MODIFICAÇÃO: O primeiro item agora leva para a lista de Rotinas ---
             icon = { Icon(painterResource(id = R.drawable.ic_empty_list), contentDescription = null) },
             label = { Text("Minhas Categorias") },
             selected = false,
@@ -62,10 +57,8 @@ fun AppDrawer(
         NavigationDrawerItem(
             icon = { Icon(painterResource(id = R.drawable.ic_schedule), contentDescription = null) },
             label = { Text("Calendário") },
-            // O ideal é ter uma variável para controlar o item selecionado,
-            // por enquanto deixaremos como 'true' para o Calendário.
             selected = false,
-            onClick = { onCloseDrawer() }, // Já estamos na tela, então só fecha o drawer
+            onClick = { onCloseDrawer() }, 
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
         NavigationDrawerItem(
@@ -75,29 +68,20 @@ fun AppDrawer(
             onClick = { onTemplatesClicked(); onCloseDrawer() }
         )
 
-        // Espaçador que empurra a seção do usuário para o final
         Spacer(modifier = Modifier.weight(1f))
 
-        // Seção do Usuário
         Divider()
         Column(modifier = Modifier.padding(16.dp)) {
             Text("USUÁRIO", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // --- MODIFICAÇÃO: Avatar do usuário com fundo ---
-                Box(
+                AsyncImage(
+                    model = googleAccount?.photoUrl,
+                    contentDescription = "Foto de perfil",
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = googleAccount?.displayName?.firstOrNull()?.toString()?.uppercase() ?: "U",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(googleAccount?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)

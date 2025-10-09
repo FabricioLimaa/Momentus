@@ -19,17 +19,15 @@ interface RotinaDao {
     @Delete
     suspend fun delete(rotina: Rotina)
 
-    // CORREÇÃO: Usando o nome de tabela correto
     @Query("SELECT * FROM tabela_rotinas LEFT JOIN tabela_metas ON tabela_rotinas.id = tabela_metas.rotinaId ORDER BY nome ASC")
     fun getRotinasComMetas(): Flow<List<RotinaComMeta>>
 
     /**
-     * NOVO: Consulta para calcular estatísticas de uso do tempo.
-     * 1. Junta os itens do cronograma com as rotinas.
-     * 2. Calcula a duração de cada evento em minutos.
-     * 3. Agrupa por rotina e soma os minutos totais.
-     * 4. Retorna os dados no formato da classe StatsResult.
+     * NOVA CONSULTA SÍNCRONA PARA O WIDGET
      */
+    @Query("SELECT * FROM tabela_rotinas")
+    fun getAllSync(): List<Rotina>
+
     @Query("""
         SELECT
             r.nome AS nome_rotina,
@@ -38,7 +36,7 @@ interface RotinaDao {
         FROM
             tabela_itens_cronograma AS i
         INNER JOIN
-            tabela_rotinas AS r ON i.rotinaId = r.id -- CORREÇÃO: Usando o nome de tabela correto
+            tabela_rotinas AS r ON i.rotinaId = r.id
         GROUP BY
             r.id, r.nome, r.cor
         HAVING

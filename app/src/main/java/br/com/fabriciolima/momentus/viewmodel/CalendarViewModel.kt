@@ -12,6 +12,7 @@ import br.com.fabriciolima.momentus.data.ItemCronograma
 import br.com.fabriciolima.momentus.data.Rotina
 import br.com.fabriciolima.momentus.data.RotinaRepository
 import br.com.fabriciolima.momentus.data.RotinaComMeta
+import br.com.fabriciolima.momentus.widget.MomentusWidgetProvider
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.javanet.NetHttpTransport
@@ -28,9 +29,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
-// Representa um evento vindo da API do Google Calendar
 data class GoogleCalendarEvent(
     val summary: String,
     val start: DateTime
@@ -40,7 +39,7 @@ data class CalendarUiState(
     val allScheduleItems: List<ItemCronograma> = emptyList(),
     val rotinasMap: Map<String, Rotina> = emptyMap(),
     val completedHabitIds: Set<String> = emptySet(),
-    val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList() // Novo campo
+    val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList()
 )
 
 class CalendarViewModel(private val repository: RotinaRepository, application: Application) : ViewModel() {
@@ -54,7 +53,7 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
         repository.todosOsItensDoCronograma,
         repository.todasAsRotinasComMetas,
         repository.idsHabitosConcluidos,
-        _googleCalendarEvents // Usa o StateFlow diretamente
+        _googleCalendarEvents
     ) { allItems, rotinasComMetas, completedIds, googleEvents ->
         val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
         val completedIdsSet = completedIds.toSet()
@@ -80,7 +79,6 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
         salvarNoGoogle: Boolean
     ) {
         viewModelScope.launch {
-            // 1. Salvar o evento localmente
             val novoItem = ItemCronograma(
                 titulo = titulo,
                 descricao = descricao,
@@ -93,9 +91,11 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
             )
             repository.insertItemCronograma(novoItem)
 
-            // 2. Se a opção estiver marcada, salvar no Google Calendar
+            // Notifica o widget que os dados mudaram!
+            MomentusWidgetProvider.sendDataUpdatedBroadcast(context)
+
             if (salvarNoGoogle) {
-                launch(Dispatchers.IO) { // Executa em uma thread de IO
+                launch(Dispatchers.IO) { 
                     try {
                         val account = GoogleSignIn.getLastSignedInAccount(context)
                         if (account == null) {
@@ -120,21 +120,16 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
 
                             val startInstant = data.atTime(horarioInicio).atZone(zoneId).toInstant()
                             val startDateTime = DateTime(startInstant.toEpochMilli())
-                            start = EventDateTime()
-                                .setDateTime(startDateTime)
-                                .setTimeZone(zoneId.id)
+                            start = EventDateTime().setDateTime(startDateTime).setTimeZone(zoneId.id)
 
                             val endInstant = data.atTime(horarioTermino).atZone(zoneId).toInstant()
                             val endDateTime = DateTime(endInstant.toEpochMilli())
-                            end = EventDateTime()
-                                .setDateTime(endDateTime)
-                                .setTimeZone(zoneId.id)
+                            end = EventDateTime().setDateTime(endDateTime).setTimeZone(zoneId.id)
                         }
 
                         service.events().insert("primary", event).execute()
                         Log.d("CalendarViewModel", "Evento criado no Google Calendar com sucesso.")
 
-                        // Atualiza a lista de eventos do Google para refletir a mudança
                         fetchGoogleCalendarEvents(context)
 
                     } catch (e: Exception) {
@@ -166,20 +161,13 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val credentials = GoogleAccountCredential.usingOAuth2(
-                    context,
-                    listOf(CalendarScopes.CALENDAR)
-                ).apply {
+                val credentials = GoogleAccountCredential.usingOAuth2(context, listOf(CalendarScopes.CALENDAR)).apply {
                     selectedAccount = account.account
                 }
 
                 val transport = NetHttpTransport()
                 val jsonFactory = GsonFactory.getDefaultInstance()
-                val service = com.google.api.services.calendar.Calendar.Builder(
-                    transport,
-                    jsonFactory,
-                    credentials
-                )
+                val service = com.google.api.services.calendar.Calendar.Builder(transport, jsonFactory, credentials)
                 .setApplicationName("Momentus")
                 .build()
 
@@ -199,7 +187,7 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
 
             } catch (e: Exception) {
                 Log.e("CalendarViewModel", "Erro ao buscar eventos do Google Calendar", e)
-                 _googleCalendarEvents.value = emptyList() // Limpa em caso de erro
+                 _googleCalendarEvents.value = emptyList()
             }
         }
     }
