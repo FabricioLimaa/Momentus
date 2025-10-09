@@ -1,11 +1,10 @@
-// ARQUIVO: data/database/HabitoConcluidoDao.kt (CÓDIGO COMPLETO)
 package br.com.fabriciolima.momentus.data.database
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import br.com.fabriciolima.momentus.data.HabitoConcluido
+import br.com.fabriciolima.momentus.data.model.HabitoConcluido
 import kotlinx.coroutines.flow.Flow
 
 @Dao

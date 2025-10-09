@@ -3,8 +3,8 @@ package br.com.fabriciolima.momentus.ui.cronograma
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import br.com.fabriciolima.momentus.data.ItemCronograma
-import br.com.fabriciolima.momentus.data.Rotina
+import br.com.fabriciolima.momentus.data.model.ItemCronograma
+import br.com.fabriciolima.momentus.data.model.Rotina
 // CORREÇÃO: Importar a classe de vinculação gerada pelo View Binding
 import br.com.fabriciolima.momentus.databinding.ItemCronogramaBinding
 import java.time.format.DateTimeFormatter

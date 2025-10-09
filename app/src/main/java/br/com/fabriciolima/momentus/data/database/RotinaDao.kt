@@ -5,9 +5,9 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import br.com.fabriciolima.momentus.data.Rotina
-import br.com.fabriciolima.momentus.data.RotinaComMeta
-import br.com.fabriciolima.momentus.data.StatsResult
+import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.RotinaComMeta
+import br.com.fabriciolima.momentus.data.model.StatsResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao

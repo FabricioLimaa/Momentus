@@ -1,11 +1,10 @@
-// ARQUIVO: data/database/MetaDao.kt (CÓDIGO COMPLETO)
 package br.com.fabriciolima.momentus.data.database
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import br.com.fabriciolima.momentus.data.Meta
+import br.com.fabriciolima.momentus.data.model.Meta
 import kotlinx.coroutines.flow.Flow
 
 @Dao

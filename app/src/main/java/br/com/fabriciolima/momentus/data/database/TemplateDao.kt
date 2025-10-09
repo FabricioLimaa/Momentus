@@ -6,8 +6,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import br.com.fabriciolima.momentus.data.Template
-import br.com.fabriciolima.momentus.data.TemplateComEventos
+import br.com.fabriciolima.momentus.data.model.Template
+import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import kotlinx.coroutines.flow.Flow
 
 /**

@@ -5,11 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import br.com.fabriciolima.momentus.data.HabitoConcluido
-import br.com.fabriciolima.momentus.data.ItemCronograma
-import br.com.fabriciolima.momentus.data.Meta
-import br.com.fabriciolima.momentus.data.Rotina
-import br.com.fabriciolima.momentus.data.Template
+import br.com.fabriciolima.momentus.data.model.HabitoConcluido
+import br.com.fabriciolima.momentus.data.model.ItemCronograma
+import br.com.fabriciolima.momentus.data.model.Meta
+import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Template
 
 /**
  * CORREÇÃO DEFINITIVA:

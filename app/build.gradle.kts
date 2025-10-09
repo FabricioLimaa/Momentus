@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.google.devtools.ksp)
-    id("androidx.room") version "2.6.1"
     id("com.google.gms.google-services")
 }
 
@@ -53,10 +52,11 @@ android {
             excludes += "META-INF/INDEX.LIST"
         }
     }
+}
 
-    room {
-        schemaDirectory("$projectDir/schemas")
-    }
+// Adicionando o argumento do KSP para o Room no nível superior
+ksp {
+    arg("room.schemaDirectory", "$projectDir/schemas")
 }
 
 dependencies {
@@ -92,19 +92,6 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
     ksp("androidx.room:room-compiler:$room_version")
-
-    // SOLUÇÃO DEFINITIVA: Força a versão de TODOS os artefatos do Room para resolver o conflito de dependências oculto
-    constraints {
-        implementation("androidx.room:room-runtime:$room_version") {
-            because("Garante que a versão com suporte a multi-processos seja usada.")
-        }
-        implementation("androidx.room:room-ktx:$room_version") {
-            because("Garante consistência na versão do Room KTX.")
-        }
-        implementation("androidx.room:room-common:$room_version") {
-            because("Garante consistência na versão do Room Common.")
-        }
-    }
 
     implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
     implementation("com.google.firebase:firebase-analytics")

@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import br.com.fabriciolima.momentus.data.Rotina
+import br.com.fabriciolima.momentus.data.model.Rotina
 import java.time.format.DateTimeFormatter
 
 /**
@@ -50,7 +50,8 @@ fun AddEventDialog(
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                     OutlinedTextField(
                         value = selectedRotina?.nome ?: "Selecione",
-                        onValueChange = {}, readOnly = true,
+                        onValueChange = {},
+                        readOnly = true,
                         label = { Text("Categoria") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()

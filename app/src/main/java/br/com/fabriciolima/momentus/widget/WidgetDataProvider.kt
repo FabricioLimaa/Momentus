@@ -5,10 +5,10 @@ import android.graphics.Color
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import br.com.fabriciolima.momentus.R
-import br.com.fabriciolima.momentus.data.ItemCronograma
-import br.com.fabriciolima.momentus.data.Rotina
-import br.com.fabriciolima.momentus.data.RotinaRepository
 import br.com.fabriciolima.momentus.data.database.AppDatabase
+import br.com.fabriciolima.momentus.data.model.ItemCronograma
+import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 

@@ -43,7 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import br.com.fabriciolima.momentus.data.Rotina
+import br.com.fabriciolima.momentus.data.model.Rotina
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter

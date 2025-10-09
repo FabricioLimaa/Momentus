@@ -1,20 +1,20 @@
-// ARQUIVO: MainViewModelTest.kt (CÓDIGO COMPLETO)
+// ARQUIVO: MainViewModelTest.kt (CÓDIGO CORRIGIDO)
 
 package br.com.fabriciolima.momentus
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import br.com.fabriciolima.momentus.data.Rotina
+import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.fakes.FakeRepository
-import br.com.fabriciolima.momentus.utils.MainCoroutineRule
-import br.com.fabriciolima.momentus.utils.getOrAwaitValue
-import br.com.fabriciolima.momentus.viewmodel.MainViewModel
+// CORREÇÃO: Pacote de utilitários foi renomeado de 'utils' para 'util'
+import br.com.fabriciolima.momentus.util.MainCoroutineRule
+import br.com.fabriciolima.momentus.util.getOrAwaitValue
+import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// --- MODIFICAÇÃO: Adicionamos esta anotação ---
 @ExperimentalCoroutinesApi
 class MainViewModelTest {
 
@@ -22,7 +22,7 @@ class MainViewModelTest {
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
 
-    // --- MODIFICAÇÃO: Adicionamos a nova regra para Coroutines ---
+    // Regra para Coroutines
     @get:Rule
     var mainCoroutineRule = MainCoroutineRule()
 
@@ -35,16 +35,20 @@ class MainViewModelTest {
         mainViewModel = MainViewModel(fakeRepository)
     }
 
+    // CORREÇÃO: Nome do teste, chamada de método e nome da propriedade LiveData atualizados.
     @Test
-    fun addRotina_updatesLiveData() {
+    fun insertRotina_updatesLiveData() {
         // Given
-        val novaRotina = Rotina(nome = "Teste", duracaoPadraoMinutos = 10, cor = "#FFFFFF")
+        // CORREÇÃO: Construtor atualizado para incluir os novos campos nullable.
+        val novaRotina = Rotina(nome = "Teste", duracaoPadraoMinutos = 10, cor = "#FFFFFF", descricao = null, tag = null)
 
         // When
-        mainViewModel.addRotina(novaRotina)
+        // CORREÇÃO: O nome do método mudou de addRotina para insertRotina.
+        mainViewModel.insertRotina(novaRotina)
 
         // Then
-        val listaDeRotinasComMeta = mainViewModel.rotinas.getOrAwaitValue()
+        // CORREÇÃO: O nome da propriedade LiveData mudou de rotinas para rotinasComMetas.
+        val listaDeRotinasComMeta = mainViewModel.rotinasComMetas.getOrAwaitValue()
         val rotinaExisteNaLista = listaDeRotinasComMeta.any { it.rotina.id == novaRotina.id }
 
         assertTrue(rotinaExisteNaLista)

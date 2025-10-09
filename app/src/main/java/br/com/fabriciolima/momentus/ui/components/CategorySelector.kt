@@ -22,7 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.data.Rotina
+import br.com.fabriciolima.momentus.data.model.Rotina
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,8 +1,8 @@
 package br.com.fabriciolima.momentus.fakes
 
-import br.com.fabriciolima.momentus.data.Rotina
-import br.com.fabriciolima.momentus.data.RotinaComMeta
-import br.com.fabriciolima.momentus.data.RotinaRepository
+import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.RotinaComMeta
+import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
