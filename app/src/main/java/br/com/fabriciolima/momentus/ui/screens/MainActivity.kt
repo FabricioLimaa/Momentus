@@ -3,11 +3,11 @@ package br.com.fabriciolima.momentus.ui.screens
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -29,19 +29,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.MomentusApplication
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.ui.components.RotinaListItem
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModel
-import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModelFactory
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity() {
-    private val viewModel: MainViewModel by viewModels {
-        MainViewModelFactory((application as MomentusApplication).repository)
-    }
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -1,7 +1,6 @@
 package br.com.fabriciolima.momentus.ui.screens
 
 import android.app.TimePickerDialog
-import android.graphics.Color
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -9,7 +8,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -19,27 +27,26 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.MomentusApplication
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarViewModel
-import br.com.fabriciolima.momentus.ui.viewmodel.CalendarViewModelFactory
+import dagger.hilt.android.AndroidEntryPoint
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@AndroidEntryPoint
 class NewEventActivity : ComponentActivity() {
 
-    private val viewModel: CalendarViewModel by viewModels {
-        CalendarViewModelFactory((application as MomentusApplication).repository, application)
-    }
+    private val viewModel: CalendarViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,14 +60,13 @@ class NewEventActivity : ComponentActivity() {
 
         setContent {
             MomentusTheme {
-                val todasAsRotinas by viewModel.todasAsRotinas.observeAsState(emptyList())
+                val todasAsRotinas by viewModel.todasAsRotinas.collectAsStateWithLifecycle()
 
                 NewEventScreen(
                     dataInicial = initialDate,
                     todasAsRotinas = todasAsRotinas,
-                    onSave = { titulo, desc, data, inicio, fim, categoria ->
-                        // CORREÇÃO: Chamada ajustada para corresponder à nova assinatura do ViewModel.
-                        viewModel.salvarEventoUnico(this, titulo, desc, data, inicio, fim, categoria, false)
+                    onSave = { titulo, desc, data, inicio, fim, categoria, salvarNoGoogle ->
+                        viewModel.salvarEventoUnico(titulo, desc, data, inicio, fim, categoria, salvarNoGoogle)
                         Toast.makeText(this, "Evento criado!", Toast.LENGTH_SHORT).show()
                         setResult(RESULT_OK)
                         finish()
@@ -77,7 +83,7 @@ class NewEventActivity : ComponentActivity() {
 fun NewEventScreen(
     dataInicial: LocalDate,
     todasAsRotinas: List<Rotina>,
-    onSave: (titulo: String, desc: String, data: LocalDate, inicio: LocalTime, fim: LocalTime, categoria: Rotina) -> Unit,
+    onSave: (titulo: String, desc: String, data: LocalDate, inicio: LocalTime, fim: LocalTime, categoria: Rotina, salvarNoGoogle: Boolean) -> Unit,
     onClose: () -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
@@ -86,6 +92,7 @@ fun NewEventScreen(
     var horarioInicio by remember { mutableStateOf(LocalTime.now().withMinute(0).withSecond(0)) }
     var horarioTermino by remember { mutableStateOf(horarioInicio.plusHours(1)) }
     var rotinaSelecionada by remember { mutableStateOf(todasAsRotinas.firstOrNull()) }
+    var salvarNoGoogle by remember { mutableStateOf(false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePickerInicio by remember { mutableStateOf(false) }
@@ -122,7 +129,7 @@ fun NewEventScreen(
                     Button(
                         onClick = {
                             if (horarioTermino.isAfter(horarioInicio)) {
-                                onSave(titulo, descricao, data, horarioInicio, horarioTermino, rotinaSelecionada!!)
+                                onSave(titulo, descricao, data, horarioInicio, horarioTermino, rotinaSelecionada!!, salvarNoGoogle)
                             } else {
                                 Toast.makeText(context, "O horário de término deve ser posterior ao de início.", Toast.LENGTH_SHORT).show()
                             }
@@ -171,6 +178,11 @@ fun NewEventScreen(
                 selecionada = rotinaSelecionada,
                 onSelected = { rotinaSelecionada = it }
             )
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = salvarNoGoogle, onCheckedChange = { salvarNoGoogle = it })
+                Text("Salvar também no Google Agenda")
+            }
         }
     }
 
@@ -256,7 +268,7 @@ fun CategorySelector(
                 DropdownMenuItem(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val cor = try { androidx.compose.ui.graphics.Color(Color.parseColor(rotina.cor)) } catch (e: Exception) { androidx.compose.ui.graphics.Color.Gray }
+                            val cor = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
                             Box(modifier = Modifier.size(12.dp).background(cor, CircleShape))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(rotina.nome)

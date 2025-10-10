@@ -5,41 +5,62 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.Alignment // Import que faltava
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.MomentusApplication
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.R
-import br.com.fabriciolima.momentus.data.model.Rotina // Import que faltava
+import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.TemplateEvent
 import br.com.fabriciolima.momentus.ui.components.AddTemplateEventDialog
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CreateTemplateViewModel
-import br.com.fabriciolima.momentus.ui.viewmodel.CreateTemplateViewModelFactory
+import br.com.fabriciolima.momentus.util.Result
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class CreateTemplateActivity : ComponentActivity() {
-    private val viewModel: CreateTemplateViewModel by viewModels {
-        CreateTemplateViewModelFactory((application as MomentusApplication).repository)
-    }
+    private val viewModel: CreateTemplateViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MomentusTheme {
-                val templateName by viewModel.templateName.observeAsState("")
-                val events by viewModel.events.observeAsState(emptyList())
-                val allRoutines by viewModel.todasAsRotinas.observeAsState(emptyList())
+                val templateName by viewModel.templateName.collectAsStateWithLifecycle()
+                val events by viewModel.events.collectAsStateWithLifecycle()
+                val allRoutines by viewModel.todasAsRotinas.collectAsStateWithLifecycle()
 
                 CreateTemplateScreen(
                     templateName = templateName,
@@ -50,9 +71,16 @@ class CreateTemplateActivity : ComponentActivity() {
                     onRemoveEvent = { viewModel.removeEvent(it) },
                     onNavigateBack = { finish() },
                     onSaveTemplate = {
-                        viewModel.saveTemplate {
-                            Toast.makeText(this, "Template salvo!", Toast.LENGTH_SHORT).show()
-                            finish()
+                        viewModel.saveTemplate { result ->
+                            when (result) {
+                                is Result.Success -> {
+                                    Toast.makeText(this, "Template salvo!", Toast.LENGTH_SHORT).show()
+                                    finish()
+                                }
+                                is Result.Error -> {
+                                    Toast.makeText(this, result.exception.message, Toast.LENGTH_LONG).show()
+                                }
+                            }
                         }
                     }
                 )
@@ -97,11 +125,6 @@ fun CreateTemplateScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onSaveTemplate) {
-                Icon(painterResource(id = R.drawable.ic_template), contentDescription = "Salvar Template")
-            }
         }
     ) { paddingValues ->
         LazyColumn(

@@ -1,34 +1,31 @@
 package br.com.fabriciolima.momentus.ui.viewmodel
 
 import android.app.Application
-import android.content.Context
+import android.content.Intent
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.MomentusWidgetProvider
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.http.javanet.NetHttpTransport
-import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
-import com.google.api.services.calendar.CalendarScopes
-import com.google.api.services.calendar.model.Event
-import com.google.api.services.calendar.model.EventDateTime
-import kotlinx.coroutines.Dispatchers
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import javax.inject.Inject
 
 data class GoogleCalendarEvent(
     val summary: String,
@@ -39,37 +36,58 @@ data class CalendarUiState(
     val allScheduleItems: List<ItemCronograma> = emptyList(),
     val rotinasMap: Map<String, Rotina> = emptyMap(),
     val completedHabitIds: Set<String> = emptySet(),
-    val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList()
+    val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
+    val error: String? = null,
+    val successMessage: String? = null // Novo estado para mensagens de sucesso
 )
 
-class CalendarViewModel(private val repository: RotinaRepository, application: Application) : ViewModel() {
+@HiltViewModel
+class CalendarViewModel @Inject constructor(
+    private val repository: RotinaRepository,
+    private val application: Application
+) : ViewModel() {
 
-    private val _selectedDate = MutableLiveData(LocalDate.now())
-    val selectedDate: LiveData<LocalDate> = _selectedDate
+    private val _selectedDate = MutableStateFlow(LocalDate.now())
+    val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
-    private val _googleCalendarEvents = MutableStateFlow<List<GoogleCalendarEvent>>(emptyList())
+    private val _uiState = MutableStateFlow(CalendarUiState())
+    val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
-    val uiState: LiveData<CalendarUiState> = combine(
-        repository.todosOsItensDoCronograma,
-        repository.todasAsRotinasComMetas,
-        repository.idsHabitosConcluidos,
-        _googleCalendarEvents
-    ) { allItems, rotinasComMetas, completedIds, googleEvents ->
-        val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
-        val completedIdsSet = completedIds.toSet()
-        CalendarUiState(allItems, rotinasMap, completedIdsSet, googleEvents)
-    }.asLiveData()
+    init {
+        viewModelScope.launch {
+            combine(
+                repository.todosOsItensDoCronograma,
+                repository.todasAsRotinasComMetas,
+                repository.idsHabitosConcluidos
+            ) { allItems, rotinasComMetas, completedIds ->
+                val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
+                CalendarUiState(
+                    allScheduleItems = allItems,
+                    rotinasMap = rotinasMap,
+                    completedHabitIds = completedIds.toSet()
+                )
+            }.collect { newUiState ->
+                _uiState.value = newUiState.copy(
+                    googleCalendarEvents = _uiState.value.googleCalendarEvents,
+                    error = _uiState.value.error
+                )
+            }
+        }
+    }
 
-    val todasAsRotinas: LiveData<List<Rotina>> = repository.todasAsRotinasComMetas.map { rotinasComMetas ->
+    val todasAsRotinas: StateFlow<List<Rotina>> = repository.todasAsRotinasComMetas.map { rotinasComMetas ->
         rotinasComMetas.map(RotinaComMeta::rotina)
-    }.asLiveData()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
     }
-    
+
     fun salvarEventoUnico(
-        context: Context,
         titulo: String,
         descricao: String?,
         data: LocalDate,
@@ -79,6 +97,21 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
         salvarNoGoogle: Boolean
     ) {
         viewModelScope.launch {
+            var googleEventId: String? = null
+
+            if (salvarNoGoogle) {
+                when (val result = repository.salvarEventoNoGoogle(application.applicationContext, titulo, descricao, data, horarioInicio, horarioTermino)) {
+                    is Result.Success -> {
+                        googleEventId = result.data
+                        fetchGoogleCalendarEvents()
+                    }
+                    is Result.Error -> {
+                        _uiState.value = _uiState.value.copy(error = result.exception.message)
+                        // Mesmo com erro no Google, continuamos para salvar localmente
+                    }
+                }
+            }
+
             val novoItem = ItemCronograma(
                 titulo = titulo,
                 descricao = descricao,
@@ -87,54 +120,74 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
                 horarioInicio = horarioInicio,
                 horarioTermino = horarioTermino,
                 rotinaId = rotina.id,
-                templateId = null
+                templateId = null,
+                googleCalendarEventId = googleEventId // Salvando o ID obtido
             )
             repository.insertItemCronograma(novoItem)
 
-            // Notifica o widget que os dados mudaram!
-            MomentusWidgetProvider.sendDataUpdatedBroadcast(context)
+            _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!")
 
-            if (salvarNoGoogle) {
-                launch(Dispatchers.IO) { 
-                    try {
-                        val account = GoogleSignIn.getLastSignedInAccount(context)
-                        if (account == null) {
-                            Log.w("CalendarViewModel", "Nenhuma conta para criar evento no Google.")
-                            return@launch
-                        }
+            // Enviando broadcast para o widget clássico
+            val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
+                action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
+            }
+            application.sendBroadcast(intent)
+        }
+    }
 
-                        val credentials = GoogleAccountCredential.usingOAuth2(context, listOf(CalendarScopes.CALENDAR))
-                            .setSelectedAccount(account.account)
+    fun atualizarEvento(
+        item: ItemCronograma,
+        novoTitulo: String,
+        novaDescricao: String?,
+        novaData: LocalDate,
+        novoHorarioInicio: LocalTime,
+        novoHorarioTermino: LocalTime,
+        novaRotina: Rotina,
+        sincronizarComGoogle: Boolean
+    ) {
+        viewModelScope.launch {
+            val itemAtualizado = item.copy(
+                titulo = novoTitulo,
+                descricao = novaDescricao,
+                data = novaData.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                horarioInicio = novoHorarioInicio,
+                horarioTermino = novoHorarioTermino,
+                rotinaId = novaRotina.id
+            )
 
-                        val transport = NetHttpTransport()
-                        val jsonFactory = GsonFactory.getDefaultInstance()
-                        val service = com.google.api.services.calendar.Calendar.Builder(transport, jsonFactory, credentials)
-                            .setApplicationName("Momentus")
-                            .build()
+            if (sincronizarComGoogle) {
+                when (repository.atualizarEventoCompleto(application.applicationContext, itemAtualizado)) {
+                    is Result.Success -> fetchGoogleCalendarEvents()
+                    is Result.Error -> _uiState.value = _uiState.value.copy(error = "Falha ao sincronizar atualização com o Google Calendar.")
+                }
+            } else {
+                // Apenas salva localmente se não for para sincronizar
+                repository.insertItemCronograma(itemAtualizado)
+            }
 
-                        val event = Event().apply {
-                            summary = titulo
-                            description = descricao
+            _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!")
 
-                            val zoneId = ZoneId.systemDefault()
+            // Atualiza o widget
+            val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
+                action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
+            }
+            application.sendBroadcast(intent)
+        }
+    }
 
-                            val startInstant = data.atTime(horarioInicio).atZone(zoneId).toInstant()
-                            val startDateTime = DateTime(startInstant.toEpochMilli())
-                            start = EventDateTime().setDateTime(startDateTime).setTimeZone(zoneId.id)
-
-                            val endInstant = data.atTime(horarioTermino).atZone(zoneId).toInstant()
-                            val endDateTime = DateTime(endInstant.toEpochMilli())
-                            end = EventDateTime().setDateTime(endDateTime).setTimeZone(zoneId.id)
-                        }
-
-                        service.events().insert("primary", event).execute()
-                        Log.d("CalendarViewModel", "Evento criado no Google Calendar com sucesso.")
-
-                        fetchGoogleCalendarEvents(context)
-
-                    } catch (e: Exception) {
-                        Log.e("CalendarViewModel", "Erro ao criar evento no Google Calendar", e)
+    fun excluirEvento(item: ItemCronograma) {
+        viewModelScope.launch {
+            when (val result = repository.excluirEventoCompleto(application.applicationContext, item)) {
+                is Result.Success -> {
+                    fetchGoogleCalendarEvents() // Para atualizar a lista de eventos do google
+                    _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!")
+                    val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
+                        action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
                     }
+                    application.sendBroadcast(intent)
+                }
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(error = result.exception.message)
                 }
             }
         }
@@ -152,43 +205,26 @@ class CalendarViewModel(private val repository: RotinaRepository, application: A
         }
     }
 
-    fun fetchGoogleCalendarEvents(context: Context) {
-        val account = GoogleSignIn.getLastSignedInAccount(context)
-        if (account == null) {
-            Log.w("CalendarViewModel", "Nenhuma conta do Google conectada.")
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val credentials = GoogleAccountCredential.usingOAuth2(context, listOf(CalendarScopes.CALENDAR)).apply {
-                    selectedAccount = account.account
-                }
-
-                val transport = NetHttpTransport()
-                val jsonFactory = GsonFactory.getDefaultInstance()
-                val service = com.google.api.services.calendar.Calendar.Builder(transport, jsonFactory, credentials)
-                .setApplicationName("Momentus")
-                .build()
-
-                val now = DateTime(System.currentTimeMillis())
-                val events = service.events().list("primary")
-                    .setMaxResults(10)
-                    .setTimeMin(now)
-                    .setOrderBy("startTime")
-                    .setSingleEvents(true)
-                    .execute()
-
-                val items = events.items?.map { event ->
-                    GoogleCalendarEvent(event.summary, event.start.dateTime ?: event.start.date)
-                } ?: emptyList()
-
-                _googleCalendarEvents.value = items
-
-            } catch (e: Exception) {
-                Log.e("CalendarViewModel", "Erro ao buscar eventos do Google Calendar", e)
-                 _googleCalendarEvents.value = emptyList()
+    fun fetchGoogleCalendarEvents() {
+        viewModelScope.launch {
+            val account = GoogleSignIn.getLastSignedInAccount(application.applicationContext)
+            if (account == null) {
+                Log.w("CalendarViewModel", "Nenhuma conta do Google conectada, não buscando eventos.")
+                return@launch
+            }
+            
+            when (val result = repository.fetchGoogleCalendarEvents(application.applicationContext, account)) {
+                is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
+                is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
             }
         }
+    }
+    
+    fun onErrorShown() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun onSuccessMessageShown() {
+        _uiState.value = _uiState.value.copy(successMessage = null)
     }
 }

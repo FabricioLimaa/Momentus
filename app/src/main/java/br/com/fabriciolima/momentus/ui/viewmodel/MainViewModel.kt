@@ -6,9 +6,14 @@ import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Meta
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MainViewModel(private val repository: RotinaRepository) : ViewModel() {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val repository: RotinaRepository
+) : ViewModel() {
 
     // CORREÇÃO: Adicionando a propriedade que estava faltando na EditorRotinaActivity.
     val rotinasComMetas = repository.todasAsRotinasComMetas.asLiveData()

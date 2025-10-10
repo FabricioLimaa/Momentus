@@ -1,5 +1,8 @@
 package br.com.fabriciolima.momentus.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,13 +29,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.ui.components.AddEventToTemplateDialog
 import br.com.fabriciolima.momentus.ui.components.EventListItem
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateDetailViewModel
@@ -49,13 +52,13 @@ fun TemplateDetailScreen(templateId: String, viewModel: TemplateDetailViewModel,
         viewModel.loadTemplate(templateId)
     }
 
-    val uiState by viewModel.uiState.observeAsState()
-    val eventos = uiState?.template?.eventos ?: emptyList()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val eventos = uiState.template?.eventos ?: emptyList()
     var showDialog by remember { mutableStateOf(false) }
 
-    if (showDialog) {
+    AnimatedVisibility(visible = showDialog, enter = fadeIn(), exit = fadeOut()) {
         AddEventToTemplateDialog(
-            rotinas = uiState?.rotinasMap?.values?.toList() ?: emptyList(),
+            rotinas = uiState.rotinasMap.values.toList(),
             onDismiss = { showDialog = false },
             onConfirm = { titulo, descricao, inicio, fim, rotina ->
                 viewModel.addEventToTemplate(titulo, descricao, inicio, fim, rotina)
@@ -67,7 +70,7 @@ fun TemplateDetailScreen(templateId: String, viewModel: TemplateDetailViewModel,
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState?.template?.template?.nome ?: "Carregando...") },
+                title = { Text(uiState.template?.template?.nome ?: "Carregando...") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -118,7 +121,7 @@ fun TemplateDetailScreen(templateId: String, viewModel: TemplateDetailViewModel,
                                     .detectReorderAfterLongPress(state)
                                     .padding(end = 8.dp)
                             )
-                            uiState?.rotinasMap?.get(item.rotinaId)?.let {
+                            uiState.rotinasMap[item.rotinaId]?.let {
                                 EventListItem(item = item, rotina = it)
                             }
                         }

@@ -35,12 +35,16 @@ import java.time.format.DateTimeFormatter
  * Componente reutilizável para exibir um item de evento em uma lista, seguindo o design das imagens.
  */
 @Composable
-fun EventListItem(item: ItemCronograma, rotina: Rotina) {
+fun EventListItem(
+    item: ItemCronograma, 
+    rotina: Rotina, 
+    modifier: Modifier = Modifier
+) {
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     val corDaRotina = Color(android.graphics.Color.parseColor(rotina.cor))
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(

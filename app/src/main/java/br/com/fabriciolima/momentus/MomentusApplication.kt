@@ -1,13 +1,11 @@
 package br.com.fabriciolima.momentus
 
 import android.app.Application
-import br.com.fabriciolima.momentus.data.database.AppDatabase
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import dagger.hilt.android.HiltAndroidApp
 
+// ADICIONADO: Anotação que habilita a injeção de dependência do Hilt
+@HiltAndroidApp
 class MomentusApplication : Application() {
-    private val database by lazy { AppDatabase.getDatabase(this) }
-    // Modifique a criação do repositório para incluir o novo DAO
-    val repository by lazy {
-        RotinaRepository(database.rotinaDao(), database.itemCronogramaDao(), database.templateDao(), database.metaDao(), database.habitoConcluidoDao())
-    }
+    // A criação do banco de dados e do repositório será gerenciada pelo Hilt.
+    // O código anterior foi removido.
 }

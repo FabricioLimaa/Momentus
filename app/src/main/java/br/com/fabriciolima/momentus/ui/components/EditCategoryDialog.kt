@@ -12,13 +12,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -102,8 +107,14 @@ fun EditCategoryDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Cancelar") }
+                    TextButton(onClick = onDismiss) { 
+                        Icon(Icons.Default.Close, contentDescription = "Cancelar")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Cancelar") 
+                    }
                     Button(onClick = { onConfirm(category?.id, name, selectedColor.toHexString()) }) {
+                        Icon(Icons.Default.Check, contentDescription = "Salvar")
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text("Salvar")
                     }
                 }

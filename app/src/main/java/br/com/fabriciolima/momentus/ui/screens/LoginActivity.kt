@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.R
+import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -82,7 +83,9 @@ class LoginActivity : ComponentActivity() {
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         setContent {
-            LoginScreen(onGoogleSignInClick = { signInWithGoogle() })
+            MomentusTheme {
+                LoginScreen(onGoogleSignInClick = { signInWithGoogle() })
+            }
         }
     }
 
@@ -123,54 +126,47 @@ fun LoginScreen(onGoogleSignInClick: () -> Unit) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    
-    // Cores do design
-    val darkBlue = Color(0xFF002366)
-    val lightGrey = Color.LightGray.copy(alpha = 0.5f)
+
+    val brandColor = Color(0xFF002366) // Cor da marca mantida
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(darkBlue),
+            .background(brandColor),
         contentAlignment = Alignment.Center
     ) {
-        // Card branco
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(32.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface) // Usa a cor de superfície do tema
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 48.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Títulos
-                Text("Welcome to Momentum", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.Black)
-                Text("Sign in to continue", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
+                Text("Welcome to Momentum", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Sign in to continue", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Botão Google
                 OutlinedButton(onClick = onGoogleSignInClick, modifier = Modifier.fillMaxWidth()) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google_logo),
                         contentDescription = "Logo do Google",
                         modifier = Modifier.size(18.dp),
-                        tint = Color.Unspecified // Mantém a cor original do logo
+                        tint = Color.Unspecified
                     )
                     Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                    Text("Continue with Google", color = Color.Black)
+                    Text("Continue with Google", color = MaterialTheme.colorScheme.onSurface)
                 }
 
-                // Divisor
                 Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Divider(modifier = Modifier.weight(1f), color = lightGrey)
-                    Text("OR", modifier = Modifier.padding(horizontal = 8.dp), color = Color.Gray)
-                    Divider(modifier = Modifier.weight(1f), color = lightGrey)
+                    Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
+                    Text("OR", modifier = Modifier.padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
                 }
 
-                // Campos de Email e Senha
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -191,21 +187,22 @@ fun LoginScreen(onGoogleSignInClick: () -> Unit) {
                     Text("Forgot password?")
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                // Botão Sign In
+
                 Button(
                     onClick = { 
                         Toast.makeText(context, "Login com E-mail/Senha não implementado.", Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = darkBlue)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary, // Usa a cor primária do tema
+                        contentColor = MaterialTheme.colorScheme.onPrimary // Usa a cor de conteúdo para a primária
+                    )
                 ) {
-                    Text("Sign in", color = Color.White)
+                    Text("Sign in")
                 }
                 
-                 // Link para criar conta
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Need an account?", color = Color.Gray)
+                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Need an account?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick = { /* */ }) {
                         Text("Sign up")
                     }
@@ -213,14 +210,13 @@ fun LoginScreen(onGoogleSignInClick: () -> Unit) {
             }
         }
 
-        // Logo circular sobreposto
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = 40.dp) // Ajusta a posição vertical do logo
+                .offset(y = 40.dp)
                 .size(100.dp)
                 .clip(CircleShape)
-                .background(darkBlue),
+                .background(brandColor),
             contentAlignment = Alignment.Center
         ) {
             Image(

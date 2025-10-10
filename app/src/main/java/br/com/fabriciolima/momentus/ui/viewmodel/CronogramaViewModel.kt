@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class CronogramaUiState(
     val itens: List<ItemCronograma> = emptyList(),
@@ -17,7 +19,10 @@ data class CronogramaUiState(
     val habitosConcluidos: Set<String> = emptySet()
 )
 
-class CronogramaViewModel(private val repository: RotinaRepository) : ViewModel() {
+@HiltViewModel
+class CronogramaViewModel @Inject constructor(
+    private val repository: RotinaRepository
+) : ViewModel() {
 
     val uiState: LiveData<CronogramaUiState> = combine(
         repository.todosOsItensDoCronograma,

@@ -58,11 +58,11 @@ object GoogleCalendarManager {
 
             calendarService.events().insert("primary", event).execute()
             Log.d(TAG, "Evento '$title' inserido com sucesso no Google Calendar.")
-            Result.success(Unit)
+            Result.Success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
             Log.e(TAG, "Erro ao inserir evento no Google Calendar", e)
-            Result.failure(e)
+            Result.Error(e)
         }
     }
 
@@ -157,10 +157,10 @@ object GoogleCalendarManager {
                 }
                 dataCorrente.add(JavaCalendar.DAY_OF_YEAR, 1)
             }
-            Result.success(eventosCriados)
+            Result.Success(eventosCriados)
         } catch (e: Exception) {
             e.printStackTrace()
-            Result.failure(e)
+            Result.Error(e)
         }
     }
 }

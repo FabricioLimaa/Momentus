@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,7 +40,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,22 +48,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.data.database.AppDatabase
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.ui.components.EditCategoryDialog
+import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CategoryViewModel
-import br.com.fabriciolima.momentus.ui.viewmodel.ViewModelFactory
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class CategoryActivity : ComponentActivity() {
 
-    private val viewModel: CategoryViewModel by viewModels { 
-        ViewModelFactory(AppDatabase.getDatabase(this), application) 
-    }
+    private val viewModel: CategoryViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            MomentusTheme { // CORREÇÃO: Usando o tema customizado do app
                 CategoryScreen(viewModel = viewModel, onNavigateUp = { finish() })
             }
         }
@@ -71,12 +73,12 @@ class CategoryActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryScreen(viewModel: CategoryViewModel, onNavigateUp: () -> Unit) {
-    val categories by viewModel.allRotinas.observeAsState(emptyList())
+    val categories by viewModel.allRotinas.collectAsStateWithLifecycle()
     var editingCategory by remember { mutableStateOf<Rotina?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
     var deletingCategory by remember { mutableStateOf<Rotina?>(null) }
 
-    if (showEditDialog) {
+    AnimatedVisibility(visible = showEditDialog, enter = fadeIn(), exit = fadeOut()) {
         EditCategoryDialog(
             category = editingCategory,
             onDismiss = { showEditDialog = false },
@@ -87,23 +89,25 @@ fun CategoryScreen(viewModel: CategoryViewModel, onNavigateUp: () -> Unit) {
         )
     }
 
-    deletingCategory?.let { categoryToDelete ->
-        AlertDialog(
-            onDismissRequest = { deletingCategory = null },
-            title = { Text("Excluir Categoria") },
-            text = { Text("Tem certeza que deseja excluir a categoria \"${categoryToDelete.nome}\"?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteRotina(categoryToDelete)
-                        deletingCategory = null
-                    }
-                ) { Text("Excluir") }
-            },
-            dismissButton = {
-                TextButton(onClick = { deletingCategory = null }) { Text("Cancelar") }
-            }
-        )
+    AnimatedVisibility(visible = deletingCategory != null, enter = fadeIn(), exit = fadeOut()) {
+        deletingCategory?.let { categoryToDelete ->
+            AlertDialog(
+                onDismissRequest = { deletingCategory = null },
+                title = { Text("Excluir Categoria") },
+                text = { Text("Tem certeza que deseja excluir a categoria \"${categoryToDelete.nome}\"?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteRotina(categoryToDelete)
+                            deletingCategory = null
+                        }
+                    ) { Text("Excluir", color = MaterialTheme.colorScheme.error) } // CORREÇÃO
+                },
+                dismissButton = {
+                    TextButton(onClick = { deletingCategory = null }) { Text("Cancelar") }
+                }
+            )
+        }
     }
 
     Scaffold(
@@ -173,10 +177,10 @@ fun CategoryListItem(
             }
             Row {
                 IconButton(onClick = onEditClick) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar Categoria")
+                    Icon(Icons.Default.Edit, contentDescription = "Editar Categoria", tint = MaterialTheme.colorScheme.primary) // CORREÇÃO
                 }
                 IconButton(onClick = onDeleteClick) {
-                    Icon(Icons.Default.Delete, contentDescription = "Deletar Categoria")
+                    Icon(Icons.Default.Delete, contentDescription = "Deletar Categoria", tint = MaterialTheme.colorScheme.error) // CORREÇÃO
                 }
             }
         }

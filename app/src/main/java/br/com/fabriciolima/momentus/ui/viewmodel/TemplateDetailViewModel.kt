@@ -1,37 +1,46 @@
 package br.com.fabriciolima.momentus.ui.viewmodel
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asFlow
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalTime
+import javax.inject.Inject
 
 data class TemplateDetailUiState(
     val template: TemplateComEventos? = null,
     val rotinasMap: Map<String, Rotina> = emptyMap()
 )
 
-class TemplateDetailViewModel(private val repository: RotinaRepository) : ViewModel() {
+@HiltViewModel
+class TemplateDetailViewModel @Inject constructor(
+    private val repository: RotinaRepository
+) : ViewModel() {
 
-    private val _templateId = MutableLiveData<String>()
+    private val _templateId = MutableStateFlow<String?>("")
 
-    val uiState: LiveData<TemplateDetailUiState> = combine(
-        _templateId.asFlow(),
+    val uiState: StateFlow<TemplateDetailUiState> = combine(
+        _templateId,
         repository.todosOsTemplatesComEventos,
         repository.todasAsRotinasComMetas
     ) { id, templates, rotinas ->
         val template = templates.firstOrNull { it.template.id == id }
         val rotinasMap = rotinas.associateBy({ it.rotina.id }, { it.rotina })
         TemplateDetailUiState(template, rotinasMap)
-    }.asLiveData()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = TemplateDetailUiState()
+    )
 
 
     fun loadTemplate(id: String) {

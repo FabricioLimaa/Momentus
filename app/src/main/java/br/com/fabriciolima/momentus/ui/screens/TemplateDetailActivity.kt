@@ -5,16 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.material3.ExperimentalMaterial3Api
-import br.com.fabriciolima.momentus.data.database.AppDatabase
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateDetailViewModel
-import br.com.fabriciolima.momentus.ui.viewmodel.ViewModelFactory
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 @OptIn(ExperimentalMaterial3Api::class)
 class TemplateDetailActivity : ComponentActivity() {
 
-    private val viewModel: TemplateDetailViewModel by viewModels {
-        ViewModelFactory(AppDatabase.getDatabase(this), application)
-    }
+    private val viewModel: TemplateDetailViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

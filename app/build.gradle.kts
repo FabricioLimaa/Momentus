@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.google.devtools.ksp)
     id("com.google.gms.google-services")
+    // ADICIONADO: Plugin do Hilt
+    alias(libs.plugins.dagger.hilt.android)
 }
 
 android {
@@ -72,9 +74,19 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.2")
     implementation("androidx.fragment:fragment-ktx:1.8.1")
 
-    val compose_bom_version = "2024.05.00"
+    // Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+
+    // Glance for App Widgets - REMOVIDO
+    // implementation(libs.glance.appwidget)
+    // implementation(libs.glance.material3)
+
+    // CORREÇÃO: Usando a versão estável da Compose BOM
+    val compose_bom_version = "2024.02.02"
     implementation(platform("androidx.compose:compose-bom:$compose_bom_version"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")

@@ -41,7 +41,10 @@ data class ItemCronograma(
     @ColumnInfo(defaultValue = "0")
     val ordem: Int = 0, // Ordem ainda pode ser um Int
 
-    // CORREÇÃO: Alinhando os tipos de chaves estrangeiras com os pais
+    // Chaves estrangeiras
     val rotinaId: String,
-    val templateId: String?
+    val templateId: String?,
+
+    // MELHORIA 2: ID do evento do Google Calendar
+    val googleCalendarEventId: String? = null
 )

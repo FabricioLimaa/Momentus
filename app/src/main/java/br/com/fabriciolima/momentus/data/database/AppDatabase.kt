@@ -11,16 +11,10 @@ import br.com.fabriciolima.momentus.data.model.Meta
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.Template
 
-/**
- * CORREÇÃO DEFINITIVA:
- * O arquivo de schema da versão 9 não existe, tornando a auto-migração impossível.
- * A solução é voltar a usar a migração destrutiva, que apaga e recria o banco de dados.
- * Mantemos a exportação do schema para que, no futuro, a migração da v10 para a v11 seja possível.
- */
 @Database(
     entities = [Rotina::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class],
-    version = 10,
-    exportSchema = true // Mantido para que o schema 10.json seja gerado para o futuro.
+    version = 12, // Versão incrementada para forçar a recriação do banco
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -42,7 +36,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "momentus_database"
                 )
-                    // CORREÇÃO: Reintroduzindo a migração destrutiva, pois a auto-migração não é possível.
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

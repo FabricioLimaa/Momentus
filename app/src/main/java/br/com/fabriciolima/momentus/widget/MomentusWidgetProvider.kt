@@ -6,81 +6,78 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.Drawable
+import android.net.Uri
+import android.util.TypedValue
 import android.widget.RemoteViews
 import br.com.fabriciolima.momentus.R
+import br.com.fabriciolima.momentus.ui.screens.MainActivity
 
 class MomentusWidgetProvider : AppWidgetProvider() {
 
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        
-        // Lógica para lidar com diferentes ações
-        when (intent.action) {
-            ACTION_DATA_UPDATED -> {
-                val appWidgetManager = AppWidgetManager.getInstance(context)
-                val componentName = ComponentName(context, MomentusWidgetProvider::class.java)
-                val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-                // Notifica a mudança de dados para TODOS os widgets ativos
-                appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widgetListView)
-            }
-            ACTION_REFRESH_BUTTON_CLICKED -> {
-                val appWidgetManager = AppWidgetManager.getInstance(context)
-                val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-                if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                    appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widgetListView)
-                }
-            }
+    companion object {
+        const val UPDATE_WIDGET_ACTION = "br.com.fabriciolima.momentus.action.UPDATE_WIDGET"
+
+        // Função para converter um drawable em um bitmap
+        fun drawableToBitmap(context: Context, drawable: Drawable): Bitmap {
+            // CORREÇÃO: Usar um tamanho fixo para o bitmap, pois o drawable não tem tamanho intrínseco
+            val sizeInPixels = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 
+                10f, 
+                context.resources.displayMetrics
+            ).toInt()
+
+            val bitmap = Bitmap.createBitmap(sizeInPixels, sizeInPixels, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            return bitmap
         }
     }
 
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
     }
 
-    companion object {
-        private const val ACTION_REFRESH_BUTTON_CLICKED = "br.com.fabriciolima.momentus.widget.ACTION_REFRESH_BUTTON_CLICKED"
-        const val ACTION_DATA_UPDATED = "br.com.fabriciolima.momentus.widget.ACTION_DATA_UPDATED"
-
-        /**
-         * Função pública para notificar o widget de que os dados do app mudaram.
-         * Deve ser chamada sempre que um evento for criado, atualizado ou deletado.
-         */
-        fun sendDataUpdatedBroadcast(context: Context) {
-            val intent = Intent(context, MomentusWidgetProvider::class.java).apply {
-                action = ACTION_DATA_UPDATED
-            }
-            context.sendBroadcast(intent)
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == UPDATE_WIDGET_ACTION) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val thisAppWidget = ComponentName(context.packageName, javaClass.name)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
+            // Notifica o data set da lista para ser alterado
+            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_list)
         }
+    }
 
-        internal fun updateAppWidget(
-            context: Context,
-            appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
-        ) {
-            val views = RemoteViews(context.packageName, R.layout.momentus_widget)
+    private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+        // Cria a view remota para o layout do widget
+        val views = RemoteViews(context.packageName, R.layout.momentus_widget)
 
-            val serviceIntent = Intent(context, WidgetService::class.java)
-            views.setRemoteAdapter(R.id.widgetListView, serviceIntent)
-            views.setEmptyView(R.id.widgetListView, R.id.widgetEmptyView)
-
-            // Configura o botão de refresh
-            val refreshIntent = Intent(context, MomentusWidgetProvider::class.java).apply {
-                action = ACTION_REFRESH_BUTTON_CLICKED
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            }
-            val refreshPendingIntent = PendingIntent.getBroadcast(
-                context, appWidgetId, refreshIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.widgetButtonRefresh, refreshPendingIntent)
-
-            appWidgetManager.updateAppWidget(appWidgetId, views)
+        // Configura o adapter do serviço para a lista
+        val intent = Intent(context, WidgetService::class.java).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            data = Uri.parse(this.toUri(Intent.URI_INTENT_SCHEME))
         }
+        views.setRemoteAdapter(R.id.widget_list, intent)
+
+        // Configura a view para quando a lista estiver vazia
+        views.setEmptyView(R.id.widget_list, R.id.widget_empty_view)
+
+        // Configura o clique no título para abrir o app
+        val pendingIntent = PendingIntent.getActivity(
+            context, 
+            0, 
+            Intent(context, MainActivity::class.java), 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        views.setOnClickPendingIntent(R.id.widget_title, pendingIntent)
+
+        // Atualiza o widget
+        appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 }
