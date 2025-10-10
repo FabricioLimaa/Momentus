@@ -127,7 +127,7 @@ fun LoginScreen(onGoogleSignInClick: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    val brandColor = Color(0xFF002366) // Cor da marca mantida
+    val brandColor = Color(0xFF262421) // Cor da marca mantida
 
     Box(
         modifier = Modifier

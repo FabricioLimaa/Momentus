@@ -82,11 +82,11 @@ open class RotinaRepository(
         itemCronogramaDao.updateAll(items)
     }
 
-    suspend fun insertRotina(rotina: Rotina) {
+    open suspend fun insertRotina(rotina: Rotina) {
         rotinaDao.insert(rotina)
     }
 
-    suspend fun deleteRotina(rotina: Rotina) {
+    open suspend fun deleteRotina(rotina: Rotina) {
         rotinaDao.delete(rotina)
     }
 

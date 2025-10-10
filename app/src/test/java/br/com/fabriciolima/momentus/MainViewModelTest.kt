@@ -6,7 +6,7 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.fakes.FakeRepository
 // CORREÇÃO: Pacote de utilitários foi renomeado de 'utils' para 'util'
-import br.com.fabriciolima.momentus.util.MainCoroutineRule
+import br.com.fabriciolima.momentus.utils.MainCoroutineRule
 import br.com.fabriciolima.momentus.util.getOrAwaitValue
 import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
