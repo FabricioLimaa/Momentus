@@ -5,9 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -64,10 +61,8 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +82,8 @@ import br.com.fabriciolima.momentus.ui.components.NewEventDialog
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarViewModel
+import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
+import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import coil.compose.AsyncImage
@@ -96,6 +93,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -114,8 +112,8 @@ class CalendarActivity : ComponentActivity() {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
                 val todasAsRotinas by viewModel.todasAsRotinas.collectAsStateWithLifecycle()
-                val context = LocalContext.current
-                val account = GoogleSignIn.getLastSignedInAccount(context)
+                val eventsForSelectedDate by viewModel.eventsForSelectedDate.collectAsStateWithLifecycle()
+                val account = GoogleSignIn.getLastSignedInAccount(this)
 
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
@@ -142,12 +140,22 @@ class CalendarActivity : ComponentActivity() {
                         uiState = uiState,
                         selectedDate = selectedDate,
                         todasAsRotinas = todasAsRotinas,
+                        eventsForSelectedDate = eventsForSelectedDate,
                         account = account,
-                        onDateSelected = { viewModel.selectDate(it) },
+                        onDateSelected = viewModel::selectDate,
                         onPreviousMonth = { viewModel.selectDate(it.minusMonths(1)) },
                         onNextMonth = { viewModel.selectDate(it.plusMonths(1)) },
                         onMenuClick = { scope.launch { drawerState.open() } },
-                        viewModel = viewModel
+                        onAddNewEventClicked = viewModel::onAddNewEventClicked,
+                        onDialogDismiss = viewModel::onDialogDismiss,
+                        onSaveEvent = viewModel::salvarEventoUnico,
+                        onUpdateEvent = viewModel::atualizarEvento,
+                        onShowDetailClicked = viewModel::onShowDetailClicked,
+                        onEditEventClicked = viewModel::onEditEventClicked,
+                        onConfirmDeleteClicked = viewModel::onConfirmDeleteClicked,
+                        onDeleteEvent = viewModel::excluirEvento,
+                        onErrorShown = viewModel::onErrorShown,
+                        onSuccessMessageShown = viewModel::onSuccessMessageShown
                     )
                 }
             }
@@ -190,95 +198,95 @@ fun CalendarScreen(
     uiState: CalendarUiState,
     selectedDate: LocalDate,
     todasAsRotinas: List<Rotina>,
+    eventsForSelectedDate: EventsForDate,
     account: GoogleSignInAccount?,
     onDateSelected: (LocalDate) -> Unit,
     onPreviousMonth: (LocalDate) -> Unit,
     onNextMonth: (LocalDate) -> Unit,
     onMenuClick: () -> Unit,
-    viewModel: CalendarViewModel
+    onAddNewEventClicked: () -> Unit,
+    onDialogDismiss: () -> Unit,
+    onSaveEvent: (String, String?, LocalDate, LocalTime, LocalTime, Rotina, Boolean) -> Unit,
+    onUpdateEvent: (ItemCronograma, String, String?, LocalDate, LocalTime, LocalTime, Rotina, Boolean) -> Unit,
+    onShowDetailClicked: (ItemCronograma) -> Unit,
+    onEditEventClicked: (ItemCronograma) -> Unit,
+    onConfirmDeleteClicked: (ItemCronograma) -> Unit,
+    onDeleteEvent: (ItemCronograma) -> Unit,
+    onErrorShown: () -> Unit,
+    onSuccessMessageShown: () -> Unit
 ) {
-    var showNewEventDialog by remember { mutableStateOf(false) }
-    var eventToEdit by remember { mutableStateOf<ItemCronograma?>(null) }
-    var selectedEventForDetail by remember { mutableStateOf<ItemCronograma?>(null) }
-    var eventToDelete by remember { mutableStateOf<ItemCronograma?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
-
-    val isDialogVisible = showNewEventDialog || eventToEdit != null
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
             snackbarHostState.showSnackbar(message = it)
-            viewModel.onErrorShown()
+            onErrorShown()
         }
     }
 
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let {
             snackbarHostState.showSnackbar(message = it)
-            viewModel.onSuccessMessageShown()
+            onSuccessMessageShown()
         }
     }
 
-    AnimatedVisibility(visible = isDialogVisible, enter = fadeIn(), exit = fadeOut()) {
-        NewEventDialog(
-            eventoParaEditar = eventToEdit,
-            selectedDate = selectedDate,
-            rotinas = todasAsRotinas,
-            onDismiss = { 
-                showNewEventDialog = false 
-                eventToEdit = null
-            },
-            onConfirm = { item, titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle ->
-                if (item == null) {
-                    viewModel.salvarEventoUnico(titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle)
-                } else {
-                    viewModel.atualizarEvento(item, titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle)
-                }
-                showNewEventDialog = false
-                eventToEdit = null
-            }
-        )
-    }
-
-    selectedEventForDetail?.let { event ->
-        val rotina = uiState.rotinasMap[event.rotinaId]
-        if (rotina != null) {
-            EventDetailDialog(
-                event = event,
-                rotina = rotina,
-                onDismiss = { selectedEventForDetail = null },
-                onEditClick = { 
-                    selectedEventForDetail = null
-                    eventToEdit = event
-                },
-                onDeleteClick = { 
-                    selectedEventForDetail = null
-                    eventToDelete = event
+    when (val dialogState = uiState.dialogState) {
+        is DialogState.AddNewEvent -> {
+            NewEventDialog(
+                eventoParaEditar = null,
+                selectedDate = selectedDate,
+                rotinas = todasAsRotinas,
+                onDismiss = onDialogDismiss,
+                onConfirm = { _, titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle ->
+                    onSaveEvent(titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle)
                 }
             )
         }
-    }
-
-    eventToDelete?.let { event ->
-        AlertDialog(
-            onDismissRequest = { eventToDelete = null },
-            icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso de Exclusão") },
-            title = { Text("Excluir Evento") },
-            text = { Text("Tem certeza que deseja excluir o evento \"${event.titulo}\"? Essa ação não pode ser desfeita.") },
-            confirmButton = {
-                Button(onClick = { 
-                    viewModel.excluirEvento(event)
-                    eventToDelete = null 
-                }) {
-                    Text("Excluir")
+        is DialogState.EditEvent -> {
+            NewEventDialog(
+                eventoParaEditar = dialogState.event,
+                selectedDate = selectedDate,
+                rotinas = todasAsRotinas,
+                onDismiss = onDialogDismiss,
+                onConfirm = { item, titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle ->
+                    if (item != null) {
+                        onUpdateEvent(item, titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle)
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { eventToDelete = null }) {
-                    Text("Cancelar")
-                }
+            )
+        }
+        is DialogState.ShowDetail -> {
+            val rotina = uiState.rotinasMap[dialogState.event.rotinaId]
+            if (rotina != null) {
+                EventDetailDialog(
+                    event = dialogState.event,
+                    rotina = rotina,
+                    onDismiss = onDialogDismiss,
+                    onEditClick = { onEditEventClicked(dialogState.event) },
+                    onDeleteClick = { onConfirmDeleteClicked(dialogState.event) }
+                )
             }
-        )
+        }
+        is DialogState.ConfirmDelete -> {
+            AlertDialog(
+                onDismissRequest = onDialogDismiss,
+                icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso de Exclusão") },
+                title = { Text("Excluir Evento") },
+                text = { Text("Tem certeza que deseja excluir o evento \"${dialogState.event.titulo}\"? Essa ação não pode ser desfeita.") },
+                confirmButton = {
+                    Button(onClick = { onDeleteEvent(dialogState.event) }) {
+                        Text("Excluir")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDialogDismiss) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
+        is DialogState.Hidden -> {}
     }
 
     Scaffold(
@@ -310,7 +318,7 @@ fun CalendarScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { showNewEventDialog = true },
+                onClick = onAddNewEventClicked,
                 modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Evento")
@@ -325,9 +333,10 @@ fun CalendarScreen(
             Divider()
             Spacer(modifier = Modifier.height(16.dp))
             EventsForDay(
-                uiState = uiState, 
-                selectedDate = selectedDate, 
-                onEventClick = { event -> selectedEventForDetail = event }
+                uiState = uiState,
+                selectedDate = selectedDate,
+                eventsForDate = eventsForSelectedDate,
+                onEventClick = onShowDetailClicked
             )
         }
     }
@@ -515,22 +524,19 @@ fun DayCell(
             modifier = Modifier.padding(top = 4.dp)
         )
 
-        // MELHORIA 3: Indicador visual para múltiplos eventos
-        val allEventsForDay = localEvents + googleEvents.map { it.summary } // Simplificando para contagem
+        val allEventsForDay = localEvents + googleEvents.map { it.summary }
         if (allEventsForDay.isNotEmpty()) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.height(8.dp)
             ) {
-                // Mostrar até 2 pontos coloridos
                 localEvents.take(2).forEach { event ->
                     val rotina = rotinasMap[event.rotinaId]
                     val eventColor = rotina?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } } ?: MaterialTheme.colorScheme.secondary
                     Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
                 }
 
-                // Mostrar ponto para eventos do Google se não houver 2 eventos locais
                 if (localEvents.size < 2 && googleEvents.isNotEmpty()) {
                     val remainingSlots = 2 - localEvents.size
                     googleEvents.take(remainingSlots).forEach { _ ->
@@ -538,7 +544,6 @@ fun DayCell(
                     }
                 }
 
-                // Mostrar contador se houver mais de 2 eventos
                 val remainingCount = allEventsForDay.size - 2
                 if (remainingCount > 0) {
                     Text(text = "+${remainingCount}", fontSize = 8.sp, color = textColor)
@@ -557,19 +562,14 @@ private fun rememberContentColorFor(backgroundColor: Color): Color {
 
 
 @Composable
-fun EventsForDay(uiState: CalendarUiState, selectedDate: LocalDate, onEventClick: (ItemCronograma) -> Unit) {
+fun EventsForDay(
+    uiState: CalendarUiState,
+    selectedDate: LocalDate,
+    eventsForDate: EventsForDate,
+    onEventClick: (ItemCronograma) -> Unit
+) {
     val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("pt", "BR"))
     val formattedDate = selectedDate.format(dateFormatter)
-
-    val localEventsForDay = uiState.allScheduleItems.filter {
-        it.data != null && LocalDate.ofInstant(java.time.Instant.ofEpochMilli(it.data), java.time.ZoneId.systemDefault()) == selectedDate
-    }
-
-    val googleEventsForDay = uiState.googleCalendarEvents.filter { event ->
-        val instant = Instant.ofEpochMilli(event.start.value)
-        val eventDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
-        eventDate == selectedDate
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
@@ -579,7 +579,7 @@ fun EventsForDay(uiState: CalendarUiState, selectedDate: LocalDate, onEventClick
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (localEventsForDay.isEmpty() && googleEventsForDay.isEmpty()) {
+        if (eventsForDate.localEvents.isEmpty() && eventsForDate.googleEvents.isEmpty()) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -598,14 +598,14 @@ fun EventsForDay(uiState: CalendarUiState, selectedDate: LocalDate, onEventClick
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(localEventsForDay) {
+                items(eventsForDate.localEvents) {
                     val rotina = uiState.rotinasMap[it.rotinaId]
                     if (rotina != null) {
                         EventListItem(item = it, rotina = rotina, modifier = Modifier.clickable { onEventClick(it) })
                     }
                 }
 
-                items(googleEventsForDay) { event ->
+                items(eventsForDate.googleEvents) { event ->
                     GoogleEventListItem(event = event)
                 }
             }
