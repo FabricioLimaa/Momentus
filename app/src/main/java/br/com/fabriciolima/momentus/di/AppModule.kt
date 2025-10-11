@@ -17,6 +17,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,7 +33,6 @@ object AppModule {
     @Singleton
     fun provideAppDatabase(
         @ApplicationContext context: Context,
-        // Injetamos um Provider para quebrar a dependência circular
         rotinaDaoProvider: Provider<RotinaDao>
     ): AppDatabase {
         return Room.databaseBuilder(
@@ -44,7 +44,6 @@ object AppModule {
         .addCallback(object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                // Usamos o Provider para obter o DAO e inserir a categoria padrão
                 CoroutineScope(Dispatchers.IO).launch {
                     val rotinaDao = rotinaDaoProvider.get()
                     val id = UUID.randomUUID().toString()
@@ -53,7 +52,7 @@ object AppModule {
                         nome = "Outros",
                         descricao = "Categoria para eventos diversos.",
                         duracaoPadraoMinutos = 60,
-                        cor = "#808080", // Cinza
+                        cor = "#808080",
                         tag = null
                     )
                     rotinaDao.insert(defaultCategory)
@@ -95,8 +94,9 @@ object AppModule {
         itemCronogramaDao: ItemCronogramaDao,
         templateDao: TemplateDao,
         metaDao: MetaDao,
-        habitoConcluidoDao: HabitoConcluidoDao
+        habitoConcluidoDao: HabitoConcluidoDao,
+        @IoDispatcher dispatcher: CoroutineDispatcher
     ): RotinaRepository {
-        return RotinaRepository(rotinaDao, itemCronogramaDao, templateDao, metaDao, habitoConcluidoDao)
+        return RotinaRepository(rotinaDao, itemCronogramaDao, templateDao, metaDao, habitoConcluidoDao, dispatcher)
     }
 }

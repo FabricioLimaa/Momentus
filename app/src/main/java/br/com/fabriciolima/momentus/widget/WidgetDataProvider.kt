@@ -11,6 +11,7 @@ import br.com.fabriciolima.momentus.data.database.AppDatabase
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
@@ -35,7 +36,8 @@ class WidgetDataProvider(private val context: Context, private val intent: Inten
                 itemCronogramaDao = db.itemCronogramaDao(),
                 templateDao = db.templateDao(),
                 metaDao = db.metaDao(),
-                habitoConcluidoDao = db.habitoConcluidoDao()
+                habitoConcluidoDao = db.habitoConcluidoDao(),
+                dispatcher = Dispatchers.IO // CORREÇÃO: Passando o dispatcher necessário
             )
             val hoje = LocalDate.now()
             itensDoDia = repository.getItensParaWidget(hoje).sortedBy { it.horarioInicio }

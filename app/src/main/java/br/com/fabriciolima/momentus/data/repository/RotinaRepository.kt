@@ -14,6 +14,7 @@ import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.model.StatsResult
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
+import br.com.fabriciolima.momentus.di.IoDispatcher
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.Result
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -26,20 +27,22 @@ import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventDateTime
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import javax.inject.Inject
 
-open class RotinaRepository(
+open class RotinaRepository @Inject constructor(
     private val rotinaDao: RotinaDao,
     private val itemCronogramaDao: ItemCronogramaDao,
     private val templateDao: TemplateDao,
     private val metaDao: MetaDao,
-    private val habitoConcluidoDao: HabitoConcluidoDao
+    private val habitoConcluidoDao: HabitoConcluidoDao,
+    @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
 
     open val todasAsRotinasComMetas: Flow<List<RotinaComMeta>> = rotinaDao.getRotinasComMetas()
@@ -114,7 +117,7 @@ open class RotinaRepository(
         data: LocalDate,
         horarioInicio: LocalTime,
         horarioTermino: LocalTime
-    ): Result<String?> = withContext(Dispatchers.IO) { // Modificado para retornar Result<String?>
+    ): Result<String?> = withContext(dispatcher) { // Modificado para usar o dispatcher injetado
         try {
             val account = GoogleSignIn.getLastSignedInAccount(context)
                 ?: return@withContext Result.Error(Exception("Nenhuma conta Google conectada."))
@@ -138,7 +141,6 @@ open class RotinaRepository(
                 end = EventDateTime().setDateTime(DateTime(endInstant.toEpochMilli())).setTimeZone(zoneId.id)
             }
 
-            // Captura o evento criado para obter o ID
             val createdEvent = service.events().insert("primary", event).execute()
             Result.Success(createdEvent.id)
         } catch (e: Exception) {
@@ -146,12 +148,11 @@ open class RotinaRepository(
         }
     }
     
-    suspend fun atualizarEventoCompleto(context: Context, item: ItemCronograma): Result<String?> = withContext(Dispatchers.IO) {
+    suspend fun atualizarEventoCompleto(context: Context, item: ItemCronograma): Result<String?> = withContext(dispatcher) { // Modificado para usar o dispatcher injetado
         try {
             var googleEventId: String? = item.googleCalendarEventId
             val account = GoogleSignIn.getLastSignedInAccount(context)
 
-            // Só sincroniza com o Google se o usuário estiver logado e o evento tiver uma data específica.
             if (account != null && item.data != null) {
                 val credentials = GoogleAccountCredential.usingOAuth2(context, listOf(CalendarScopes.CALENDAR))
                     .setSelectedAccount(account.account)
@@ -163,7 +164,6 @@ open class RotinaRepository(
                     description = item.descricao
                     val zoneId = ZoneId.systemDefault()
                     
-                    // Como item.data não é nulo aqui, podemos usá-lo com segurança.
                     val eventDate = Instant.ofEpochMilli(item.data).atZone(zoneId).toLocalDate()
                     val startInstant = eventDate.atTime(item.horarioInicio).atZone(zoneId).toInstant()
                     start = EventDateTime().setDateTime(DateTime(startInstant.toEpochMilli())).setTimeZone(zoneId.id)
@@ -181,7 +181,6 @@ open class RotinaRepository(
                 }
             }
 
-            // Sempre atualiza o banco de dados local.
             itemCronogramaDao.insert(item.copy(googleCalendarEventId = googleEventId))
             Result.Success(googleEventId)
         } catch (e: Exception) {
@@ -189,9 +188,8 @@ open class RotinaRepository(
         }
     }
 
-    suspend fun excluirEventoCompleto(context: Context, item: ItemCronograma): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun excluirEventoCompleto(context: Context, item: ItemCronograma): Result<Unit> = withContext(dispatcher) { // Modificado para usar o dispatcher injetado
         try {
-            // 1. Excluir do Google Calendar se houver um ID
             if (item.googleCalendarEventId != null) {
                 val account = GoogleSignIn.getLastSignedInAccount(context)
                 if (account != null) {
@@ -201,12 +199,9 @@ open class RotinaRepository(
                         .setApplicationName("Momentus").build()
 
                     service.events().delete("primary", item.googleCalendarEventId).execute()
-                } else {
-                    // Opcional: Lidar com o caso de o evento ter um ID mas o usuário não estar logado
                 }
             }
             
-            // 2. Excluir do banco de dados local
             itemCronogramaDao.delete(item)
 
             Result.Success(Unit)
@@ -215,7 +210,7 @@ open class RotinaRepository(
         }
     }
 
-    suspend fun fetchGoogleCalendarEvents(context: Context, account: GoogleSignInAccount): Result<List<GoogleCalendarEvent>> = withContext(Dispatchers.IO) {
+    suspend fun fetchGoogleCalendarEvents(context: Context, account: GoogleSignInAccount): Result<List<GoogleCalendarEvent>> = withContext(dispatcher) { // Modificado para usar o dispatcher injetado
         try {
             val credentials = GoogleAccountCredential.usingOAuth2(context, listOf(CalendarScopes.CALENDAR)).apply {
                 selectedAccount = account.account
