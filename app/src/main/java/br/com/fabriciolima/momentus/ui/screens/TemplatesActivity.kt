@@ -1,14 +1,10 @@
 package br.com.fabriciolima.momentus.ui.screens
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -82,11 +78,13 @@ import br.com.fabriciolima.momentus.ui.components.ApplyTemplateDialog
 import br.com.fabriciolima.momentus.ui.components.EventFormData
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.theme.TimePickerDialog
+import br.com.fabriciolima.momentus.ui.viewmodel.TemplateDialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateViewModel
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -99,7 +97,20 @@ class TemplatesActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MomentusTheme {
-                TemplatesScreen(viewModel = viewModel, onNavigateUp = { finish() })
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                TemplatesScreen(
+                    uiState = uiState,
+                    onNavigateUp = { finish() },
+                    onShowCreateDialog = viewModel::onShowCreateDialog,
+                    onShowDeleteDialog = viewModel::onShowDeleteDialog,
+                    onShowApplyDialog = viewModel::onShowApplyDialog,
+                    onDialogDismiss = viewModel::onDialogDismiss,
+                    onSaveTemplate = viewModel::salvarTemplateCompleto,
+                    onDeleteTemplate = viewModel::deleteTemplate,
+                    onApplyTemplate = viewModel::applyTemplateToDates,
+                    onErrorShown = viewModel::onErrorShown
+                )
             }
         }
     }
@@ -107,11 +118,18 @@ class TemplatesActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TemplatesScreen(viewModel: TemplateViewModel, onNavigateUp: () -> Unit) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showCreateDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf<TemplateComEventos?>(null) }
-    var showApplyDialog by remember { mutableStateOf<TemplateComEventos?>(null) }
+fun TemplatesScreen(
+    uiState: TemplateUiState,
+    onNavigateUp: () -> Unit,
+    onShowCreateDialog: () -> Unit,
+    onShowDeleteDialog: (TemplateComEventos) -> Unit,
+    onShowApplyDialog: (TemplateComEventos) -> Unit,
+    onDialogDismiss: () -> Unit,
+    onSaveTemplate: (String, List<EventFormData>, (Result<Unit>) -> Unit) -> Unit,
+    onDeleteTemplate: (String) -> Unit,
+    onApplyTemplate: (String, List<LocalDate>) -> Unit,
+    onErrorShown: () -> Unit
+) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -119,64 +137,54 @@ fun TemplatesScreen(viewModel: TemplateViewModel, onNavigateUp: () -> Unit) {
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
             snackbarHostState.showSnackbar(it)
-            viewModel.onErrorShown()
+            onErrorShown()
         }
     }
 
-    AnimatedVisibility(visible = showCreateDialog, enter = fadeIn(), exit = fadeOut()) {
-        CreateTemplateDialog(
-            rotinas = uiState.rotinasMap.values.toList(),
-            onDismiss = { showCreateDialog = false },
-            onConfirm = { name, events ->
-                viewModel.salvarTemplateCompleto(name, events) { result ->
-                    when (result) {
-                        is Result.Success -> {
-                            showCreateDialog = false
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Template salvo com sucesso!")
+    when (val dialogState = uiState.dialogState) {
+        is TemplateDialogState.CreateNew -> {
+            CreateTemplateDialog(
+                rotinas = uiState.rotinasMap.values.toList(),
+                onDismiss = onDialogDismiss,
+                onConfirm = { name, events ->
+                    onSaveTemplate(name, events) { result ->
+                        when (result) {
+                            is Result.Success -> {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Template salvo com sucesso!")
+                                }
                             }
-                        }
-                        is Result.Error -> {
-                            Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                            is Result.Error -> {
+                                Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                            }
                         }
                     }
                 }
-            }
-        )
-    }
-
-    AnimatedVisibility(visible = showDeleteDialog != null, enter = fadeIn(), exit = fadeOut()) {
-        showDeleteDialog?.let { templateToDelete ->
+            )
+        }
+        is TemplateDialogState.ConfirmDelete -> {
             AlertDialog(
-                onDismissRequest = { showDeleteDialog = null },
+                onDismissRequest = onDialogDismiss,
                 icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso") },
                 title = { Text("Deletar Template") },
-                text = { Text("Você tem certeza que quer deletar o template \"${templateToDelete.template.nome}\"? Essa ação não pode ser desfeita.") },
+                text = { Text("Você tem certeza que quer deletar o template \"${dialogState.template.template.nome}\"? Essa ação não pode ser desfeita.") },
                 confirmButton = {
-                    Button(onClick = {
-                        viewModel.deleteTemplate(templateToDelete.template.id)
-                        showDeleteDialog = null
-                    }) { 
+                    Button(onClick = { onDeleteTemplate(dialogState.template.template.id) }) { 
                         Icon(Icons.Default.Delete, contentDescription = "Deletar")
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("DELETAR") 
                     }
                 },
-                dismissButton = { TextButton(onClick = { showDeleteDialog = null }) { Text("Cancelar") } }
+                dismissButton = { TextButton(onClick = onDialogDismiss) { Text("Cancelar") } }
             )
         }
-    }
-
-    AnimatedVisibility(visible = showApplyDialog != null, enter = fadeIn(), exit = fadeOut()) {
-        showApplyDialog?.let { templateToApply ->
+        is TemplateDialogState.ApplyTemplate -> {
             ApplyTemplateDialog(
-                onDismiss = { showApplyDialog = null },
-                onConfirm = { dates ->
-                    viewModel.applyTemplateToDates(templateToApply.template.id, dates)
-                    showApplyDialog = null
-                }
+                onDismiss = onDialogDismiss,
+                onConfirm = { dates -> onApplyTemplate(dialogState.template.template.id, dates) }
             )
         }
+        is TemplateDialogState.Hidden -> {}
     }
 
     Scaffold(
@@ -199,7 +207,7 @@ fun TemplatesScreen(viewModel: TemplateViewModel, onNavigateUp: () -> Unit) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { showCreateDialog = true },
+                onClick = onShowCreateDialog,
                 modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Template")
@@ -231,8 +239,8 @@ fun TemplatesScreen(viewModel: TemplateViewModel, onNavigateUp: () -> Unit) {
                         TemplateCard(
                             templateComEventos = templateComEventos,
                             rotinasMap = uiState.rotinasMap,
-                            onDeleteClick = { showDeleteDialog = templateComEventos },
-                            onApplyClick = { showApplyDialog = templateComEventos }
+                            onDeleteClick = { onShowDeleteDialog(templateComEventos) },
+                            onApplyClick = { onShowApplyDialog(templateComEventos) }
                         )
                     }
                 }

@@ -17,16 +17,25 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
 
+sealed interface TemplateDialogState {
+    object Hidden : TemplateDialogState
+    object CreateNew : TemplateDialogState
+    data class ConfirmDelete(val template: TemplateComEventos) : TemplateDialogState
+    data class ApplyTemplate(val template: TemplateComEventos) : TemplateDialogState
+}
+
 data class TemplateUiState(
     val templates: List<TemplateComEventos> = emptyList(),
     val rotinasMap: Map<String, Rotina> = emptyMap(),
-    val error: String? = null // ADICIONADO: Campo para mensagens de erro
+    val error: String? = null,
+    val dialogState: TemplateDialogState = TemplateDialogState.Hidden
 )
 
 @HiltViewModel
@@ -44,11 +53,32 @@ class TemplateViewModel @Inject constructor(
                 repository.todasAsRotinasComMetas
             ) { templates, rotinasComMetas ->
                 val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
-                TemplateUiState(templates, rotinasMap)
-            }.collect { newUiState ->
-                _uiState.value = newUiState.copy(error = _uiState.value.error)
+                Pair(templates, rotinasMap)
+            }.collect { (templates, rotinasMap) ->
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        templates = templates,
+                        rotinasMap = rotinasMap
+                    )
+                }
             }
         }
+    }
+
+    fun onShowCreateDialog() {
+        _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.CreateNew)
+    }
+
+    fun onShowDeleteDialog(template: TemplateComEventos) {
+        _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.ConfirmDelete(template))
+    }
+
+    fun onShowApplyDialog(template: TemplateComEventos) {
+        _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.ApplyTemplate(template))
+    }
+
+    fun onDialogDismiss() {
+        _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
     }
 
     fun salvarTemplateCompleto(nomeTemplate: String, eventosData: List<EventFormData>, onResult: (Result<Unit>) -> Unit) {
@@ -76,6 +106,7 @@ class TemplateViewModel @Inject constructor(
                     }
                 }
                 novosItens.forEach { repository.insertItemCronograma(it) }
+                _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
                 onResult(Result.Success(Unit))
             } catch (e: Exception) {
                 onResult(Result.Error(e))
@@ -88,6 +119,7 @@ class TemplateViewModel @Inject constructor(
             try {
                 val templateToDelete = Template(id = templateId, nome = "")
                 repository.deleteTemplate(templateToDelete)
+                _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Falha ao deletar o template.")
             }
@@ -115,6 +147,7 @@ class TemplateViewModel @Inject constructor(
                     }
                 }
                 newEvents.forEach { repository.insertItemCronograma(it) }
+                _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Falha ao aplicar o template.")
             }
