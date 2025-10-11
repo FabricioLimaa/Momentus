@@ -1,5 +1,5 @@
 [versions]
-agp = "8.3.0"
+agp = "8.13.0"
 kotlin = "1.9.22"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -25,14 +25,17 @@ lifecycleViewmodelCompose = "2.8.2"
 runtimeLivedata = "1.6.7"
 materialIconsExtended = "1.6.7"
 googleAuthOauth2 = "1.24.1"
-googleHttpClientGson = "1.44.2"
+googleHttpClientGson = "2.8.1"
 kizitonwoseCalendar = "2.5.1"
 composeReorderable = "0.9.6"
 androidDesugar = "2.0.4"
-googleGmsServices = "4.4.2"
+googleGmsServices = "4.4.3"
 hilt = "2.51.1"
-# CORREÇÃO: Voltando para a versão compatível do Glance
 glance = "1.1.0-rc01"
+recyclerview = "1.3.2"
+lifecycleRuntimeCompose = "2.8.2"
+coilCompose = "2.6.0"
+firebaseBom = "33.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -48,9 +51,9 @@ androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecy
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
-google-api-client-android = { group = "com.google.api-client", name = "google-api-client-android", version.ref = "googleApiClientAndroid" }
-google-api-services-calendar = { group = "com.google.api.services", name = "google-api-services-calendar", version.ref = "googleApiServicesCalendar" }
+playServicesAuth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
+googleApiClientAndroid = { group = "com.google.api-client", name = "google-api-client-android", version.ref = "googleApiClientAndroid" }
+googleApiServicesCalendar = { group = "com.google.apis", name = "google-api-services-calendar", version.ref = "googleApiServicesCalendar" }
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
 androidx-core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "coreTesting" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
@@ -60,21 +63,24 @@ androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
-
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
-google-auth-library-oauth2-http = { group = "com.google.auth", name = "google-auth-library-oauth2-http", version.ref = "googleAuthOauth2" }
-google-http-client-gson = { group = "com.google.http-client", name = "google-http-client-gson", version.ref = "googleHttpClientGson" }
-kizitonwose-calendar-compose = { group = "com.kizitonwose.calendar", name = "compose", version.ref = "kizitonwoseCalendar" }
-compose-reorderable = { group = "org.burnoutcrew", name = "compose-reorderable", version.ref = "composeReorderable" }
+googleAuthLibraryOauth2Http = { group = "com.google.auth", name = "google-auth-library-oauth2-http", version.ref = "googleAuthOauth2" }
+googleHttpClientGson = { group = "com.google.http-client", name = "google-http-client-gson", version.ref = "googleHttpClientGson" }
+kizitonwoseCalendarCompose = { group = "com.kizitonwose.calendar", name = "compose", version.ref = "kizitonwoseCalendar" }
+composeReorderable = { group = "org.burnoutcrew.composereorderable", name = "reorderable", version.ref = "composeReorderable" }
 android-desugar = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "androidDesugar" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
-# ADICIONADO: Dependências do Glance
 glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
-
+androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
+androidxLifecycleRuntimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
+coilCompose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
+firebaseBom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebaseAnalytics = { group = "com.google.firebase", name = "firebase-analytics" }
+googleApiClientGson = { group = "com.google.api-client", name = "google-api-client-gson", version.ref = "googleHttpClientGson" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

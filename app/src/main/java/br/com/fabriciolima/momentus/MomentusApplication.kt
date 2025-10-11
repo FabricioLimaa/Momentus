@@ -3,7 +3,11 @@ package br.com.fabriciolima.momentus
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 
-// ADICIONADO: Anotação que habilita a injeção de dependência do Hilt
+/**
+ * Classe de aplicação para o aplicativo Momentus.
+ *
+ * Anotada com `@HiltAndroidApp` para habilitar a injeção de dependência do Hilt.
+ */
 @HiltAndroidApp
 class MomentusApplication : Application() {
     // A criação do banco de dados e do repositório será gerenciada pelo Hilt.

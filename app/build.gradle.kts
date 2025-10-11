@@ -1,11 +1,8 @@
-val room_version = "2.6.1"
-
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.google.devtools.ksp)
-    id("com.google.gms.google-services")
-    // ADICIONADO: Plugin do Hilt
+    alias(libs.plugins.google.gms.services)
     alias(libs.plugins.dagger.hilt.android)
 }
 
@@ -24,7 +21,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -33,11 +30,11 @@ android {
     }
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         viewBinding = true
@@ -62,69 +59,68 @@ ksp {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring(libs.android.desugar)
 
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.activity:activity-compose:1.9.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.recyclerview)
 
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.2")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.2")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.2")
-    implementation("androidx.fragment:fragment-ktx:1.8.1")
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidxLifecycleRuntimeCompose)
+    implementation(libs.androidx.fragment.ktx)
 
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
-    // Glance for App Widgets - REMOVIDO
-    // implementation(libs.glance.appwidget)
-    // implementation(libs.glance.material3)
+    // Glance for App Widgets
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
 
-    // CORREÇÃO: Usando a versão estável da Compose BOM
-    val compose_bom_version = "2024.02.02"
-    implementation(platform("androidx.compose:compose-bom:$compose_bom_version"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.runtime:runtime-livedata")
-    implementation("androidx.compose.material:material-icons-extended")
+    // Compose
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.runtime.livedata)
+    implementation(libs.androidx.material.icons.extended)
 
-    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+    implementation(libs.composeReorderable)
 
     // Coil para carregamento de imagens
-    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(libs.coilCompose)
 
     // Room
-    implementation("androidx.room:room-runtime:$room_version")
-    implementation("androidx.room:room-ktx:$room_version")
-    ksp("androidx.room:room-compiler:$room_version")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
-    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
-    implementation("com.google.firebase:firebase-analytics")
+    implementation(platform(libs.firebaseBom))
+    implementation(libs.firebaseAnalytics)
 
-    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation(libs.playServicesAuth)
 
-    implementation("com.google.api-client:google-api-client-android:2.2.0") {
+    implementation(libs.googleApiClientAndroid) {
         exclude(group = "org.apache.httpcomponents")
     }
-    implementation("com.google.api-client:google-api-client-gson:2.2.0") {
+    implementation(libs.googleApiClientGson) {
         exclude(group = "org.apache.httpcomponents")
     }
-    implementation("com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0") {
+    implementation(libs.googleApiServicesCalendar) {
         exclude(group = "org.apache.httpcomponents")
     }
     
-    implementation("com.kizitonwose.calendar:compose:2.5.1")
+    implementation(libs.kizitonwoseCalendarCompose)
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("androidx.arch.core:core-testing:2.2.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.core.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }
