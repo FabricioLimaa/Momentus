@@ -4,9 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,9 +37,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,6 +46,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.ui.components.EditCategoryDialog
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
+import br.com.fabriciolima.momentus.ui.viewmodel.CategoryDialogState
+import br.com.fabriciolima.momentus.ui.viewmodel.CategoryUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.CategoryViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -63,8 +59,18 @@ class CategoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MomentusTheme { // CORREÇÃO: Usando o tema customizado do app
-                CategoryScreen(viewModel = viewModel, onNavigateUp = { finish() })
+            MomentusTheme {
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                CategoryScreen(
+                    uiState = uiState,
+                    onNavigateUp = { finish() },
+                    onShowCreateDialog = viewModel::onShowCreateDialog,
+                    onShowEditDialog = viewModel::onShowEditDialog,
+                    onShowConfirmDeleteDialog = viewModel::onShowConfirmDeleteDialog,
+                    onDialogDismiss = viewModel::onDialogDismiss,
+                    onUpsertCategory = viewModel::upsertRotina,
+                    onDeleteCategory = viewModel::deleteRotina
+                )
             }
         }
     }
@@ -72,42 +78,47 @@ class CategoryActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategoryScreen(viewModel: CategoryViewModel, onNavigateUp: () -> Unit) {
-    val categories by viewModel.allRotinas.collectAsStateWithLifecycle()
-    var editingCategory by remember { mutableStateOf<Rotina?>(null) }
-    var showEditDialog by remember { mutableStateOf(false) }
-    var deletingCategory by remember { mutableStateOf<Rotina?>(null) }
+fun CategoryScreen(
+    uiState: CategoryUiState,
+    onNavigateUp: () -> Unit,
+    onShowCreateDialog: () -> Unit,
+    onShowEditDialog: (Rotina) -> Unit,
+    onShowConfirmDeleteDialog: (Rotina) -> Unit,
+    onDialogDismiss: () -> Unit,
+    onUpsertCategory: (String?, String, String) -> Unit,
+    onDeleteCategory: (Rotina) -> Unit
+) {
 
-    AnimatedVisibility(visible = showEditDialog, enter = fadeIn(), exit = fadeOut()) {
-        EditCategoryDialog(
-            category = editingCategory,
-            onDismiss = { showEditDialog = false },
-            onConfirm = { id, name, color ->
-                viewModel.upsertRotina(id, name, color)
-                showEditDialog = false
-            }
-        )
-    }
-
-    AnimatedVisibility(visible = deletingCategory != null, enter = fadeIn(), exit = fadeOut()) {
-        deletingCategory?.let { categoryToDelete ->
+    when (val dialogState = uiState.dialogState) {
+        is CategoryDialogState.CreateNew -> {
+            EditCategoryDialog(
+                category = null,
+                onDismiss = onDialogDismiss,
+                onConfirm = { _, name, color -> onUpsertCategory(null, name, color) }
+            )
+        }
+        is CategoryDialogState.Edit -> {
+            EditCategoryDialog(
+                category = dialogState.category,
+                onDismiss = onDialogDismiss,
+                onConfirm = { id, name, color -> onUpsertCategory(id, name, color) }
+            )
+        }
+        is CategoryDialogState.ConfirmDelete -> {
             AlertDialog(
-                onDismissRequest = { deletingCategory = null },
+                onDismissRequest = onDialogDismiss,
                 title = { Text("Excluir Categoria") },
-                text = { Text("Tem certeza que deseja excluir a categoria \"${categoryToDelete.nome}\"?") },
+                text = { Text("Tem certeza que deseja excluir a categoria \"${dialogState.category.nome}\"?") },
                 confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.deleteRotina(categoryToDelete)
-                            deletingCategory = null
-                        }
-                    ) { Text("Excluir", color = MaterialTheme.colorScheme.error) } // CORREÇÃO
+                    TextButton(onClick = { onDeleteCategory(dialogState.category) }) 
+                    { Text("Excluir", color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { deletingCategory = null }) { Text("Cancelar") }
+                    TextButton(onClick = onDialogDismiss) { Text("Cancelar") }
                 }
             )
         }
+        is CategoryDialogState.Hidden -> {}
     }
 
     Scaffold(
@@ -124,10 +135,7 @@ fun CategoryScreen(viewModel: CategoryViewModel, onNavigateUp: () -> Unit) {
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
             Button(
-                onClick = { 
-                    editingCategory = null
-                    showEditDialog = true 
-                },
+                onClick = onShowCreateDialog,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Categoria")
@@ -137,14 +145,11 @@ fun CategoryScreen(viewModel: CategoryViewModel, onNavigateUp: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(categories) { category ->
+                items(uiState.categories) { category ->
                     CategoryListItem(
                         category = category,
-                        onEditClick = { 
-                            editingCategory = category
-                            showEditDialog = true
-                        },
-                        onDeleteClick = { deletingCategory = category }
+                        onEditClick = { onShowEditDialog(category) },
+                        onDeleteClick = { onShowConfirmDeleteDialog(category) }
                     )
                 }
             }
@@ -177,10 +182,10 @@ fun CategoryListItem(
             }
             Row {
                 IconButton(onClick = onEditClick) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar Categoria", tint = MaterialTheme.colorScheme.primary) // CORREÇÃO
+                    Icon(Icons.Default.Edit, contentDescription = "Editar Categoria", tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = onDeleteClick) {
-                    Icon(Icons.Default.Delete, contentDescription = "Deletar Categoria", tint = MaterialTheme.colorScheme.error) // CORREÇÃO
+                    Icon(Icons.Default.Delete, contentDescription = "Deletar Categoria", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
