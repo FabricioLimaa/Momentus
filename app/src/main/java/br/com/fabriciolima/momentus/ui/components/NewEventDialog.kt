@@ -18,15 +18,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +62,7 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewEventDialog(
-    eventoParaEditar: ItemCronograma? = null, 
+    eventoParaEditar: ItemCronograma? = null,
     selectedDate: LocalDate,
     rotinas: List<Rotina>,
     onDismiss: () -> Unit,
@@ -76,7 +78,7 @@ fun NewEventDialog(
     var horarioTermino by remember { mutableStateOf(eventoParaEditar?.horarioTermino ?: LocalTime.now().withMinute(0).withSecond(0).plusHours(1)) }
     var selectedRotina by remember { mutableStateOf<Rotina?>(null) }
     var salvarNoGoogle by remember { mutableStateOf(eventoParaEditar?.googleCalendarEventId != null) }
-    
+
     val isTimeInvalid by remember { derivedStateOf { horarioTermino.isBefore(horarioInicio) || horarioTermino == horarioInicio } }
     val isFormValid by remember { derivedStateOf { titulo.isNotBlank() && selectedRotina != null && !isTimeInvalid } }
 
@@ -236,41 +238,54 @@ fun NewEventDialog(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Box {
+                ExposedDropdownMenuBox(
+                    expanded = showDropdown,
+                    onExpandedChange = { showDropdown = !showDropdown },
+                ) {
                     OutlinedTextField(
-                        value = selectedRotina?.nome ?: "",
-                        onValueChange = { },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
                         readOnly = true,
+                        value = selectedRotina?.nome ?: "",
+                        onValueChange = {},
                         label = { Text("Categoria") },
                         isError = selectedRotina == null,
-                        modifier = Modifier.fillMaxWidth(),
                         leadingIcon = {
                             selectedRotina?.cor?.let {
                                 val color = try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { Color.Gray }
                                 Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                             }
-                        }
+                        },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
                     )
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clickable { showDropdown = true }
-                    )
-                    DropdownMenu(expanded = showDropdown, onDismissRequest = { showDropdown = false }) {
+                    ExposedDropdownMenu(
+                        expanded = showDropdown,
+                        onDismissRequest = { showDropdown = false },
+                    ) {
                         rotinas.forEach { rotina ->
+                            val isSelected = rotina == selectedRotina
                             DropdownMenuItem(
-                                text = { 
+                                text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(modifier = Modifier.width(24.dp)) {
+                                            if (isSelected) {
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = "Selecionado",
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
                                         val color = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
                                         Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(rotina.nome)
                                     }
                                 },
-                                onClick = { 
+                                onClick = {
                                     selectedRotina = rotina
                                     showDropdown = false
-                                }
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                             )
                         }
                     }
