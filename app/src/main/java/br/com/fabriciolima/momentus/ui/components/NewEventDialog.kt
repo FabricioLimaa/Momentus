@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
@@ -58,22 +60,26 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewEventDialog(
-    eventoParaEditar: ItemCronograma? = null, // Evento opcional para modo de edição
+    eventoParaEditar: ItemCronograma? = null, 
     selectedDate: LocalDate,
     rotinas: List<Rotina>,
     onDismiss: () -> Unit,
     onConfirm: (ItemCronograma?, String, String?, LocalDate, LocalTime, LocalTime, Rotina, Boolean) -> Unit
 ) {
     val isEditMode = eventoParaEditar != null
+    val focusManager = LocalFocusManager.current
 
     var titulo by remember { mutableStateOf(eventoParaEditar?.titulo ?: "") }
     var descricao by remember { mutableStateOf(eventoParaEditar?.descricao ?: "") }
     var dataSelecionada by remember { mutableStateOf(eventoParaEditar?.data?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() } ?: selectedDate) }
-    var horarioInicio by remember { mutableStateOf(eventoParaEditar?.horarioInicio ?: LocalTime.now().withMinute(0).plusHours(1)) }
-    var horarioTermino by remember { mutableStateOf(eventoParaEditar?.horarioTermino ?: LocalTime.now().withMinute(0).plusHours(2)) }
+    var horarioInicio by remember { mutableStateOf(eventoParaEditar?.horarioInicio ?: LocalTime.now().withMinute(0).withSecond(0)) }
+    var horarioTermino by remember { mutableStateOf(eventoParaEditar?.horarioTermino ?: LocalTime.now().withMinute(0).withSecond(0).plusHours(1)) }
     var selectedRotina by remember { mutableStateOf<Rotina?>(null) }
     var salvarNoGoogle by remember { mutableStateOf(eventoParaEditar?.googleCalendarEventId != null) }
     
+    val isTimeInvalid by remember { derivedStateOf { horarioTermino.isBefore(horarioInicio) || horarioTermino == horarioInicio } }
+    val isFormValid by remember { derivedStateOf { titulo.isNotBlank() && selectedRotina != null && !isTimeInvalid } }
+
     var showDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
@@ -91,7 +97,6 @@ fun NewEventDialog(
         }
     }
 
-    // --- Seletores (agora fora do fluxo principal da UI) ---
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dataSelecionada.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
         DatePickerDialog(
@@ -117,6 +122,7 @@ fun NewEventDialog(
             onDismissRequest = { showStartTimePicker = false },
             onConfirm = { newTime ->
                 horarioInicio = newTime
+                showStartTimePicker = false
             }
         )
     }
@@ -128,18 +134,21 @@ fun NewEventDialog(
             onDismissRequest = { showEndTimePicker = false },
             onConfirm = { newTime ->
                 horarioTermino = newTime
+                showEndTimePicker = false
             }
         )
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = {
+        focusManager.clearFocus()
+        onDismiss()
+    }) {
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(
                 modifier = Modifier
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // --- Título do Diálogo ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -152,11 +161,11 @@ fun NewEventDialog(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- Formulário ---
                 OutlinedTextField(
                     value = titulo,
                     onValueChange = { titulo = it },
                     label = { Text("Título") },
+                    isError = titulo.isBlank(),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -177,31 +186,56 @@ fun NewEventDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = horarioInicio.format(timeFormatter),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Início") },
-                        modifier = Modifier.weight(1f).clickable { showStartTimePicker = true },
-                        trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") }
-                    )
-                    OutlinedTextField(
-                        value = horarioTermino.format(timeFormatter),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Término") },
-                        modifier = Modifier.weight(1f).clickable { showEndTimePicker = true },
-                        trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") }
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = horarioInicio.format(timeFormatter),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Início") },
+                            isError = isTimeInvalid,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") }
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { showStartTimePicker = true }
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = horarioTermino.format(timeFormatter),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Término") },
+                            isError = isTimeInvalid,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") }
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { showEndTimePicker = true }
+                        )
+                    }
+                }
+                if (isTimeInvalid) {
+                    Text(
+                        text = "O horário de término deve ser depois do início",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Box {
                     OutlinedTextField(
-                        value = selectedRotina?.nome ?: "Selecione uma categoria",
+                        value = selectedRotina?.nome ?: "",
                         onValueChange = { },
                         readOnly = true,
                         label = { Text("Categoria") },
+                        isError = selectedRotina == null,
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = {
                             selectedRotina?.cor?.let {
@@ -253,7 +287,7 @@ fun NewEventDialog(
 
                 Button(
                     onClick = {
-                        if (selectedRotina != null && titulo.isNotBlank()) {
+                        if (isFormValid) {
                             onConfirm(
                                 eventoParaEditar,
                                 titulo,
@@ -266,6 +300,7 @@ fun NewEventDialog(
                             )
                         }
                     },
+                    enabled = isFormValid,
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text(if (isEditMode) "Salvar Alterações" else "Criar Evento")

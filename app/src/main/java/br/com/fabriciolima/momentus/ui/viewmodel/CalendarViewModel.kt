@@ -11,7 +11,6 @@ import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.MomentusWidgetProvider
-import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.api.client.util.DateTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -94,11 +93,9 @@ class CalendarViewModel @Inject constructor(
                 repository.todasAsRotinasComMetas,
                 repository.idsHabitosConcluidos
             ) { allItems, rotinasComMetas, completedIds ->
-                // Apenas transforma os dados aqui
                 val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
                 Triple(allItems, rotinasMap, completedIds.toSet())
             }.collect { (allItems, rotinasMap, completedIds) ->
-                // E atualiza o estado aqui, no coletor
                 _uiState.update { currentState ->
                     currentState.copy(
                         allScheduleItems = allItems,
@@ -151,11 +148,16 @@ class CalendarViewModel @Inject constructor(
         rotina: Rotina,
         salvarNoGoogle: Boolean
     ) {
+        if (horarioTermino.isBefore(horarioInicio) || horarioTermino == horarioInicio) {
+            _uiState.value = _uiState.value.copy(error = "O horário de término deve ser depois do início.")
+            return
+        }
+
         viewModelScope.launch {
             var googleEventId: String? = null
 
             if (salvarNoGoogle) {
-                when (val result = repository.salvarEventoNoGoogle(application.applicationContext, titulo, descricao, data, horarioInicio, horarioTermino)) {
+                when (val result = repository.salvarEventoNoGoogle(titulo, descricao, data, horarioInicio, horarioTermino)) {
                     is Result.Success -> {
                         googleEventId = result.data
                         fetchGoogleCalendarEvents()
@@ -198,6 +200,11 @@ class CalendarViewModel @Inject constructor(
         novaRotina: Rotina,
         sincronizarComGoogle: Boolean
     ) {
+        if (novoHorarioTermino.isBefore(novoHorarioInicio) || novoHorarioTermino == novoHorarioInicio) {
+            _uiState.value = _uiState.value.copy(error = "O horário de término deve ser depois do início.")
+            return
+        }
+
         viewModelScope.launch {
             val itemAtualizado = item.copy(
                 titulo = novoTitulo,
@@ -209,9 +216,9 @@ class CalendarViewModel @Inject constructor(
             )
 
             if (sincronizarComGoogle) {
-                when (repository.atualizarEventoCompleto(application.applicationContext, itemAtualizado)) {
+                when (val result = repository.atualizarEventoCompleto(itemAtualizado)) {
                     is Result.Success -> fetchGoogleCalendarEvents()
-                    is Result.Error -> _uiState.value = _uiState.value.copy(error = "Falha ao sincronizar atualização com o Google Calendar.")
+                    is Result.Error -> _uiState.value = _uiState.value.copy(error = result.exception.message ?: "Falha ao sincronizar atualização com o Google Calendar.")
                 }
             } else {
                 repository.insertItemCronograma(itemAtualizado)
@@ -228,7 +235,7 @@ class CalendarViewModel @Inject constructor(
 
     fun excluirEvento(item: ItemCronograma) {
         viewModelScope.launch {
-            when (val result = repository.excluirEventoCompleto(application.applicationContext, item)) {
+            when (val result = repository.excluirEventoCompleto(item)) {
                 is Result.Success -> {
                     fetchGoogleCalendarEvents()
                     _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
@@ -258,13 +265,7 @@ class CalendarViewModel @Inject constructor(
 
     fun fetchGoogleCalendarEvents() {
         viewModelScope.launch {
-            val account = GoogleSignIn.getLastSignedInAccount(application.applicationContext)
-            if (account == null) {
-                Log.w("CalendarViewModel", "Nenhuma conta do Google conectada, não buscando eventos.")
-                return@launch
-            }
-            
-            when (val result = repository.fetchGoogleCalendarEvents(application.applicationContext, account)) {
+            when (val result = repository.fetchGoogleCalendarEvents()) {
                 is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
                 is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
             }

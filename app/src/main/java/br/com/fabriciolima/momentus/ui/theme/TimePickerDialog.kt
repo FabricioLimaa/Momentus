@@ -75,7 +75,6 @@ fun TimePickerDialog(
                     TextButton(
                         onClick = {
                             onConfirm(LocalTime.of(timePickerState.hour, timePickerState.minute))
-                            onDismissRequest()
                         }
                     ) { Text("OK") }
                 }

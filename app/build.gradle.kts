@@ -109,9 +109,6 @@ dependencies {
     implementation(libs.googleApiClientAndroid) {
         exclude(group = "org.apache.httpcomponents")
     }
-    implementation(libs.googleApiClientGson) {
-        exclude(group = "org.apache.httpcomponents")
-    }
     implementation(libs.googleApiServicesCalendar) {
         exclude(group = "org.apache.httpcomponents")
     }

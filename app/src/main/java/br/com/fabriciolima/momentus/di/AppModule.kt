@@ -12,6 +12,7 @@ import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -95,8 +96,9 @@ object AppModule {
         templateDao: TemplateDao,
         metaDao: MetaDao,
         habitoConcluidoDao: HabitoConcluidoDao,
+        googleCalendarSource: GoogleCalendarSource,
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): RotinaRepository {
-        return RotinaRepository(rotinaDao, itemCronogramaDao, templateDao, metaDao, habitoConcluidoDao, dispatcher)
+        return RotinaRepository(rotinaDao, itemCronogramaDao, templateDao, metaDao, habitoConcluidoDao, googleCalendarSource, dispatcher)
     }
 }

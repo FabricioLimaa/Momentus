@@ -11,6 +11,7 @@ import br.com.fabriciolima.momentus.data.database.AppDatabase
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -27,23 +28,22 @@ class WidgetDataProvider(private val context: Context, private val intent: Inten
     }
 
     override fun onDataSetChanged() {
-        // Esta é a parte importante. O sistema chama isso quando notificado.
-        // A busca no banco de dados não pode ser na thread principal.
         val future = Executors.newSingleThreadExecutor().submit<Unit> {
             val db = AppDatabase.getDatabase(context)
+            val googleCalendarSource = GoogleCalendarSource(context, Dispatchers.IO)
             val repository = RotinaRepository(
                 rotinaDao = db.rotinaDao(),
                 itemCronogramaDao = db.itemCronogramaDao(),
                 templateDao = db.templateDao(),
                 metaDao = db.metaDao(),
                 habitoConcluidoDao = db.habitoConcluidoDao(),
-                dispatcher = Dispatchers.IO // CORREÇÃO: Passando o dispatcher necessário
+                googleCalendarSource = googleCalendarSource,
+                dispatcher = Dispatchers.IO
             )
             val hoje = LocalDate.now()
             itensDoDia = repository.getItensParaWidget(hoje).sortedBy { it.horarioInicio }
             rotinasMap = repository.getTodasAsRotinasSync().associateBy { it.id }
         }
-        // Espere a busca terminar antes de continuar
         try {
             future.get()
         } catch (e: Exception) {
@@ -68,7 +68,6 @@ class WidgetDataProvider(private val context: Context, private val intent: Inten
         remoteViews.setTextViewText(R.id.widget_item_category, rotina?.nome ?: "Sem categoria")
         remoteViews.setTextViewText(R.id.widget_item_time, "${item.horarioInicio.format(formatter)} - ${item.horarioTermino.format(formatter)}")
 
-        // Colorir a bolinha
         val color = try {
             Color.parseColor(rotina?.cor)
         } catch (e: Exception) {
@@ -77,11 +76,9 @@ class WidgetDataProvider(private val context: Context, private val intent: Inten
         val drawable = context.getDrawable(R.drawable.widget_item_dot)?.mutate()
         drawable?.let {
             DrawableCompat.setTint(it, color)
-            // CORREÇÃO: Passando o context para a função
             remoteViews.setImageViewBitmap(R.id.widget_item_dot, MomentusWidgetProvider.drawableToBitmap(context, it))
         }
 
-        // Adicionar um intent para preenchimento, se necessário no futuro
         val fillInIntent = Intent()
         remoteViews.setOnClickFillInIntent(R.id.widget_item_title, fillInIntent)
 
@@ -89,7 +86,7 @@ class WidgetDataProvider(private val context: Context, private val intent: Inten
     }
 
     override fun getLoadingView(): RemoteViews? {
-        return null // Retorna a view padrão de carregamento
+        return null
     }
 
     override fun getViewTypeCount(): Int {
