@@ -92,7 +92,7 @@ fun NewEventDialog(
             selectedRotina = if (isEditMode) {
                 rotinas.find { it.id == eventoParaEditar?.rotinaId }
             } else {
-                rotinas.firstOrNull()
+                rotinas.find { it.nome.equals("Outros", ignoreCase = true) } ?: rotinas.firstOrNull()
             }
         }
     }
@@ -169,14 +169,21 @@ fun NewEventDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = dataSelecionada.format(dateFormatter),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Data") },
-                    modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
-                    trailingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = "Selecionar Data") }
-                )
+                Box {
+                    OutlinedTextField(
+                        value = dataSelecionada.format(dateFormatter),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Data") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = "Selecionar Data") }
+                    )
+                     Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { showDatePicker = true }
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = descricao,

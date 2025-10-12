@@ -11,7 +11,7 @@ import br.com.fabriciolima.momentus.data.database.AppDatabase
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
-import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
+import br.com.fabriciolima.momentus.data.source.GoogleCalendarSourceImpl
 import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -30,7 +30,7 @@ class WidgetDataProvider(private val context: Context, private val intent: Inten
     override fun onDataSetChanged() {
         val future = Executors.newSingleThreadExecutor().submit<Unit> {
             val db = AppDatabase.getDatabase(context)
-            val googleCalendarSource = GoogleCalendarSource(context, Dispatchers.IO)
+            val googleCalendarSource = GoogleCalendarSourceImpl(context, Dispatchers.IO)
             val repository = RotinaRepository(
                 rotinaDao = db.rotinaDao(),
                 itemCronogramaDao = db.itemCronogramaDao(),

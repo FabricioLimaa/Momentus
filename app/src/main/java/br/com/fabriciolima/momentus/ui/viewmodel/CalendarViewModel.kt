@@ -53,7 +53,8 @@ data class CalendarUiState(
     val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
     val error: String? = null,
     val successMessage: String? = null,
-    val dialogState: DialogState = DialogState.Hidden
+    val dialogState: DialogState = DialogState.Hidden,
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel
@@ -154,39 +155,44 @@ class CalendarViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            var googleEventId: String? = null
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                var googleEventId: String? = null
 
-            if (salvarNoGoogle) {
-                when (val result = repository.salvarEventoNoGoogle(titulo, descricao, data, horarioInicio, horarioTermino)) {
-                    is Result.Success -> {
-                        googleEventId = result.data
-                        fetchGoogleCalendarEvents()
-                    }
-                    is Result.Error -> {
-                        _uiState.value = _uiState.value.copy(error = result.exception.message)
+                if (salvarNoGoogle) {
+                    when (val result = repository.salvarEventoNoGoogle(titulo, descricao, data, horarioInicio, horarioTermino)) {
+                        is Result.Success -> {
+                            googleEventId = result.data
+                            fetchGoogleCalendarEvents()
+                        }
+                        is Result.Error -> {
+                            _uiState.value = _uiState.value.copy(error = result.exception.message)
+                        }
                     }
                 }
+
+                val novoItem = ItemCronograma(
+                    titulo = titulo,
+                    descricao = descricao,
+                    data = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    diaDaSemana = null,
+                    horarioInicio = horarioInicio,
+                    horarioTermino = horarioTermino,
+                    rotinaId = rotina.id,
+                    templateId = null,
+                    googleCalendarEventId = googleEventId
+                )
+                repository.insertItemCronograma(novoItem)
+
+                _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden)
+
+                val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
+                    action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
+                }
+                application.sendBroadcast(intent)
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
-
-            val novoItem = ItemCronograma(
-                titulo = titulo,
-                descricao = descricao,
-                data = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                diaDaSemana = null,
-                horarioInicio = horarioInicio,
-                horarioTermino = horarioTermino,
-                rotinaId = rotina.id,
-                templateId = null,
-                googleCalendarEventId = googleEventId
-            )
-            repository.insertItemCronograma(novoItem)
-
-            _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden)
-
-            val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
-                action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
-            }
-            application.sendBroadcast(intent)
         }
     }
 
@@ -206,47 +212,57 @@ class CalendarViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val itemAtualizado = item.copy(
-                titulo = novoTitulo,
-                descricao = novaDescricao,
-                data = novaData.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                horarioInicio = novoHorarioInicio,
-                horarioTermino = novoHorarioTermino,
-                rotinaId = novaRotina.id
-            )
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val itemAtualizado = item.copy(
+                    titulo = novoTitulo,
+                    descricao = novaDescricao,
+                    data = novaData.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    horarioInicio = novoHorarioInicio,
+                    horarioTermino = novoHorarioTermino,
+                    rotinaId = novaRotina.id
+                )
 
-            if (sincronizarComGoogle) {
-                when (val result = repository.atualizarEventoCompleto(itemAtualizado)) {
-                    is Result.Success -> fetchGoogleCalendarEvents()
-                    is Result.Error -> _uiState.value = _uiState.value.copy(error = result.exception.message ?: "Falha ao sincronizar atualização com o Google Calendar.")
+                if (sincronizarComGoogle) {
+                    when (val result = repository.atualizarEventoCompleto(itemAtualizado)) {
+                        is Result.Success -> fetchGoogleCalendarEvents()
+                        is Result.Error -> _uiState.value = _uiState.value.copy(error = result.exception.message ?: "Falha ao sincronizar atualização com o Google Calendar.")
+                    }
+                } else {
+                    repository.insertItemCronograma(itemAtualizado)
                 }
-            } else {
-                repository.insertItemCronograma(itemAtualizado)
-            }
 
-            _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)
+                _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)
 
-            val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
-                action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
+                val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
+                    action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
+                }
+                application.sendBroadcast(intent)
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
-            application.sendBroadcast(intent)
         }
     }
 
     fun excluirEvento(item: ItemCronograma) {
         viewModelScope.launch {
-            when (val result = repository.excluirEventoCompleto(item)) {
-                is Result.Success -> {
-                    fetchGoogleCalendarEvents()
-                    _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
-                    val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
-                        action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                when (val result = repository.excluirEventoCompleto(item)) {
+                    is Result.Success -> {
+                        fetchGoogleCalendarEvents()
+                        _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
+                        val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
+                            action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
+                        }
+                        application.sendBroadcast(intent)
                     }
-                    application.sendBroadcast(intent)
+                    is Result.Error -> {
+                        _uiState.value = _uiState.value.copy(error = result.exception.message)
+                    }
                 }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(error = result.exception.message)
-                }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -265,9 +281,14 @@ class CalendarViewModel @Inject constructor(
 
     fun fetchGoogleCalendarEvents() {
         viewModelScope.launch {
-            when (val result = repository.fetchGoogleCalendarEvents()) {
-                is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
-                is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                when (val result = repository.fetchGoogleCalendarEvents()) {
+                    is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
+                    is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
+                }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }

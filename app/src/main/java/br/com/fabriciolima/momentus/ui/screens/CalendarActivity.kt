@@ -41,6 +41,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -289,55 +290,73 @@ fun CalendarScreen(
         is DialogState.Hidden -> {}
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text(text = "Minha Agenda") },
-                navigationIcon = {
-                    IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = { Text(text = "Minha Agenda") },
+                    navigationIcon = {
+                        IconButton(onClick = onMenuClick) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { /* TODO: Abrir perfil do usuário */ }) {
+                            UserAvatar(account = account, modifier = Modifier.size(32.dp))
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO: Abrir perfil do usuário */ }) {
-                        UserAvatar(account = account, modifier = Modifier.size(32.dp))
+                )
+            }
+        ) { paddingValues ->
+            Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Calendário", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Gerencie seus eventos e compromissos",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = onAddNewEventClicked,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !uiState.isLoading
+                ) {
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Icon(Icons.Default.Add, contentDescription = "Adicionar Evento")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Novo Evento", fontSize = 16.sp)
                     }
                 }
-            )
-        }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Calendário", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text(
-                text = "Gerencie seus eventos e compromissos",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = onAddNewEventClicked,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Adicionar Evento")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Novo Evento", fontSize = 16.sp)
+                CalendarHeader(selectedDate, onPreviousMonth, onNextMonth)
+                CalendarGrid(selectedDate, onDateSelected, uiState)
+                Spacer(modifier = Modifier.height(16.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(16.dp))
+                EventsForDay(
+                    uiState = uiState,
+                    selectedDate = selectedDate,
+                    eventsForDate = eventsForSelectedDate,
+                    onEventClick = onShowDetailClicked
+                )
             }
-            Spacer(modifier = Modifier.height(24.dp))
+        }
 
-            CalendarHeader(selectedDate, onPreviousMonth, onNextMonth)
-            CalendarGrid(selectedDate, onDateSelected, uiState)
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(16.dp))
-            EventsForDay(
-                uiState = uiState,
-                selectedDate = selectedDate,
-                eventsForDate = eventsForSelectedDate,
-                onEventClick = onShowDetailClicked
-            )
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
     }
 }
@@ -451,7 +470,7 @@ fun CalendarGrid(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit, u
     val daysInMonth = yearMonth.lengthOfMonth()
 
     val localEventsByDate = uiState.allScheduleItems.groupBy {
-        it.data?.let { instant -> LocalDate.ofInstant(java.time.Instant.ofEpochMilli(instant), java.time.ZoneId.systemDefault()) }
+        it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneId.systemDefault()).toLocalDate() }
     }
 
     val googleEventsByDate = uiState.googleCalendarEvents.groupBy { event ->

@@ -87,18 +87,4 @@ object AppModule {
     fun provideHabitoConcluidoDao(appDatabase: AppDatabase): HabitoConcluidoDao {
         return appDatabase.habitoConcluidoDao()
     }
-
-    @Provides
-    @Singleton
-    fun provideRotinaRepository(
-        rotinaDao: RotinaDao,
-        itemCronogramaDao: ItemCronogramaDao,
-        templateDao: TemplateDao,
-        metaDao: MetaDao,
-        habitoConcluidoDao: HabitoConcluidoDao,
-        googleCalendarSource: GoogleCalendarSource,
-        @IoDispatcher dispatcher: CoroutineDispatcher
-    ): RotinaRepository {
-        return RotinaRepository(rotinaDao, itemCronogramaDao, templateDao, metaDao, habitoConcluidoDao, googleCalendarSource, dispatcher)
-    }
 }

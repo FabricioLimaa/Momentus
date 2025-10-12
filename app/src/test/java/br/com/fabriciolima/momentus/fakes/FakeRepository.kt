@@ -14,16 +14,24 @@ import br.com.fabriciolima.momentus.data.model.StatsResult
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
+import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
+import br.com.fabriciolima.momentus.util.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.test.TestCoroutineDispatcher
+import java.time.LocalDate
+import java.time.LocalTime
 
 class FakeRepository : RotinaRepository(
     FakeRotinaDao(),
     FakeItemCronogramaDao(),
     FakeTemplateDao(),
     FakeMetaDao(),
-    FakeHabitoConcluidoDao()
+    FakeHabitoConcluidoDao(),
+    FakeGoogleCalendarSource(),
+    TestCoroutineDispatcher()
 ) {
 
     private val rotinasFlow = MutableStateFlow<List<RotinaComMeta>>(emptyList())
@@ -47,6 +55,21 @@ class FakeRepository : RotinaRepository(
         val listaAtual = rotinasFlow.value.toMutableList()
         listaAtual.removeAll { it.rotina.id == rotina.id }
         rotinasFlow.value = listaAtual
+    }
+}
+
+class FakeGoogleCalendarSource : GoogleCalendarSource {
+    override suspend fun saveEvent(titulo: String, descricao: String?, data: LocalDate, horarioInicio: LocalTime, horarioTermino: LocalTime): Result<String?> {
+        return Result.Success("fake-event-id")
+    }
+    override suspend fun updateEvent(item: ItemCronograma): Result<String?> {
+        return Result.Success(item.googleCalendarEventId)
+    }
+    override suspend fun deleteEvent(eventId: String): Result<Unit> {
+        return Result.Success(Unit)
+    }
+    override suspend fun fetchEvents(): Result<List<GoogleCalendarEvent>> {
+        return Result.Success(emptyList())
     }
 }
 
