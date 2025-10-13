@@ -8,34 +8,36 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.ListAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.ui.components.RotinaListItem
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -45,7 +47,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MomentusTheme {
-                // A Activity agora apenas chama o Composable da sua tela.
                 RoutinesScreen(
                     viewModel = viewModel,
                     onNavigateBack = { finish() }
@@ -55,76 +56,84 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoutinesScreen(
     viewModel: MainViewModel,
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val editorRotinaLauncher = rememberLauncherForActivityResult(
+    val editorLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // A atualização da lista já é gerenciada pelo LiveData.
+            // A lista é atualizada automaticamente pelo LiveData
         }
     }
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    // CORREÇÃO: A propriedade correta na ViewModel é 'rotinasComMetas'
     val rotinasComMetas by viewModel.rotinasComMetas.observeAsState(initial = emptyList())
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Minhas Categorias") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
-                    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        // -- Cabeçalho --
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
                 }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                val intent = Intent(context, EditorRotinaComposeActivity::class.java)
-                editorRotinaLauncher.launch(intent)
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Adicionar Categoria")
             }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Categorias", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Crie e gerencie as categorias.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    val intent = Intent(context, EditorRotinaComposeActivity::class.java)
+                    editorLauncher.launch(intent)
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Adicionar Categoria")
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                Text("Nova Categoria")
+            }
+        }
+
+        // -- Conteúdo (Lista ou Estado Vazio) --
         if (rotinasComMetas.isEmpty()) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f), // Ocupa o espaço restante
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_empty_list),
+                    imageVector = Icons.Outlined.ListAlt,
                     contentDescription = null,
                     modifier = Modifier.size(80.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text("Nenhuma categoria cadastrada.", style = MaterialTheme.typography.titleMedium)
-                Text("Clique no '+' para começar", style = MaterialTheme.typography.bodyMedium)
+                Text("Nenhuma categoria cadastrada.", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                Text("Clique no botão acima para criar sua primeira categoria.", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.weight(1f), // Ocupa o espaço restante
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(rotinasComMetas, key = { it.rotina.id }) { rotinaComMeta ->
                     RotinaListItem(
                         rotinaComMeta = rotinaComMeta,
                         onItemClicked = {
-                            val intent = Intent(context, EditorRotinaComposeActivity::class.java)
-                            intent.putExtra("ROTINA_PARA_EDITAR", it.rotina)
-                            editorRotinaLauncher.launch(intent)
+                            val intent = Intent(context, EditorRotinaComposeActivity::class.java).apply {
+                                putExtra("ROTINA_PARA_EDITAR", it.rotina)
+                            }
+                            editorLauncher.launch(intent)
                         }
                     )
                 }

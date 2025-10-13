@@ -1,8 +1,6 @@
 package br.com.fabriciolima.momentus.ui.viewmodel
 
 import android.app.Application
-import android.content.Intent
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
@@ -10,7 +8,7 @@ import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.util.Result
-import br.com.fabriciolima.momentus.widget.MomentusWidgetProvider
+import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import com.google.api.client.util.DateTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -185,11 +183,7 @@ class CalendarViewModel @Inject constructor(
                 repository.insertItemCronograma(novoItem)
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden)
-
-                val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
-                    action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
-                }
-                application.sendBroadcast(intent)
+                WidgetUpdater.update(application)
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -233,11 +227,7 @@ class CalendarViewModel @Inject constructor(
                 }
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)
-
-                val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
-                    action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
-                }
-                application.sendBroadcast(intent)
+                WidgetUpdater.update(application)
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -252,10 +242,7 @@ class CalendarViewModel @Inject constructor(
                     is Result.Success -> {
                         fetchGoogleCalendarEvents()
                         _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
-                        val intent = Intent(application, MomentusWidgetProvider::class.java).apply {
-                            action = MomentusWidgetProvider.UPDATE_WIDGET_ACTION
-                        }
-                        application.sendBroadcast(intent)
+                        WidgetUpdater.update(application)
                     }
                     is Result.Error -> {
                         _uiState.value = _uiState.value.copy(error = result.exception.message)

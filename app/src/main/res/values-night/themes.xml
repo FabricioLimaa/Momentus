@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- O tema para o modo noturno herda do mesmo tema base.
-         O sistema e o Compose cuidarão de aplicar as cores corretas (DarkColorScheme) -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Tema base da aplicação para o modo noturno. -->
+    <style name="Base.Theme.Momentus" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- As customizações de cores primárias, etc., agora são feitas em Compose -->
+    </style>
+
     <style name="Theme.Momentus" parent="Base.Theme.Momentus" />
 </resources>

@@ -49,6 +49,7 @@ import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CreateTemplateViewModel
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.UUID
 
 @AndroidEntryPoint
 class CreateTemplateActivity : ComponentActivity() {
@@ -108,7 +109,14 @@ fun CreateTemplateScreen(
             rotinas = allRoutines,
             onDismiss = { showAddEventDialog = false },
             onConfirm = { titulo, desc, dia, inicio, fim, categoria ->
-                val newEvent = TemplateEvent(titulo, desc, inicio.toString(), fim.toString(), categoria)
+                val newEvent = TemplateEvent(
+                    id = UUID.randomUUID(),
+                    titulo = titulo,
+                    descricao = desc,
+                    horarioInicio = inicio.toString(),
+                    horarioTermino = fim.toString(),
+                    categoria = categoria
+                )
                 onAddEvent(newEvent)
                 showAddEventDialog = false
             }

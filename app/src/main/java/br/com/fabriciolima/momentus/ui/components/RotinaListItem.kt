@@ -1,21 +1,27 @@
-// ARQUIVO: ui/components/RotinaListItem.kt (CÓDIGO COMPLETO)
-
 package br.com.fabriciolima.momentus.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 
 @Composable
@@ -24,14 +30,18 @@ fun RotinaListItem(
     onItemClicked: (RotinaComMeta) -> Unit
 ) {
     val rotina = rotinaComMeta.rotina
-    val cor = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
+    val cor = try {
+        Color(android.graphics.Color.parseColor(rotina.cor))
+    } catch (e: Exception) {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
 
-    Card(
+    ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
             .clickable { onItemClicked(rotinaComMeta) },
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -44,35 +54,41 @@ fun RotinaListItem(
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(rotina.nome, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(rotina.nome, style = MaterialTheme.typography.titleMedium)
                 if (!rotina.descricao.isNullOrBlank()) {
-                    Text(rotina.descricao, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = rotina.descricao,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
                 }
-                // Exibe a meta se ela existir
                 rotinaComMeta.meta?.let {
                     if (it.metaMinutosSemanal > 0) {
                         Text(
                             "Meta: ${it.metaMinutosSemanal / 60}h/semana",
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.padding(top = 4.dp)
+                            modifier = Modifier.padding(top = 6.dp)
                         )
                     }
                 }
             }
-            // Exibe a tag se ela existir
             if (!rotina.tag.isNullOrBlank()) {
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = rotina.tag,
-                    color = cor,
+                Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(cor.copy(alpha = 0.1f))
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                        .background(cor.copy(alpha = 0.2f), RoundedCornerShape(50)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = rotina.tag,
+                        color = cor,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
             }
         }
     }

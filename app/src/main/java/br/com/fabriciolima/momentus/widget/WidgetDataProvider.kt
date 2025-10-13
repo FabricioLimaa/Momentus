@@ -3,6 +3,7 @@ package br.com.fabriciolima.momentus.widget
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.os.UserManager
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import androidx.core.graphics.drawable.DrawableCompat
@@ -28,6 +29,12 @@ class WidgetDataProvider(private val context: Context, private val intent: Inten
     }
 
     override fun onDataSetChanged() {
+        val userManager = context.getSystemService(Context.USER_SERVICE) as UserManager
+        if (!userManager.isUserUnlocked) {
+            itensDoDia = emptyList()
+            return
+        }
+
         val future = Executors.newSingleThreadExecutor().submit<Unit> {
             val db = AppDatabase.getDatabase(context)
             val googleCalendarSource = GoogleCalendarSourceImpl(context, Dispatchers.IO)

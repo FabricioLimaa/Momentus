@@ -9,48 +9,31 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
@@ -66,15 +49,17 @@ import dagger.hilt.android.AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
+    private val _isSigningIn = mutableStateOf(false)
 
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        _isSigningIn.value = false
         if (result.resultCode == Activity.RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             handleSignInResult(task)
         } else {
-             Toast.makeText(this, "Login com Google cancelado", Toast.LENGTH_LONG).show()
+             Toast.makeText(this, "Login com Google cancelado", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -86,7 +71,14 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             MomentusTheme {
-                LoginScreen(onGoogleSignInClick = { signInWithGoogle() })
+                val isSigningIn by remember { _isSigningIn }
+                LoginScreen(
+                    isSigningIn = isSigningIn,
+                    onGoogleSignInClick = {
+                        _isSigningIn.value = true
+                        signInWithGoogle()
+                    }
+                )
             }
         }
     }
@@ -106,12 +98,11 @@ class LoginActivity : ComponentActivity() {
 
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try {
-            val account = completedTask.getResult(ApiException::class.java)
-            Toast.makeText(this, "Login bem-sucedido como ${account?.displayName}", Toast.LENGTH_SHORT).show()
+            completedTask.getResult(ApiException::class.java)
             navigateToCalendar()
         } catch (e: ApiException) {
-            Log.w("LoginActivity", "signInResult:failed code=" + e.statusCode)
-            Toast.makeText(this, "Falha no login: ${e.message}", Toast.LENGTH_LONG).show()
+            Log.w("LoginActivity", "Falha no login com Google: code=" + e.statusCode)
+            Toast.makeText(this, "Falha no login com Google. Tente novamente.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -122,110 +113,110 @@ class LoginActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(onGoogleSignInClick: () -> Unit) {
+fun LoginScreen(isSigningIn: Boolean, onGoogleSignInClick: () -> Unit) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    val brandColor = Color(0xFF262421) // Cor da marca mantida
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(brandColor),
-        contentAlignment = Alignment.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface) // Usa a cor de superfície do tema
+                .fillMaxSize()
+                .padding(32.dp)
+                .verticalScroll(rememberScrollState()), // Permite rolagem
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 48.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Welcome to Momentum", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text("Sign in to continue", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(24.dp))
+            Image(
+                painter = painterResource(id = R.drawable.app_logo),
+                contentDescription = "Logo Momentus",
+                modifier = Modifier.size(100.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedButton(onClick = onGoogleSignInClick, modifier = Modifier.fillMaxWidth()) {
+            Text("Momentus", style = MaterialTheme.typography.displaySmall)
+            Text(
+                text = "Organize suas metas, conquiste seu dia.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- Botão Google ---
+            Button(
+                onClick = onGoogleSignInClick,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = !isSigningIn,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                if (isSigningIn) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                } else {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google_logo),
                         contentDescription = "Logo do Google",
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = Color.Unspecified
                     )
-                    Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                    Text("Continue with Google", color = MaterialTheme.colorScheme.onSurface)
-                }
-
-                Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
-                    Text("OR", modifier = Modifier.padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
-                }
-
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    visualTransformation = PasswordVisualTransformation()
-                )
-                 TextButton(onClick = { /* */ }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Forgot password?")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = { 
-                        Toast.makeText(context, "Login com E-mail/Senha não implementado.", Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary, // Usa a cor primária do tema
-                        contentColor = MaterialTheme.colorScheme.onPrimary // Usa a cor de conteúdo para a primária
-                    )
-                ) {
-                    Text("Sign in")
-                }
-                
-                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Need an account?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = { /* */ }) {
-                        Text("Sign up")
-                    }
+                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                    Text("Entrar com Google", color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
-        }
+            
+            Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
+                Text("OU", modifier = Modifier.padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+                Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
+            }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = 40.dp)
-                .size(100.dp)
-                .clip(CircleShape)
-                .background(brandColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = "Logo do Momentum",
-                modifier = Modifier.size(60.dp)
+            // --- Campos de E-mail e Senha ---
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("E-mail") },
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Senha") },
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                visualTransformation = PasswordVisualTransformation()
+            )
+            TextButton(onClick = { 
+                Toast.makeText(context, "Funcionalidade não implementada.", Toast.LENGTH_SHORT).show()
+            }, modifier = Modifier.align(Alignment.End)) {
+                Text("Esqueceu a senha?")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- Botão de Sign In com E-mail ---
+            Button(
+                onClick = { 
+                    Toast.makeText(context, "Login com E-mail/Senha não implementado.", Toast.LENGTH_SHORT).show()
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp)
+            ) {
+                Text("Entrar")
+            }
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = { 
+                    Toast.makeText(context, "Funcionalidade não implementada.", Toast.LENGTH_SHORT).show()
+                }) {
+                    Text("Crie uma aqui")
+                }
+            }
         }
     }
 }

@@ -10,8 +10,10 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.UserManager
 import android.util.TypedValue
 import android.widget.RemoteViews
+import androidx.core.content.ContextCompat
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.ui.screens.MainActivity
 
@@ -20,12 +22,10 @@ class MomentusWidgetProvider : AppWidgetProvider() {
     companion object {
         const val UPDATE_WIDGET_ACTION = "br.com.fabriciolima.momentus.action.UPDATE_WIDGET"
 
-        // Função para converter um drawable em um bitmap
         fun drawableToBitmap(context: Context, drawable: Drawable): Bitmap {
-            // CORREÇÃO: Usar um tamanho fixo para o bitmap, pois o drawable não tem tamanho intrínseco
             val sizeInPixels = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 
-                10f, 
+                TypedValue.COMPLEX_UNIT_DIP,
+                10f,
                 context.resources.displayMetrics
             ).toInt()
 
@@ -38,46 +38,62 @@ class MomentusWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        val userManager = context.getSystemService(Context.USER_SERVICE) as UserManager
         for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId)
+            if (userManager.isUserUnlocked) {
+                updateAppWidget(context, appWidgetManager, appWidgetId)
+            } else {
+                showLockedView(context, appWidgetManager, appWidgetId)
+            }
         }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == UPDATE_WIDGET_ACTION) {
+        val action = intent.action
+        if (action == UPDATE_WIDGET_ACTION || action == Intent.ACTION_USER_UNLOCKED) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val thisAppWidget = ComponentName(context.packageName, javaClass.name)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
-            // Notifica o data set da lista para ser alterado
-            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_list)
+
+            val userManager = context.getSystemService(Context.USER_SERVICE) as UserManager
+            if (userManager.isUserUnlocked) {
+                 for (appWidgetId in appWidgetIds) {
+                    updateAppWidget(context, appWidgetManager, appWidgetId)
+                }
+                appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_list)
+            } else {
+                for (appWidgetId in appWidgetIds) {
+                    showLockedView(context, appWidgetManager, appWidgetId)
+                }
+            }
         }
     }
 
     private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        // Cria a view remota para o layout do widget
         val views = RemoteViews(context.packageName, R.layout.momentus_widget)
 
-        // Configura o adapter do serviço para a lista
         val intent = Intent(context, WidgetService::class.java).apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
             data = Uri.parse(this.toUri(Intent.URI_INTENT_SCHEME))
         }
         views.setRemoteAdapter(R.id.widget_list, intent)
-
-        // Configura a view para quando a lista estiver vazia
         views.setEmptyView(R.id.widget_list, R.id.widget_empty_view)
 
-        // Configura o clique no título para abrir o app
         val pendingIntent = PendingIntent.getActivity(
-            context, 
-            0, 
-            Intent(context, MainActivity::class.java), 
+            context,
+            0,
+            Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_title, pendingIntent)
 
-        // Atualiza o widget
+        appWidgetManager.updateAppWidget(appWidgetId, views)
+        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_list)
+    }
+
+    private fun showLockedView(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+        val views = RemoteViews(context.packageName, R.layout.momentus_widget_locked)
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 }

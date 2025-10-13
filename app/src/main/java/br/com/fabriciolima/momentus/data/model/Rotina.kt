@@ -15,9 +15,6 @@ data class Rotina(
     val nome: String,
     val descricao: String?,
     val duracaoPadraoMinutos: Int = 60,
-    val cor: String = "#CCCCCC", // Cinza como padrão
-    
-    // CORREÇÃO: Adicionando a propriedade 'tag' que estava faltando na UI
+    val cor: String = "#CCCCCC",
     val tag: String?
-
-) : Serializable // CORREÇÃO: Garantindo que a classe é serializável
+) : Serializable

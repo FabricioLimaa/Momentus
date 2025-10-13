@@ -192,7 +192,9 @@ fun TemplatesScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Meus Templates") },
-                navigationIcon = { IconButton(onClick = onNavigateUp) { Icon(Icons.Default.ArrowBack, "Voltar") } }
+                navigationIcon = {
+                    IconButton(onClick = onNavigateUp) {
+                        Icon(Icons.Default.ArrowBack, "Voltar") } }
             )
         }
     ) { paddingValues ->

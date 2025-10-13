@@ -29,7 +29,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ui.screens.MainActivity" android:exported="false" />
         <activity android:name=".ui.screens.CalendarActivity" android:exported="false" />
+        <activity android:name=".ui.screens.CreateTemplateActivity" android:exported="false" />
+        <activity android:name=".ui.screens.EditorRotinaComposeActivity" android.exported="false" />
         <activity android:name=".ui.screens.TemplatesActivity" android:exported="false" />
         <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
         <activity android:name=".ui.screens.CategoryActivity" android:exported="false" />
@@ -37,12 +40,16 @@
         <receiver
             android:name=".notifications.AlarmReceiver"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="false"
+            android:directBootAware="true"
+            tools:ignore="UnusedAttribute" />
 
         <!-- Widget Clássico -->
         <receiver
             android:name=".widget.MomentusWidgetProvider"
-            android:exported="false">
+            android:exported="false"
+            android:directBootAware="true"
+            tools:ignore="UnusedAttribute">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="br.com.fabriciolima.momentus.action.UPDATE_WIDGET" />
@@ -54,7 +61,9 @@
 
         <service
             android:name=".widget.WidgetService"
-            android:permission="android.permission.BIND_REMOTEVIEWS" />
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:directBootAware="true"
+            tools:ignore="UnusedAttribute" />
 
     </application>
 
