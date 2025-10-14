@@ -31,7 +31,7 @@ composeReorderable = "0.9.6"
 androidDesugar = "2.0.4"
 googleGmsServices = "4.4.3"
 hilt = "2.51.1"
-glance = "1.1.0-rc01"
+glance = "1.1.1"
 recyclerview = "1.3.2"
 lifecycleRuntimeCompose = "2.8.2"
 coilCompose = "2.6.0"
@@ -74,7 +74,7 @@ android-desugar = { group = "com.android.tools", name = "desugar_jdk_libs", vers
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+glance-material = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 androidxLifecycleRuntimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 coilCompose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }

@@ -14,8 +14,8 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.5.7"
+        versionCode = 17
+        versionName = "0.5.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -41,7 +41,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
+        kotlinCompilerExtensionVersion = "1.5.10"
     }
     packaging {
         resources {
@@ -79,8 +79,13 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     // Glance for App Widgets
-    implementation(libs.glance.appwidget)
-    implementation(libs.glance.material3)
+    implementation("androidx.glance:glance:1.0.0")
+    // For AppWidgets support
+    implementation ("androidx.glance:glance-appwidget:1.0.0")
+    // For interop APIs with Material 2
+    implementation ("androidx.glance:glance-material:1.0.0")
+    // For interop APIs with Material 3
+    implementation ("androidx.glance:glance-material3:1.0.0")
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))

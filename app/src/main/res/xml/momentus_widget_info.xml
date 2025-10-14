@@ -8,4 +8,5 @@
     android:previewImage="@drawable/ic_schedule"
     android:initialLayout="@layout/momentus_widget"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen" >
+</appwidget-provider>

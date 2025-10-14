@@ -32,7 +32,7 @@
         <activity android:name=".ui.screens.MainActivity" android:exported="false" />
         <activity android:name=".ui.screens.CalendarActivity" android:exported="false" />
         <activity android:name=".ui.screens.CreateTemplateActivity" android:exported="false" />
-        <activity android:name=".ui.screens.EditorRotinaComposeActivity" android.exported="false" />
+        <activity android:name=".ui.screens.EditorRotinaComposeActivity" android:exported="false" />
         <activity android:name=".ui.screens.TemplatesActivity" android:exported="false" />
         <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
         <activity android:name=".ui.screens.CategoryActivity" android:exported="false" />
@@ -44,26 +44,17 @@
             android:directBootAware="true"
             tools:ignore="UnusedAttribute" />
 
-        <!-- Widget Clássico -->
+        <!-- Glance Widget -->
         <receiver
-            android:name=".widget.MomentusWidgetProvider"
-            android:exported="false"
-            android:directBootAware="true"
-            tools:ignore="UnusedAttribute">
+            android:name=".widget.MomentusGlanceWidgetReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="br.com.fabriciolima.momentus.action.UPDATE_WIDGET" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/momentus_widget_info" />
         </receiver>
-
-        <service
-            android:name=".widget.WidgetService"
-            android:permission="android.permission.BIND_REMOTEVIEWS"
-            android:directBootAware="true"
-            tools:ignore="UnusedAttribute" />
 
     </application>
 
