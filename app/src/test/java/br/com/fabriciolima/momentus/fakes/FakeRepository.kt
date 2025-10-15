@@ -5,6 +5,7 @@ import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
 import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
+import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.model.HabitoConcluido
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Meta
@@ -90,6 +91,7 @@ class FakeItemCronogramaDao : ItemCronogramaDao {
     override suspend fun updateAll(items: List<ItemCronograma>) {}
     override suspend fun delete(item: ItemCronograma) {}
     override suspend fun getItemById(itemId: String): ItemCronograma? = null
+    override fun getWidgetEventItems(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem> = emptyList()
 }
 
 class FakeTemplateDao : TemplateDao {

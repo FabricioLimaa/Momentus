@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Warning
@@ -447,11 +448,17 @@ fun AppDrawerContent(account: GoogleSignInAccount?, onNavigate: () -> Unit, onLo
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Sair",
+                Row(
                     modifier = Modifier.clickable(onClick = onLogout).padding(vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.error
-                )
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Logout, contentDescription = "Sair", tint = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Sair",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
     }
