@@ -15,8 +15,8 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 34
-        versionCode = 17
-        versionName = "beta 0.5.9"
+        versionCode = 20
+        versionName = "beta 0.6.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

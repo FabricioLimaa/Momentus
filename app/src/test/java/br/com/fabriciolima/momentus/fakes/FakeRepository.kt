@@ -60,15 +60,25 @@ class FakeRepository : RotinaRepository(
 }
 
 class FakeGoogleCalendarSource : GoogleCalendarSource {
-    override suspend fun saveEvent(titulo: String, descricao: String?, data: LocalDate, horarioInicio: LocalTime, horarioTermino: LocalTime): Result<String?> {
+    override suspend fun saveEvent(
+        titulo: String,
+        descricao: String?,
+        data: LocalDate,
+        horarioInicio: LocalTime,
+        horarioTermino: LocalTime,
+        cor: String?
+    ): Result<String?> {
         return Result.Success("fake-event-id")
     }
+
     override suspend fun updateEvent(item: ItemCronograma): Result<String?> {
         return Result.Success(item.googleCalendarEventId)
     }
+
     override suspend fun deleteEvent(eventId: String): Result<Unit> {
         return Result.Success(Unit)
     }
+
     override suspend fun fetchEvents(): Result<List<GoogleCalendarEvent>> {
         return Result.Success(emptyList())
     }
