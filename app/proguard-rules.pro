@@ -20,16 +20,9 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keep class br.com.fabriciolima.momentus.widget.MomentusGlanceWidget$UpdateAction { <init>(); }
-
 # A regra agora aponta para a classe de nível superior
 -keep class br.com.fabriciolima.momentus.widget.UpdateAction { <init>(); }
 
 # A regra agora aponta para a classe de nível superior
--keep class br.com.fabriciolima.momentus.widget.UpdateAction { <init>(); }
-
-# A regra agora aponta para a classe de nível superior
-
--keep class br.com.fabriciolima.momentus.widget.MomentusGlanceWidget$UpdateAction { <init>(); }
 
 -keep public class * extends androidx.glance.appwidget.action.ActionCallback
