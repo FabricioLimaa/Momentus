@@ -285,7 +285,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 )
             }
         }
-        Spacer(GlanceModifier.height(8.dp))
+        Spacer(GlanceModifier.height(75.dp))
     }
 }
 
