@@ -5,6 +5,7 @@ import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
 import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
+import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.model.HabitoConcluido
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Meta
@@ -48,6 +49,19 @@ open class RotinaRepository @Inject constructor(
         if (allowedRotinaIds.isEmpty()) return emptyList()
         
         return itemCronogramaDao.getForWidget(epochDay, dayOfWeekName, allowedRotinaIds)
+    }
+
+    /**
+     * NOVO MÉTODO OTIMIZADO PARA O WIDGET
+     * Busca os eventos de um dia específico com os dados da rotina já incluídos.
+     */
+    fun getWidgetEvents(data: LocalDate, allowedRotinaIds: Set<String>): List<WidgetEventItem> {
+        if (allowedRotinaIds.isEmpty()) return emptyList()
+
+        val epochDay = data.toEpochDay()
+        val dayOfWeekName = data.dayOfWeek.name.substring(0, 3)
+
+        return itemCronogramaDao.getWidgetEventItems(epochDay, dayOfWeekName, allowedRotinaIds)
     }
 
     fun getTodasAsRotinasSync(): List<Rotina> {

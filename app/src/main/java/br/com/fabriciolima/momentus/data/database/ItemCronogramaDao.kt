@@ -8,6 +8,20 @@ import androidx.room.Query
 import androidx.room.Update
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalTime
+
+/**
+ * Classe de dados para transportar informações de eventos para o widget.
+ * Combina dados do ItemCronograma e da Rotina.
+ */
+data class WidgetEventItem(
+    val id: String,
+    val titulo: String,
+    val horarioInicio: LocalTime,
+    val horarioTermino: LocalTime,
+    val nomeRotina: String,
+    val corRotina: String?
+)
 
 /**
  * DAO para a entidade ItemCronograma.
@@ -34,7 +48,6 @@ interface ItemCronogramaDao {
     fun getItemsByDayOfWeek(dia: String): Flow<List<ItemCronograma>>
 
     /**
-     * NOVA CONSULTA PARA O WIDGET (MODIFICADA)
      * Busca de forma SÍNCRONA todos os itens que são de uma data específica OU de um dia da semana recorrente,
      * E que pertencem a uma das rotinas permitidas.
      */
@@ -50,4 +63,31 @@ interface ItemCronogramaDao {
     """)
     fun getForWidget(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<ItemCronograma>
 
+
+    /**
+     * NOVA CONSULTA OTIMIZADA PARA O WIDGET.
+     * Busca e une os dados do evento e da rotina em uma única chamada.
+     */
+    @Query("""
+        SELECT
+            i.id,
+            i.titulo,
+            i.horarioInicio,
+            i.horarioTermino,
+            r.nome AS nomeRotina,
+            r.cor AS corRotina
+        FROM
+            tabela_itens_cronograma AS i
+        INNER JOIN
+            tabela_rotinas AS r ON i.rotinaId = r.id
+        WHERE
+            (
+                (i.data / 86400000) = :epochDay
+                OR
+                (i.diaDaSemana = :dayOfWeekName AND i.data IS NULL)
+            )
+            AND i.rotinaId IN (:allowedRotinaIds)
+        ORDER BY i.horarioInicio ASC
+    """)
+    fun getWidgetEventItems(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem>
 }

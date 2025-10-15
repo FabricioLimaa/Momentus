@@ -104,6 +104,8 @@ dependencies {
     // optional - RxJava3 support
     implementation("androidx.datastore:datastore-rxjava3:1.1.7")
 
+    implementation("androidx.graphics:graphics-shapes:1.0.1")
+
     // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)

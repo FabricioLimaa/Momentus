@@ -87,8 +87,8 @@ import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
-import br.com.fabriciolima.momentus.widget.eventIdKey
-import br.com.fabriciolima.momentus.widget.openNewEventDialogKey
+import br.com.fabriciolima.momentus.widget.EVENT_ID_KEY
+import br.com.fabriciolima.momentus.widget.OPEN_NEW_EVENT_DIALOG_KEY
 import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -174,10 +174,10 @@ class CalendarActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
-        if (intent.getBooleanExtra(openNewEventDialogKey, false)) {
+        if (intent.getBooleanExtra(OPEN_NEW_EVENT_DIALOG_KEY, false)) {
             viewModel.onAddNewEventClicked()
         } else {
-            intent.getStringExtra(eventIdKey)?.let {
+            intent.getStringExtra(EVENT_ID_KEY)?.let {
                 viewModel.showEventDetails(it)
             }
         }
