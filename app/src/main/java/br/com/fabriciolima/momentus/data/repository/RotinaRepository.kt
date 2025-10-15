@@ -45,16 +45,11 @@ open class RotinaRepository @Inject constructor(
         val epochDay = data.toEpochDay()
         val dayOfWeekName = data.dayOfWeek.name.substring(0, 3)
         
-        // Se a lista de IDs estiver vazia, não há nada a retornar.
         if (allowedRotinaIds.isEmpty()) return emptyList()
         
         return itemCronogramaDao.getForWidget(epochDay, dayOfWeekName, allowedRotinaIds)
     }
 
-    /**
-     * NOVO MÉTODO OTIMIZADO PARA O WIDGET
-     * Busca os eventos de um dia específico com os dados da rotina já incluídos.
-     */
     fun getWidgetEvents(data: LocalDate, allowedRotinaIds: Set<String>): List<WidgetEventItem> {
         if (allowedRotinaIds.isEmpty()) return emptyList()
 
@@ -130,8 +125,9 @@ open class RotinaRepository @Inject constructor(
         descricao: String?,
         data: LocalDate,
         horarioInicio: LocalTime,
-        horarioTermino: LocalTime
-    ): Result<String?> = googleCalendarSource.saveEvent(titulo, descricao, data, horarioInicio, horarioTermino)
+        horarioTermino: LocalTime,
+        cor: String?
+    ): Result<String?> = googleCalendarSource.saveEvent(titulo, descricao, data, horarioInicio, horarioTermino, cor)
 
     suspend fun atualizarEventoCompleto(item: ItemCronograma): Result<String?> = withContext(dispatcher) {
         try {

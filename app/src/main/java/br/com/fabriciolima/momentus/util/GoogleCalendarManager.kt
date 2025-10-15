@@ -3,6 +3,7 @@ package br.com.fabriciolima.momentus.util
 import android.content.Context
 import android.util.Log
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.ui.theme.getGoogleColorId
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.javanet.NetHttpTransport
@@ -15,6 +16,7 @@ import com.google.api.services.calendar.model.EventDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Calendar as JavaCalendar
@@ -24,7 +26,7 @@ object GoogleCalendarManager {
     private const val TAG = "GoogleCalendarManager"
 
     /**
-     * Insere um único evento no calendário principal do usuário.
+     * Insere um único evento no calendário principal do usuário, agora com a cor da categoria.
      */
     suspend fun insertEvent(
         context: Context,
@@ -32,7 +34,8 @@ object GoogleCalendarManager {
         title: String,
         description: String?,
         startDateTime: LocalDateTime,
-        endDateTime: LocalDateTime
+        endDateTime: LocalDateTime,
+        colorHex: String? // A cor em formato hexadecimal
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val credential = GoogleAccountCredential.usingOAuth2(
@@ -43,9 +46,12 @@ object GoogleCalendarManager {
                 NetHttpTransport(), GsonFactory.getDefaultInstance(), credential
             ).setApplicationName("Momentus").build()
 
+            val googleColorId = colorHex?.let { getGoogleColorId(it) }
+
             val event = Event().apply {
                 summary = title
                 this.description = description
+                this.colorId = googleColorId // Define a cor do evento
                 start = EventDateTime().apply {
                     dateTime = DateTime(startDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
                     timeZone = ZoneId.systemDefault().id
@@ -57,7 +63,7 @@ object GoogleCalendarManager {
             }
 
             calendarService.events().insert("primary", event).execute()
-            Log.d(TAG, "Evento '$title' inserido com sucesso no Google Calendar.")
+            Log.d(TAG, "Evento '$title' inserido com sucesso no Google Calendar com colorId: $googleColorId.")
             Result.Success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -77,9 +83,8 @@ object GoogleCalendarManager {
         endDate: JavaCalendar
     ): Result<Int> = withContext(Dispatchers.IO) {
         try {
-            val credential = GoogleAccountCredential.usingOAuth2(
-                context, listOf(CalendarScopes.CALENDAR)
-            ).setSelectedAccount(account.account)
+            val credential = GoogleAccountCredential.usingOAuth2(context, listOf(CalendarScopes.CALENDAR))
+                .setSelectedAccount(account.account)
 
             val calendarService = Calendar.Builder(
                 NetHttpTransport(), GsonFactory.getDefaultInstance(), credential
@@ -121,7 +126,6 @@ object GoogleCalendarManager {
                 for (item in itensDoDia) {
                     val rotina = rotinasMap[item.rotinaId] ?: continue
                     
-                    // CORREÇÃO: Acessando as propriedades de LocalTime diretamente
                     val hora = item.horarioInicio.hour
                     val minuto = item.horarioInicio.minute
 
@@ -132,7 +136,8 @@ object GoogleCalendarManager {
                     inicioEvento.set(JavaCalendar.MILLISECOND, 0)
 
                     val fimEvento = inicioEvento.clone() as JavaCalendar
-                    fimEvento.add(JavaCalendar.MINUTE, rotina.duracaoPadraoMinutos)
+                    val durationInMinutes = Duration.between(item.horarioInicio, item.horarioTermino).toMinutes().toInt()
+                    fimEvento.add(JavaCalendar.MINUTE, durationInMinutes)
 
                     val inicioDateTime = DateTime(inicioEvento.time)
                     val newEventFingerprint = "${rotina.nome}#${inicioDateTime.value}"
@@ -141,8 +146,12 @@ object GoogleCalendarManager {
                         continue
                     }
 
+                    // Converte a cor da rotina para o colorId do Google
+                    val googleColorId = getGoogleColorId(rotina.cor)
+
                     val event = Event().apply {
                         summary = rotina.nome
+                        colorId = googleColorId // Define a cor do evento
                         start = EventDateTime().apply {
                             dateTime = inicioDateTime
                             timeZone = "America/Sao_Paulo"

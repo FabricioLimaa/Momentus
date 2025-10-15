@@ -1,6 +1,7 @@
 package br.com.fabriciolima.momentus.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 // Nova Paleta baseada na Logo
 val DarkBlue = Color(0xFF0A1A4A)
@@ -53,3 +54,42 @@ val md_theme_dark_inverseOnSurface = Color(0xFF1B1B1F)
 val md_theme_dark_inverseSurface = Color(0xFFE2E2E6)
 val md_theme_dark_inversePrimary = md_theme_light_primary
 val md_theme_dark_surfaceTint = md_theme_dark_primary
+
+
+// --- Paleta de Cores do Google Agenda ---
+
+private fun Color.toHexString(): String {
+    return String.format("#%06X", 0xFFFFFF and this.toArgb())
+}
+
+// Mapeia o colorId (String) do Google Calendar para a cor correspondente no Compose.
+val googleCalendarColors: Map<String, Color> = mapOf(
+    "1" to Color(0xFF7986CB), // Lavanda
+    "2" to Color(0xFF33B679), // Sálvia
+    "3" to Color(0xFF8E24AA), // Uva
+    "4" to Color(0xFFE67C73), // Flamingo
+    "5" to Color(0xFFF6BF26), // Banana
+    "6" to Color(0xFFF4511E), // Tangerina
+    "7" to Color(0xFF039BE5), // Pavão
+    "8" to Color(0xFF616161), // Grafite
+    "9" to Color(0xFF3F51B5), // Mirtilo
+    "10" to Color(0xFF0B8043), // Manjericão
+    "11" to Color(0xFFD50000)  // Tomate
+)
+
+/**
+ * Encontra o `colorId` do Google Agenda a partir de uma string de cor hexadecimal.
+ * @param colorHex A cor em formato hexadecimal (ex: "#33B679").
+ * @return O `colorId` correspondente (ex: "2") ou null se não for encontrada.
+ */
+fun getGoogleColorId(colorHex: String): String? {
+    val targetColor = try {
+        Color(android.graphics.Color.parseColor(colorHex))
+    } catch (e: IllegalArgumentException) {
+        return null
+    }
+
+    // Compara os valores ARGB para garantir a correspondência exata.
+    val entry = googleCalendarColors.entries.find { it.value.toArgb() == targetColor.toArgb() }
+    return entry?.key
+}

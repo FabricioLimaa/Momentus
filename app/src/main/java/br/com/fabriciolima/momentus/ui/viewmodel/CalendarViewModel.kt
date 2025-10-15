@@ -173,7 +173,7 @@ class CalendarViewModel @Inject constructor(
                 var googleEventId: String? = null
 
                 if (salvarNoGoogle) {
-                    when (val result = repository.salvarEventoNoGoogle(titulo, descricao, data, horarioInicio, horarioTermino)) {
+                    when (val result = repository.salvarEventoNoGoogle(titulo, descricao, data, horarioInicio, horarioTermino, rotina.cor)) {
                         is Result.Success -> {
                             googleEventId = result.data
                             fetchGoogleCalendarEvents()

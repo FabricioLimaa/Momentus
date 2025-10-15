@@ -41,13 +41,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import br.com.fabriciolima.momentus.data.model.Rotina
-
-val defaultColors = listOf(
-    Color(0xFFF44336), Color(0xFFFF5722), Color(0xFFFF9800), Color(0xFFFFC107),
-    Color(0xFFFFEB3B), Color(0xFFCDDC39), Color(0xFF8BC34A), Color(0xFF4CAF50),
-    Color(0xFF795548), Color(0xFF9E9E9E), Color(0xFF607D8B), Color(0xFFF2A905),
-    Color(0xFFF2C84B), Color(0xFFD94141), Color(0xFFF27C38), Color(0xFFBCAAA4)
-)
+import br.com.fabriciolima.momentus.ui.theme.googleCalendarColors
 
 fun Color.toHexString(): String {
     return String.format("#%06X", 0xFFFFFF and this.toArgb())
@@ -61,9 +55,13 @@ fun EditCategoryDialog(
     onConfirm: (id: String?, name: String, color: String) -> Unit
 ) {
     var name by remember { mutableStateOf(category?.nome ?: "") }
-    var selectedColor by remember { 
-        mutableStateOf(category?.cor?.let { Color(android.graphics.Color.parseColor(it)) } ?: defaultColors.first())
-    }
+
+    // Tenta encontrar a cor no mapa do Google. Se não encontrar, usa a primeira cor como padrão.
+    val initialColor = category?.cor?.let { colorString ->
+        googleCalendarColors.entries.find { it.value.toHexString() == colorString }?.value
+    } ?: googleCalendarColors.values.first()
+
+    var selectedColor by remember { mutableStateOf(initialColor) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card {
@@ -79,23 +77,23 @@ fun EditCategoryDialog(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Cor", style = MaterialTheme.typography.titleMedium)
+                Text("Cor (Padrão Google Agenda)", style = MaterialTheme.typography.titleMedium)
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(8),
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    columns = GridCells.Fixed(6),
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(defaultColors) {
-                        color ->
+                    items(googleCalendarColors.values.toList()) { color ->
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .padding(4.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(color)
                                 .clickable { selectedColor = color }
                                 .border(
                                     width = 2.dp,
-                                    color = if (selectedColor == color) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                    color = if (selectedColor == color) MaterialTheme.colorScheme.primary else Color.Transparent,
                                     shape = CircleShape
                                 )
                         )
@@ -112,7 +110,10 @@ fun EditCategoryDialog(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Cancelar") 
                     }
-                    Button(onClick = { onConfirm(category?.id, name, selectedColor.toHexString()) }) {
+                    Button(
+                        onClick = { onConfirm(category?.id, name, selectedColor.toHexString()) },
+                        enabled = name.isNotBlank()
+                    ) {
                         Icon(Icons.Default.Check, contentDescription = "Salvar")
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Salvar")

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.ui.theme.getGoogleColorId
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.Result
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -47,16 +48,20 @@ class GoogleCalendarSourceImpl @Inject constructor(
         descricao: String?,
         data: LocalDate,
         horarioInicio: LocalTime,
-        horarioTermino: LocalTime
+        horarioTermino: LocalTime,
+        cor: String?
     ): Result<String?> = withContext(dispatcher) {
         try {
             val account = GoogleSignIn.getLastSignedInAccount(context)
                 ?: return@withContext Result.Error(Exception("Nenhuma conta Google conectada."))
 
             val service = getService(account)
+            val googleColorId = cor?.let { getGoogleColorId(it) }
+
             val event = Event().apply {
                 summary = titulo
                 description = descricao
+                colorId = googleColorId
                 val zoneId = ZoneId.systemDefault()
                 val startInstant = data.atTime(horarioInicio).atZone(zoneId).toInstant()
                 start = EventDateTime().setDateTime(DateTime(startInstant.toEpochMilli())).setTimeZone(zoneId.id)

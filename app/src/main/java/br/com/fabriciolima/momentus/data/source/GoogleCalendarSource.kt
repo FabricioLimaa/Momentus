@@ -16,7 +16,8 @@ interface GoogleCalendarSource {
         descricao: String?,
         data: LocalDate,
         horarioInicio: LocalTime,
-        horarioTermino: LocalTime
+        horarioTermino: LocalTime,
+        cor: String? // Parâmetro da cor adicionado
     ): Result<String?>
 
     suspend fun updateEvent(item: ItemCronograma): Result<String?>
