@@ -11,3 +11,8 @@ local.properties
 # Arquivos de sistema
 .DS_Store
 Thumbs.db
+
+# Keystore file and properties
+momentus_keystore
+keystore.properties
+google-services.json

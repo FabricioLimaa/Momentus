@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
@@ -7,9 +10,30 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// 1. Carrega as propriedades do keystore de forma segura
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "br.com.fabriciolima.momentus"
     compileSdk = 34
+
+    // Configuração de assinatura para release com os dados corretos
+    signingConfigs {
+        create("release") {
+            storeFile = if (keystoreProperties.getProperty("storeFile") != null) {
+                rootProject.file(keystoreProperties.getProperty("storeFile"))
+            } else {
+                null
+            }
+            storePassword = keystoreProperties.getProperty("storePassword")
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+        }
+    }
 
     defaultConfig {
         applicationId = "br.com.fabriciolima.momentus"
@@ -27,8 +51,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Vincula a configuração de assinatura ao build de release
+            signingConfig = signingConfigs.getByName("release")
         }
     }
+
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17

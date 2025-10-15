@@ -21,8 +21,8 @@
 #-renamesourcefileattribute SourceFile
 
 # A regra agora aponta para a classe de nível superior
--keep class br.com.fabriciolima.momentus.widget.UpdateAction { <init>(); }
+#-keep class br.com.fabriciolima.momentus.widget.UpdateAction { <init>(); }
 
 # A regra agora aponta para a classe de nível superior
 
--keep public class * extends androidx.glance.appwidget.action.ActionCallback
+#-keep public class * extends androidx.glance.appwidget.action.ActionCallback
