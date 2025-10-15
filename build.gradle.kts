@@ -8,5 +8,6 @@ plugins {
     id("com.google.gms.google-services") version "4.4.3" apply false
     // ADICIONADO: Plugin do Hilt
     alias(libs.plugins.dagger.hilt.android) apply false
-
+    // ADICIONADO: Plugin de serialização do Kotlin
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22" apply false
 }

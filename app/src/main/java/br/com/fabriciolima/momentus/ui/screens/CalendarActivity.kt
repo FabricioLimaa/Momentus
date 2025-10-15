@@ -87,6 +87,8 @@ import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
+import br.com.fabriciolima.momentus.widget.eventIdKey
+import br.com.fabriciolima.momentus.widget.openNewEventDialogKey
 import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -107,6 +109,8 @@ class CalendarActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        handleIntent(intent)
 
         setContent {
             MomentusTheme {
@@ -159,6 +163,22 @@ class CalendarActivity : ComponentActivity() {
                         onSuccessMessageShown = viewModel::onSuccessMessageShown
                     )
                 }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent) {
+        if (intent.getBooleanExtra(openNewEventDialogKey, false)) {
+            viewModel.onAddNewEventClicked()
+        } else {
+            intent.getStringExtra(eventIdKey)?.let {
+                viewModel.showEventDetails(it)
             }
         }
     }

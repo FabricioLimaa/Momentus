@@ -138,6 +138,21 @@ class CalendarViewModel @Inject constructor(
         _selectedDate.value = date
     }
 
+    fun showEventDetails(eventId: String) {
+        viewModelScope.launch {
+            val event = repository.getItemCronograma(eventId)
+            if (event != null) {
+                if (event.data != null) {
+                    val eventDate = Instant.ofEpochMilli(event.data!!).atZone(ZoneId.systemDefault()).toLocalDate()
+                    selectDate(eventDate)
+                }
+                _uiState.update { currentState ->
+                    currentState.copy(dialogState = DialogState.ShowDetail(event))
+                }
+            }
+        }
+    }
+
     fun salvarEventoUnico(
         titulo: String,
         descricao: String?,
@@ -183,7 +198,7 @@ class CalendarViewModel @Inject constructor(
                 repository.insertItemCronograma(novoItem)
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden)
-                WidgetUpdater.update(application)
+                WidgetUpdater.sendBroadcast(application)
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -227,7 +242,7 @@ class CalendarViewModel @Inject constructor(
                 }
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)
-                WidgetUpdater.update(application)
+                WidgetUpdater.sendBroadcast(application)
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -242,7 +257,7 @@ class CalendarViewModel @Inject constructor(
                     is Result.Success -> {
                         fetchGoogleCalendarEvents()
                         _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
-                        WidgetUpdater.update(application)
+                        WidgetUpdater.sendBroadcast(application)
                     }
                     is Result.Error -> {
                         _uiState.value = _uiState.value.copy(error = result.exception.message)

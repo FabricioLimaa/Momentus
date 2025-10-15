@@ -23,6 +23,12 @@ interface RotinaDao {
     fun getRotinasComMetas(): Flow<List<RotinaComMeta>>
 
     /**
+     * Retorna todas as rotinas como um Flow, ordenadas pelo nome.
+     */
+    @Query("SELECT * FROM tabela_rotinas ORDER BY nome ASC")
+    fun getAll(): Flow<List<Rotina>>
+
+    /**
      * NOVA CONSULTA SÍNCRONA PARA O WIDGET
      */
     @Query("SELECT * FROM tabela_rotinas")

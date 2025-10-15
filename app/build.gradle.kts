@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.google.gms.services)
     alias(libs.plugins.dagger.hilt.android)
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -15,7 +16,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 17
-        versionName = "0.5.8"
+        versionName = "beta 0.5.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -79,13 +80,29 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     // Glance for App Widgets
-    implementation("androidx.glance:glance:1.0.0")
+    implementation("androidx.glance:glance:1.1.1")
     // For AppWidgets support
-    implementation ("androidx.glance:glance-appwidget:1.0.0")
+    implementation ("androidx.glance:glance-appwidget:1.1.1")
     // For interop APIs with Material 2
-    implementation ("androidx.glance:glance-material:1.0.0")
+    implementation ("androidx.glance:glance-material:1.1.1")
     // For interop APIs with Material 3
-    implementation ("androidx.glance:glance-material3:1.0.0")
+    implementation ("androidx.glance:glance-material3:1.1.1")
+
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
+
+    // optional - RxJava2 support
+    implementation("androidx.datastore:datastore-preferences-rxjava2:1.1.7")
+
+    // optional - RxJava3 support
+    implementation("androidx.datastore:datastore-preferences-rxjava3:1.1.7")
+
+    implementation("androidx.datastore:datastore:1.1.7")
+
+    // optional - RxJava2 support
+    implementation("androidx.datastore:datastore-rxjava2:1.1.7")
+
+    // optional - RxJava3 support
+    implementation("androidx.datastore:datastore-rxjava3:1.1.7")
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
@@ -105,6 +122,9 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    
+    // Kotlinx Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     implementation(platform(libs.firebaseBom))
     implementation(libs.firebaseAnalytics)

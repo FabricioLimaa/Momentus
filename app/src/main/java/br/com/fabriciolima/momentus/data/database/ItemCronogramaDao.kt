@@ -27,21 +27,27 @@ interface ItemCronogramaDao {
     @Query("SELECT * FROM tabela_itens_cronograma")
     fun getAllItems(): Flow<List<ItemCronograma>>
 
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE id = :itemId")
+    suspend fun getItemById(itemId: String): ItemCronograma?
+
     @Query("SELECT * FROM tabela_itens_cronograma WHERE diaDaSemana = :dia")
     fun getItemsByDayOfWeek(dia: String): Flow<List<ItemCronograma>>
 
     /**
-     * NOVA CONSULTA PARA O WIDGET
-     * Busca de forma SÍNCRONA todos os itens que são de uma data específica OU de um dia da semana recorrente.
-     * O epochDay é o número de dias desde 1970-01-01, facilitando a comparação de datas no SQLite.
+     * NOVA CONSULTA PARA O WIDGET (MODIFICADA)
+     * Busca de forma SÍNCRONA todos os itens que são de uma data específica OU de um dia da semana recorrente,
+     * E que pertencem a uma das rotinas permitidas.
      */
     @Query("""
         SELECT * FROM tabela_itens_cronograma 
         WHERE 
-            (data / 86400000) = :epochDay 
-            OR 
-            (diaDaSemana = :dayOfWeekName AND data IS NULL)
+            (
+                (data / 86400000) = :epochDay 
+                OR 
+                (diaDaSemana = :dayOfWeekName AND data IS NULL)
+            )
+            AND rotinaId IN (:allowedRotinaIds)
     """)
-    fun getForWidget(epochDay: Long, dayOfWeekName: String): List<ItemCronograma>
+    fun getForWidget(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<ItemCronograma>
 
 }

@@ -37,6 +37,14 @@
         <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
         <activity android:name=".ui.screens.CategoryActivity" android:exported="false" />
 
+        <activity
+            android:name=".ui.screens.WidgetConfigurationActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".notifications.AlarmReceiver"
             android:enabled="true"
@@ -47,7 +55,8 @@
         <!-- Glance Widget -->
         <receiver
             android:name=".widget.MomentusGlanceWidgetReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:configure="br.com.fabriciolima.momentus.ui.screens.WidgetConfigurationActivity">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

@@ -1,22 +1,20 @@
 package br.com.fabriciolima.momentus.widget
 
 import android.content.Context
-import androidx.glance.appwidget.GlanceAppWidgetManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import android.content.Intent
 
 object WidgetUpdater {
 
-    fun update(context: Context) {
-        val coroutineScope = CoroutineScope(Dispatchers.IO)
-        coroutineScope.launch {
-            val manager = GlanceAppWidgetManager(context)
-            val widget = MomentusGlanceWidget()
-            val glanceIds = manager.getGlanceIds(widget.javaClass)
-            glanceIds.forEach { glanceId ->
-                widget.update(context, glanceId)
-            }
+    // Ação que o Receiver irá escutar
+    const val UPDATE_ACTION = "br.com.fabriciolima.momentus.action.UPDATE_WIDGET_DATA"
+
+    /**
+     * Envia um broadcast para todos os widgets do app, solicitando uma atualização de dados.
+     */
+    fun sendBroadcast(context: Context) {
+        val intent = Intent(context, MomentusGlanceWidgetReceiver::class.java).apply {
+            action = UPDATE_ACTION
         }
+        context.sendBroadcast(intent)
     }
 }

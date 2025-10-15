@@ -40,14 +40,22 @@ open class RotinaRepository @Inject constructor(
     val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao.getIdsConcluidos()
     open val stats: Flow<List<StatsResult>> = rotinaDao.getStats()
 
-    fun getItensParaWidget(data: LocalDate): List<ItemCronograma> {
+    fun getItensParaWidget(data: LocalDate, allowedRotinaIds: Set<String>): List<ItemCronograma> {
         val epochDay = data.toEpochDay()
         val dayOfWeekName = data.dayOfWeek.name.substring(0, 3)
-        return itemCronogramaDao.getForWidget(epochDay, dayOfWeekName)
+        
+        // Se a lista de IDs estiver vazia, não há nada a retornar.
+        if (allowedRotinaIds.isEmpty()) return emptyList()
+        
+        return itemCronogramaDao.getForWidget(epochDay, dayOfWeekName, allowedRotinaIds)
     }
 
     fun getTodasAsRotinasSync(): List<Rotina> {
         return rotinaDao.getAllSync()
+    }
+    
+    fun getTodasAsRotinas(): Flow<List<Rotina>> {
+        return rotinaDao.getAll()
     }
 
     fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos> {
@@ -64,6 +72,10 @@ open class RotinaRepository @Inject constructor(
 
     fun getItensDoDia(dia: String): Flow<List<ItemCronograma>> {
         return itemCronogramaDao.getItemsByDayOfWeek(dia)
+    }
+
+    suspend fun getItemCronograma(itemId: String): ItemCronograma? {
+        return itemCronogramaDao.getItemById(itemId)
     }
 
     suspend fun insertItemCronograma(item: ItemCronograma) {

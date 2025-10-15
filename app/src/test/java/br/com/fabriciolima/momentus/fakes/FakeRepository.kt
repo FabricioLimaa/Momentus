@@ -20,7 +20,7 @@ import br.com.fabriciolima.momentus.util.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -31,7 +31,7 @@ class FakeRepository : RotinaRepository(
     FakeMetaDao(),
     FakeHabitoConcluidoDao(),
     FakeGoogleCalendarSource(),
-    TestCoroutineDispatcher()
+    StandardTestDispatcher()
 ) {
 
     private val rotinasFlow = MutableStateFlow<List<RotinaComMeta>>(emptyList())
@@ -79,15 +79,17 @@ class FakeRotinaDao : RotinaDao {
     override suspend fun insert(rotina: Rotina) {}
     override suspend fun delete(rotina: Rotina) {}
     override fun getStats(): Flow<List<StatsResult>> = emptyFlow()
+    override fun getAll(): Flow<List<Rotina>> = emptyFlow()
 }
 
 class FakeItemCronogramaDao : ItemCronogramaDao {
     override fun getAllItems(): Flow<List<ItemCronograma>> = emptyFlow()
-    override fun getForWidget(epochDay: Long, dayOfWeekName: String): List<ItemCronograma> = emptyList()
+    override fun getForWidget(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<ItemCronograma> = emptyList()
     override fun getItemsByDayOfWeek(dia: String): Flow<List<ItemCronograma>> = emptyFlow()
     override suspend fun insert(item: ItemCronograma) {}
     override suspend fun updateAll(items: List<ItemCronograma>) {}
     override suspend fun delete(item: ItemCronograma) {}
+    override suspend fun getItemById(itemId: String): ItemCronograma? = null
 }
 
 class FakeTemplateDao : TemplateDao {
