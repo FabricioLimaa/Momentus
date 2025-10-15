@@ -80,6 +80,7 @@ androidxLifecycleRuntimeCompose = { group = "androidx.lifecycle", name = "lifecy
 coilCompose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
 firebaseBom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebaseAnalytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 googleApiClientGson = { group = "com.google.api-client", name = "google-api-client-gson", version.ref = "googleHttpClientGson" }
 
 [plugins]
@@ -89,3 +90,4 @@ google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 google-gms-services = { id = "com.google.gms.google-services", version.ref = "googleGmsServices" }
 androidx-room = { id = "androidx.room", version.ref = "room" }
 dagger-hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+

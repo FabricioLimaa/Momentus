@@ -155,10 +155,11 @@ dependencies {
     // Kotlinx Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
+    //Firebase
     implementation(platform(libs.firebaseBom))
     implementation(libs.firebaseAnalytics)
-
     implementation(libs.playServicesAuth)
+    // implementation(libs.firebase.firestore.ktx) // <-- TEMPORARIAMENTE COMENTADO PARA DIAGNÓSTICO
 
     implementation(libs.googleApiClientAndroid) {
         exclude(group = "org.apache.httpcomponents")

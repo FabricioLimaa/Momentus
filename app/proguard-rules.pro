@@ -1,28 +1,51 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ===================================================================
+# Proguard Rules for Momentus
+# ===================================================================
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Manter anotações, que são frequentemente usadas por bibliotecas em tempo de execução.
+-keepattributes *Annotation*,Signature,InnerClasses
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- Regras Gerais do Firebase ---
+-keep class com.google.firebase.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- Regras para Autenticação Firebase & Google Sign-In ---
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-dontwarn com.google.android.gms.auth.api.signin.**
 
-# A regra agora aponta para a classe de nível superior
-#-keep class br.com.fabriciolima.momentus.widget.UpdateAction { <init>(); }
+# --- Regras para Google API Client e dependências (GSON, etc.) ---
+# Esta é a seção mais crítica para corrigir o crash pós-login.
 
-# A regra agora aponta para a classe de nível superior
+# Cliente principal e modelos da API
+-keep class com.google.api.client.** { *; }
+-dontwarn com.google.api.client.**
+-keep public class com.google.api.services.calendar.model.** { *; }
+-dontwarn com.google.api.services.calendar.model.**
 
-#-keep public class * extends androidx.glance.appwidget.action.ActionCallback
+# GSON (usado pela Google API Client para JSON)
+-keepattributes Signature
+-keep class sun.misc.Unsafe { *; }
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken { *; }
+-keepclassmembers,allowobfuscation class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# --- Regras para o Kotlinx Serialization ---
+-keepclasseswithmembers,allowobfuscation class * {
+    @kotlinx.serialization.Serializable <fields>;
+}
+-keep class *$$serializer { *; }
+
+# --- Regras para o Glance (App Widgets) ---
+-keep public class * extends androidx.glance.appwidget.action.ActionCallback {
+   <init>();
+}
+
+# Manter nomes de classes e membros anotados com @Keep
+-keep @androidx.annotation.Keep class * {*;}
+-keepclasseswithmembers class * {
+    @androidx.annotation.Keep <methods>;
+}
+-keepclasseswithmembers class * {
+    @androidx.annotation.Keep <fields>;
+}
