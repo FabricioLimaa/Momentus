@@ -6,6 +6,7 @@
 .idea/
 *.iml
 .gradle/
+release/
 local.properties
 
 # Arquivos de sistema
