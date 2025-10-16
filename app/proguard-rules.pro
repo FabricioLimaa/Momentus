@@ -1,27 +1,31 @@
 # ===================================================================
-# Proguard Rules for Momentus
+# Proguard Rules for Momentus App (v3 - Comprehensive)
 # ===================================================================
 
 # Manter anotações, que são frequentemente usadas por bibliotecas em tempo de execução.
 -keepattributes *Annotation*,Signature,InnerClasses
 
-# --- Regras Gerais do Firebase ---
+# --- Regras para o Kotlin Coroutines ---
+# Impede que o Proguard interfira na forma como as corrotinas funcionam.
+-keepclassmembers class kotlinx.coroutines.internal.MainDispatcherFactory { 
+    public static final kotlinx.coroutines.MainCoroutineDispatcher c;
+}
+
+# --- Regras para o Firebase (Auth e Firestore) ---
+# Regras oficiais recomendadas pelo Firebase para garantir que o SDK funcione corretamente.
 -keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.measurement.** { *; }
+-keepnames class com.google.android.gms.common.api.internal.ListenerHolder$ListenerKey
+-dontwarn com.google.firebase.**
 
-# --- Regras para Autenticação Firebase & Google Sign-In ---
--keep class com.google.android.gms.auth.api.signin.** { *; }
--dontwarn com.google.android.gms.auth.api.signin.**
-
-# --- Regras para Google API Client e dependências (GSON, etc.) ---
+# --- Regras para o Google API Client e dependências ---
 # Esta é a seção mais crítica para corrigir o crash pós-login.
 
 # Cliente principal e modelos da API
 -keep class com.google.api.client.** { *; }
 -dontwarn com.google.api.client.**
--keep public class com.google.api.services.calendar.model.** { *; }
--dontwarn com.google.api.services.calendar.model.**
 
-# GSON (usado pela Google API Client para JSON)
+# Regras para GSON (usado pela Google API Client) - REGRAS OFICIAIS
 -keepattributes Signature
 -keep class sun.misc.Unsafe { *; }
 -keep class com.google.gson.reflect.TypeToken { *; }
@@ -39,13 +43,4 @@
 # --- Regras para o Glance (App Widgets) ---
 -keep public class * extends androidx.glance.appwidget.action.ActionCallback {
    <init>();
-}
-
-# Manter nomes de classes e membros anotados com @Keep
--keep @androidx.annotation.Keep class * {*;}
--keepclasseswithmembers class * {
-    @androidx.annotation.Keep <methods>;
-}
--keepclasseswithmembers class * {
-    @androidx.annotation.Keep <fields>;
 }

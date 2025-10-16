@@ -80,6 +80,7 @@ androidxLifecycleRuntimeCompose = { group = "androidx.lifecycle", name = "lifecy
 coilCompose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
 firebaseBom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebaseAnalytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 googleApiClientGson = { group = "com.google.api-client", name = "google-api-client-gson", version.ref = "googleHttpClientGson" }
 

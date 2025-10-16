@@ -39,14 +39,14 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 34
-        versionCode = 20
-        versionName = "beta 0.6.1"
+        versionCode = 9
+        versionName = "beta 0.7.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -151,7 +151,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    
+
     // Kotlinx Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
@@ -159,7 +159,8 @@ dependencies {
     implementation(platform(libs.firebaseBom))
     implementation(libs.firebaseAnalytics)
     implementation(libs.playServicesAuth)
-    // implementation(libs.firebase.firestore.ktx) // <-- TEMPORARIAMENTE COMENTADO PARA DIAGNÓSTICO
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.firestore.ktx)
 
     implementation(libs.googleApiClientAndroid) {
         exclude(group = "org.apache.httpcomponents")
