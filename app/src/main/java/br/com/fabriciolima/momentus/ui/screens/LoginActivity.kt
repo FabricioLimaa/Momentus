@@ -35,7 +35,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import br.com.fabriciolima.momentus.R
+import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -44,9 +46,14 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var repository: RotinaRepository
 
     private lateinit var googleSignInClient: GoogleSignInClient
     private val _isSigningIn = mutableStateOf(false)
@@ -87,7 +94,9 @@ class LoginActivity : ComponentActivity() {
         super.onStart()
         val account = GoogleSignIn.getLastSignedInAccount(this)
         if (account != null) {
-            navigateToCalendar()
+            lifecycleScope.launch {
+                navigateToCalendar()
+            }
         }
     }
 
@@ -97,16 +106,21 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
-        try {
-            completedTask.getResult(ApiException::class.java)
-            navigateToCalendar()
-        } catch (e: ApiException) {
-            Log.w("LoginActivity", "Falha no login com Google: code=" + e.statusCode)
-            Toast.makeText(this, "Falha no login com Google. Tente novamente.", Toast.LENGTH_LONG).show()
+        lifecycleScope.launch {
+            try {
+                completedTask.getResult(ApiException::class.java)
+                navigateToCalendar()
+            } catch (e: ApiException) {
+                Log.w("LoginActivity", "Falha no login com Google: code=" + e.statusCode)
+                Toast.makeText(this@LoginActivity, "Falha no login com Google. Tente novamente.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
-    private fun navigateToCalendar() {
+    private suspend fun navigateToCalendar() {
+        // Sincroniza os dados do Firestore para o Room ANTES de navegar
+        repository.syncFirestoreToLocal()
+        
         val intent = Intent(this, CalendarActivity::class.java)
         startActivity(intent)
         finish()

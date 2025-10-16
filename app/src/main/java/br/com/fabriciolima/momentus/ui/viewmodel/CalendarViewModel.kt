@@ -86,6 +86,8 @@ class CalendarViewModel @Inject constructor(
     )
 
     init {
+        repository.startListeningForChanges()
+
         viewModelScope.launch {
             combine(
                 repository.todosOsItensDoCronograma,
@@ -104,6 +106,11 @@ class CalendarViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        repository.stopListeningForChanges()
     }
 
     val todasAsRotinas: StateFlow<List<Rotina>> = repository.todasAsRotinasComMetas.map { rotinasComMetas ->

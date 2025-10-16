@@ -16,6 +16,9 @@ interface RotinaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(rotina: Rotina)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(rotinas: List<Rotina>)
+
     @Delete
     suspend fun delete(rotina: Rotina)
 
