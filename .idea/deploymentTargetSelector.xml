@@ -4,11 +4,14 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-10-03T00:10:08.026466200Z">
+        <DropdownSelection timestamp="2025-10-16T18:36:00.687610900Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\fabri\.android\avd\Pixel_8_Pro.avd" />
+              <DeviceId pluginId="FirebaseDirectAccess" identifier="reservation=projects/momentus-b267f/deviceSessions/session-10fr61hltbwmz" />
             </handle>
+            <template>
+              <DeviceId pluginId="FirebaseDirectAccess" type="TEMPLATE" identifier="model_id=dubai/34" />
+            </template>
           </Target>
         </DropdownSelection>
         <DialogSelection />

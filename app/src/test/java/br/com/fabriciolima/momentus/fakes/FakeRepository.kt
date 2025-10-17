@@ -88,6 +88,7 @@ class FakeRotinaDao : RotinaDao {
     override fun getRotinasComMetas(): Flow<List<RotinaComMeta>> = emptyFlow()
     override fun getAllSync(): List<Rotina> = emptyList()
     override suspend fun insert(rotina: Rotina) {}
+    override suspend fun insertAll(rotinas: List<Rotina>) {}
     override suspend fun delete(rotina: Rotina) {}
     override fun getStats(): Flow<List<StatsResult>> = emptyFlow()
     override fun getAll(): Flow<List<Rotina>> = emptyFlow()
