@@ -1,29 +1,38 @@
 # ===================================================================
-# Proguard Rules for Momentus App (v7 - Final & Focused)
+# Proguard Rules for Momentus App (v12 - The Final Fix)
 # ===================================================================
 
+# --- Regra de Correção Definitiva para Colisão de Nomes ---
+# Impede a ofuscação (renomeação) de TODAS as classes para evitar o erro
+# "Multiple entries with same key". A minificação (remoção de código) ainda ocorre.
+-keepnames class ** { *; }
+
 # --- Regras Gerais ---
+# Manter anotações e outras assinaturas que bibliotecas usam.
 -keepattributes *Annotation*,Signature,InnerClasses
 
-# --- Correção para a colisão de nomes (Hilt / Proguard) ---
-# Impede que o Proguard ofusque os nomes das classes de dados (model) e DAOs,
-# que são as mais prováveis de causar o erro "Multiple entries with same key".
--keepnames class br.com.fabriciolima.momentus.data.model.** { *; }
--keepnames class br.com.fabriciolima.momentus.data.database.** { *; }
-
 # --- Firebase & Google APIs ---
-# Manter as classes principais dos SDKs do Google é crucial.
+# Manter as classes de bibliotecas externas para evitar que sejam removidas.
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
 -keep class com.google.api.client.** { *; }
 -dontwarn com.google.api.client.**
 
 # GSON (dependência da API do Google)
+# Manter membros que são usados via reflexão.
 -keepattributes Signature
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken { *; }
 -keepclassmembers,allowobfuscation class * {
-  @com.google.gson.annotations.SerializedName *;
+                                     @com.google.gson.annotations.SerializedName *;
+                                   }
+
+# --- Regra de Correção para o Crash de `fetchEvents` ---
+# Mantém os nomes e construtores de todas as classes de modelo da API do Calendar,
+# o que impede o erro "unable to create new instance".
+-keep public class com.google.api.services.calendar.model.** {
+    public <init>();
+    public *;
 }
 
 # --- Outras dependências ---
