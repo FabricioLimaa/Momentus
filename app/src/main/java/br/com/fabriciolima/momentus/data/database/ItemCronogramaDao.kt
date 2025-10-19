@@ -32,14 +32,23 @@ interface ItemCronogramaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: ItemCronograma)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<ItemCronograma>)
+
     @Update
     suspend fun updateAll(items: List<ItemCronograma>)
 
     @Delete
     suspend fun delete(item: ItemCronograma)
 
+    @Query("DELETE FROM tabela_itens_cronograma")
+    suspend fun clear()
+
     @Query("SELECT * FROM tabela_itens_cronograma")
     fun getAllItems(): Flow<List<ItemCronograma>>
+
+    @Query("SELECT * FROM tabela_itens_cronograma")
+    fun getAllSync(): List<ItemCronograma>
 
     @Query("SELECT * FROM tabela_itens_cronograma WHERE id = :itemId")
     suspend fun getItemById(itemId: String): ItemCronograma?

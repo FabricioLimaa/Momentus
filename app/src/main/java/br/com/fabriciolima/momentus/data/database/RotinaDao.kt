@@ -22,6 +22,9 @@ interface RotinaDao {
     @Delete
     suspend fun delete(rotina: Rotina)
 
+    @Query("DELETE FROM tabela_rotinas")
+    suspend fun clear()
+
     @Query("SELECT * FROM tabela_rotinas LEFT JOIN tabela_metas ON tabela_rotinas.id = tabela_metas.rotinaId ORDER BY nome ASC")
     fun getRotinasComMetas(): Flow<List<RotinaComMeta>>
 

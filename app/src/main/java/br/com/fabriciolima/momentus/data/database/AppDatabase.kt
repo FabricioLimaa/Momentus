@@ -11,7 +11,7 @@ import br.com.fabriciolima.momentus.data.model.Template
 
 @Database(
     entities = [Rotina::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class],
-    version = 1,
+    version = 2,
     exportSchema = false // Adicionado para resolver o erro de compilação do KSP
 )
 @TypeConverters(Converters::class)

@@ -9,16 +9,15 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HabitoConcluidoDao {
-    // Insere um novo hábito concluído. Se já existir, ele o substitui.
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(habito: HabitoConcluido)
 
-    // Deleta um hábito concluído (caso o usuário desmarque a caixa).
     @Query("DELETE FROM tabela_habitos_concluidos WHERE itemCronogramaId = :itemCronogramaId")
     suspend fun delete(itemCronogramaId: String)
 
-    // Busca todos os IDs dos hábitos concluídos para um determinado dia.
-    // Retorna um Flow para que a UI se atualize automaticamente.
     @Query("SELECT itemCronogramaId FROM tabela_habitos_concluidos")
     fun getIdsConcluidos(): Flow<List<String>>
+
+    @Query("DELETE FROM tabela_habitos_concluidos")
+    suspend fun clear()
 }

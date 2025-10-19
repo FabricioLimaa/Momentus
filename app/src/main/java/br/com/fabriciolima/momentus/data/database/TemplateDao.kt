@@ -12,34 +12,30 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * DAO para a entidade Template.
- * Esta versão foi limpa para remover funções obsoletas que usavam a entidade TemplateItem.
  */
 @Dao
 interface TemplateDao {
 
-    /**
-     * Busca todos os templates com seus respectivos eventos (itens do cronograma).
-     */
     @Transaction
     @Query("SELECT * FROM tabela_templates ORDER BY nome ASC")
     fun getTemplatesComEventos(): Flow<List<TemplateComEventos>>
 
-    /**
-     * Busca um template específico com seus eventos.
-     */
     @Transaction
     @Query("SELECT * FROM tabela_templates WHERE id = :templateId")
     fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos>
 
-    /**
-     * Insere um novo template.
-     */
+    @Query("SELECT * FROM tabela_templates")
+    fun getAllSync(): List<Template>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(template: Template)
 
-    /**
-     * Deleta um template. A deleção dos eventos associados ocorre em cascata (onDelete = CASCADE).
-     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(templates: List<Template>)
+
     @Delete
     suspend fun delete(template: Template)
+
+    @Query("DELETE FROM tabela_templates")
+    suspend fun clear()
 }

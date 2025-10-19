@@ -22,6 +22,7 @@ import br.com.fabriciolima.momentus.util.Result
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.ktx.toObjects
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -47,6 +48,8 @@ open class RotinaRepository @Inject constructor(
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private var rotinasListener: ListenerRegistration? = null
+    private var templatesListener: ListenerRegistration? = null
+    private var eventosListener: ListenerRegistration? = null
 
     open val todasAsRotinasComMetas: Flow<List<RotinaComMeta>> = rotinaDao.getRotinasComMetas()
     open val todosOsTemplatesComEventos: Flow<List<TemplateComEventos>> = templateDao.getTemplatesComEventos()
@@ -58,21 +61,50 @@ open class RotinaRepository @Inject constructor(
         get() = auth.currentUser?.uid
 
     fun startListeningForChanges() {
-        val currentUserId = userId ?: return
-        if (rotinasListener != null) return
+        val userId = this.userId ?: return
+        if (rotinasListener != null || templatesListener != null || eventosListener != null) return // Evita múltiplos listeners
 
-        val rotinasCollection = firestore.collection("users").document(currentUserId).collection("rotinas")
+        // Listener para Rotinas
+        val rotinasCollection = firestore.collection("users").document(userId).collection("rotinas")
         rotinasListener = rotinasCollection.addSnapshotListener { snapshots, e ->
             if (e != null) {
                 Log.w("Firestore", "Erro ao escutar por mudanças nas rotinas.", e)
                 return@addSnapshotListener
             }
-
-            if (snapshots != null) {
-                val rotinasDaNuvem = snapshots.toObjects(Rotina::class.java)
+            snapshots?.toObjects<Rotina>()?.let {
                 CoroutineScope(dispatcher).launch {
-                    rotinaDao.insertAll(rotinasDaNuvem)
-                    Log.d("Firestore", "${rotinasDaNuvem.size} rotinas sincronizadas em tempo real.")
+                    rotinaDao.insertAll(it)
+                    Log.d("Firestore", "${it.size} rotinas sincronizadas em tempo real.")
+                }
+            }
+        }
+
+        // Listener para Templates
+        val templatesCollection = firestore.collection("users").document(userId).collection("templates")
+        templatesListener = templatesCollection.addSnapshotListener { snapshots, e ->
+            if (e != null) {
+                Log.w("Firestore", "Erro ao escutar por mudanças nos templates.", e)
+                return@addSnapshotListener
+            }
+            snapshots?.toObjects<Template>()?.let {
+                CoroutineScope(dispatcher).launch {
+                    templateDao.insertAll(it)
+                    Log.d("Firestore", "${it.size} templates sincronizados em tempo real.")
+                }
+            }
+        }
+
+        // Listener para Eventos
+        val eventosCollection = firestore.collection("users").document(userId).collection("eventos")
+        eventosListener = eventosCollection.addSnapshotListener { snapshots, e ->
+            if (e != null) {
+                Log.w("Firestore", "Erro ao escutar por mudanças nos eventos.", e)
+                return@addSnapshotListener
+            }
+            snapshots?.toObjects<ItemCronograma>()?.let {
+                CoroutineScope(dispatcher).launch {
+                    itemCronogramaDao.insertAll(it)
+                    Log.d("Firestore", "${it.size} eventos sincronizados em tempo real.")
                 }
             }
         }
@@ -80,22 +112,77 @@ open class RotinaRepository @Inject constructor(
 
     fun stopListeningForChanges() {
         rotinasListener?.remove()
+        templatesListener?.remove()
+        eventosListener?.remove()
         rotinasListener = null
+        templatesListener = null
+        eventosListener = null
     }
 
-    suspend fun syncFirestoreToLocal() = withContext(dispatcher) {
-        val currentUserId = userId ?: return@withContext
+    suspend fun syncAllDataToLocal() {
+        syncRotinas()
+        // syncTemplates() // TODO: Reativar após implementar timestamps
+        // syncEventos() // TODO: Reativar após implementar timestamps
+    }
 
+    private suspend fun syncRotinas() = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
         try {
-            val snapshot = firestore.collection("users").document(currentUserId).collection("rotinas").get().await()
-            val rotinasDaNuvem = snapshot.toObjects(Rotina::class.java)
-            if (rotinasDaNuvem.isNotEmpty()) {
-                rotinaDao.insertAll(rotinasDaNuvem)
-                Log.d("Firestore", "${rotinasDaNuvem.size} rotinas sincronizadas da nuvem para o banco local.")
+            val collectionRef = firestore.collection("users").document(currentUserId).collection("rotinas")
+            val localRotinasMap = rotinaDao.getAllSync().associateBy { it.id }
+            val cloudRotinasMap = collectionRef.get().await().toObjects<Rotina>().associateBy { it.id }
+
+            val itemsToUpload = localRotinasMap.filter { (id, local) ->
+                val cloudItem = cloudRotinasMap[id]
+                when {
+                    cloudItem == null -> true // Se não existe na nuvem, faz upload
+                    local.lastUpdated == null -> false // Data local nula, não faz upload
+                    cloudItem.lastUpdated == null -> true // Data da nuvem nula, local é mais recente
+                    else -> local.lastUpdated.after(cloudItem.lastUpdated) // Compara as datas
+                }
+            }.values
+
+            val itemsToDownload = cloudRotinasMap.filter { (id, cloud) ->
+                val localItem = localRotinasMap[id]
+                when {
+                    localItem == null -> true // Se não existe localmente, faz download
+                    cloud.lastUpdated == null -> false // Data da nuvem nula, não faz download
+                    localItem.lastUpdated == null -> true // Data local nula, nuvem é mais recente
+                    else -> cloud.lastUpdated.after(localItem.lastUpdated)
+                }
+            }.values
+
+            if (itemsToUpload.isNotEmpty()) {
+                val batch = firestore.batch()
+                itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
+                batch.commit().await()
+                Log.d("Firestore", "${itemsToUpload.size} rotinas locais enviadas para a nuvem.")
             }
+
+            if (itemsToDownload.isNotEmpty()) {
+                rotinaDao.insertAll(itemsToDownload.toList())
+                Log.d("Firestore", "${itemsToDownload.size} rotinas da nuvem sincronizadas para o banco local.")
+            }
+
         } catch (e: Exception) {
-            Log.e("Firestore", "Erro ao sincronizar rotinas do Firestore.", e)
+            Log.e("Firestore", "Erro ao sincronizar rotinas.", e)
         }
+    }
+
+    private suspend fun syncTemplates() = withContext(dispatcher) {
+        // TODO: Implementar lógica de timestamps para templates
+    }
+
+    private suspend fun syncEventos() = withContext(dispatcher) {
+        // TODO: Implementar lógica de timestamps para eventos
+    }
+    
+    suspend fun clearAllLocalData() = withContext(dispatcher) {
+        rotinaDao.clear()
+        templateDao.clear()
+        itemCronogramaDao.clear()
+        metaDao.clear()
+        habitoConcluidoDao.clear()
     }
 
     fun getItensParaWidget(data: LocalDate, allowedRotinaIds: Set<String>): List<ItemCronograma> {
@@ -130,10 +217,22 @@ open class RotinaRepository @Inject constructor(
 
     suspend fun insertTemplate(template: Template) {
         templateDao.insert(template)
+        userId?.let {
+            firestore.collection("users").document(it).collection("templates").document(template.id)
+                .set(template)
+                .addOnSuccessListener { Log.d("Firestore", "Template ${template.id} salvo na nuvem.") }
+                .addOnFailureListener { e -> Log.w("Firestore", "Erro ao salvar template na nuvem", e) }
+        }
     }
 
     suspend fun deleteTemplate(template: Template) {
         templateDao.delete(template)
+        userId?.let {
+            firestore.collection("users").document(it).collection("templates").document(template.id)
+                .delete()
+                .addOnSuccessListener { Log.d("Firestore", "Template ${template.id} deletado da nuvem.") }
+                .addOnFailureListener { e -> Log.w("Firestore", "Erro ao deletar template da nuvem", e) }
+        }
     }
 
     fun getItensDoDia(dia: String): Flow<List<ItemCronograma>> {
@@ -146,15 +245,30 @@ open class RotinaRepository @Inject constructor(
 
     suspend fun insertItemCronograma(item: ItemCronograma) {
         itemCronogramaDao.insert(item)
+        userId?.let {
+            firestore.collection("users").document(it).collection("eventos").document(item.id)
+                .set(item)
+                .addOnSuccessListener { Log.d("Firestore", "Evento ${item.id} salvo na nuvem.") }
+                .addOnFailureListener { e -> Log.w("Firestore", "Erro ao salvar evento na nuvem", e) }
+        }
     }
 
     open suspend fun updateItensCronograma(items: List<ItemCronograma>) {
         itemCronogramaDao.updateAll(items)
+        userId?.let { userId ->
+            val batch = firestore.batch()
+            items.forEach {
+                val docRef = firestore.collection("users").document(userId).collection("eventos").document(it.id)
+                batch.set(docRef, it)
+            }
+            batch.commit()
+                .addOnSuccessListener { Log.d("Firestore", "${items.size} eventos atualizados na nuvem.") }
+                .addOnFailureListener { e -> Log.w("Firestore", "Erro ao atualizar eventos na nuvem", e) }
+        }
     }
 
     open suspend fun insertRotina(rotina: Rotina) {
         rotinaDao.insert(rotina)
-
         userId?.let {
             firestore.collection("users").document(it).collection("rotinas").document(rotina.id)
                 .set(rotina)
@@ -165,7 +279,6 @@ open class RotinaRepository @Inject constructor(
 
     open suspend fun deleteRotina(rotina: Rotina) {
         rotinaDao.delete(rotina)
-
         userId?.let {
             firestore.collection("users").document(it).collection("rotinas").document(rotina.id)
                 .delete()
@@ -216,6 +329,12 @@ open class RotinaRepository @Inject constructor(
         try {
             item.googleCalendarEventId?.let { googleCalendarSource.deleteEvent(it) }
             itemCronogramaDao.delete(item)
+            userId?.let {
+                firestore.collection("users").document(it).collection("eventos").document(item.id)
+                    .delete()
+                    .addOnSuccessListener { Log.d("Firestore", "Evento ${item.id} deletado da nuvem.") }
+                    .addOnFailureListener { e -> Log.w("Firestore", "Erro ao deletar evento da nuvem", e) }
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(Exception("Falha ao excluir evento.", e))

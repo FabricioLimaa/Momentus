@@ -13,5 +13,8 @@ interface MetaDao {
     suspend fun insertOrUpdate(meta: Meta)
 
     @Query("SELECT * FROM tabela_metas WHERE rotinaId = :rotinaId")
-    fun getMetaParaRotina(rotinaId: String): Flow<Meta?> // Pode ser nula se não houver meta
+    fun getMetaParaRotina(rotinaId: String): Flow<Meta?>
+
+    @Query("DELETE FROM tabela_metas")
+    suspend fun clear()
 }

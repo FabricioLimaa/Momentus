@@ -99,6 +99,7 @@ class FakeItemCronogramaDao : ItemCronogramaDao {
     override fun getForWidget(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<ItemCronograma> = emptyList()
     override fun getItemsByDayOfWeek(dia: String): Flow<List<ItemCronograma>> = emptyFlow()
     override suspend fun insert(item: ItemCronograma) {}
+    override suspend fun insertAll(items: List<ItemCronograma>) {}
     override suspend fun updateAll(items: List<ItemCronograma>) {}
     override suspend fun delete(item: ItemCronograma) {}
     override suspend fun getItemById(itemId: String): ItemCronograma? = null
@@ -109,7 +110,9 @@ class FakeTemplateDao : TemplateDao {
     override fun getTemplatesComEventos(): Flow<List<TemplateComEventos>> = emptyFlow()
     override fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos> = emptyFlow()
     override suspend fun insert(template: Template) {}
+    override suspend fun insertAll(templates: List<Template>) {}
     override suspend fun delete(template: Template) {}
+    override fun getAllSync(): List<Template> = emptyList()
 }
 
 class FakeMetaDao : MetaDao {

@@ -118,8 +118,7 @@ class LoginActivity : ComponentActivity() {
     }
 
     private suspend fun navigateToCalendar() {
-        // Sincroniza os dados do Firestore para o Room ANTES de navegar
-        repository.syncFirestoreToLocal()
+        repository.syncAllDataToLocal()
         
         val intent = Intent(this, CalendarActivity::class.java)
         startActivity(intent)

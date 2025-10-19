@@ -9,17 +9,22 @@ import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.api.client.util.DateTime
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -32,6 +37,10 @@ sealed interface DialogState {
     data class ShowDetail(val event: ItemCronograma) : DialogState
     data class ConfirmDelete(val event: ItemCronograma) : DialogState
     object AddNewEvent : DialogState
+}
+
+sealed interface LogoutEvent {
+    object Success : LogoutEvent
 }
 
 data class GoogleCalendarEvent(
@@ -58,6 +67,8 @@ data class CalendarUiState(
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val repository: RotinaRepository,
+    private val googleSignInClient: GoogleSignInClient,
+    private val auth: FirebaseAuth,
     private val application: Application
 ) : ViewModel() {
 
@@ -66,6 +77,9 @@ class CalendarViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
+
+    private val _logoutEvent = MutableSharedFlow<LogoutEvent>()
+    val logoutEvent = _logoutEvent.asSharedFlow()
 
     val eventsForSelectedDate: StateFlow<EventsForDate> = combine(
         _uiState,
@@ -111,6 +125,33 @@ class CalendarViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         repository.stopListeningForChanges()
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                // 1. Interrompe a sincronização em tempo real
+                repository.stopListeningForChanges()
+
+                // 2. Desconecta do Google Sign-In
+                googleSignInClient.signOut().await()
+
+                // 3. Desconecta do Firebase Auth
+                auth.signOut()
+
+                // 4. Limpa todos os dados locais
+                repository.clearAllLocalData()
+
+                // 5. Emite o evento de sucesso do logout
+                _logoutEvent.emit(LogoutEvent.Success)
+
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Falha ao fazer logout: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
     }
 
     val todasAsRotinas: StateFlow<List<Rotina>> = repository.todasAsRotinasComMetas.map { rotinasComMetas ->

@@ -11,6 +11,10 @@ import br.com.fabriciolima.momentus.data.database.MetaDao
 import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
 import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.util.GoogleAuthUtils
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.firebase.auth.FirebaseAuth
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,6 +30,17 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideGoogleSignInClient(@ApplicationContext context: Context): GoogleSignInClient {
+        val gso = GoogleAuthUtils.getGoogleSignInOptions(context)
+        return GoogleSignIn.getClient(context, gso)
+    }
 
     @Provides
     @Singleton

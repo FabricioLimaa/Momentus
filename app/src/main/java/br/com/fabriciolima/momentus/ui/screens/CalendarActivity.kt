@@ -87,13 +87,14 @@ import br.com.fabriciolima.momentus.ui.viewmodel.CalendarViewModel
 import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
-import br.com.fabriciolima.momentus.util.GoogleAuthUtils
+import br.com.fabriciolima.momentus.ui.viewmodel.LogoutEvent
 import br.com.fabriciolima.momentus.widget.EVENT_ID_KEY
 import br.com.fabriciolima.momentus.widget.OPEN_NEW_EVENT_DIALOG_KEY
 import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -124,21 +125,27 @@ class CalendarActivity : ComponentActivity() {
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
 
+                // Observa o evento de logout do ViewModel
+                LaunchedEffect(Unit) {
+                    viewModel.logoutEvent.collectLatest {
+                        when (it) {
+                            LogoutEvent.Success -> {
+                                val intent = Intent(this@CalendarActivity, LoginActivity::class.java)
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                                finish()
+                            }
+                        }
+                    }
+                }
+
                 ModalNavigationDrawer(
                     drawerState = drawerState,
                     drawerContent = {
                         AppDrawerContent(
                             account = account,
                             onNavigate = { scope.launch { drawerState.close() } },
-                            onLogout = {
-                                val gso = GoogleAuthUtils.getGoogleSignInOptions(this)
-                                GoogleSignIn.getClient(this, gso).signOut().addOnCompleteListener {
-                                    val intent = Intent(this, LoginActivity::class.java)
-                                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                    startActivity(intent)
-                                    finish()
-                                }
-                            }
+                            onLogout = { viewModel.logout() } // Chama a função centralizada do ViewModel
                         )
                     }
                 ) {

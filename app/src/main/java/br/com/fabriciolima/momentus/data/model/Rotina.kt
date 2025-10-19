@@ -3,7 +3,9 @@ package br.com.fabriciolima.momentus.data.model
 import androidx.annotation.Keep
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.google.firebase.firestore.ServerTimestamp
 import java.io.Serializable
+import java.util.Date
 
 /**
  * Representa uma categoria ou "Rotina" à qual um evento pertence.
@@ -19,5 +21,7 @@ data class Rotina(
     val descricao: String? = null,
     val duracaoPadraoMinutos: Int = 60,
     val cor: String = "#CCCCCC",
-    val tag: String? = null
+    val tag: String? = null,
+    @ServerTimestamp
+    val lastUpdated: Date? = null
 ) : Serializable
