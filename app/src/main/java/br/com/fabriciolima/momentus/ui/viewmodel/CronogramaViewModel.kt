@@ -6,9 +6,10 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.RotinaComMeta
+import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,14 +22,15 @@ data class CronogramaUiState(
 
 @HiltViewModel
 class CronogramaViewModel @Inject constructor(
-    private val repository: RotinaRepository
+    private val repository: RotinaRepository,
+    private val eventoRepository: EventoRepository
 ) : ViewModel() {
 
     val uiState: LiveData<CronogramaUiState> = combine(
-        repository.todosOsItensDoCronograma,
+        eventoRepository.todosOsItensDoCronograma,
         repository.todasAsRotinasComMetas,
         repository.idsHabitosConcluidos
-    ) { itens, rotinasComMetas, habitos ->
+    ) { itens: List<ItemCronograma>, rotinasComMetas: List<RotinaComMeta>, habitos: List<String> ->
         CronogramaUiState(
             itens = itens.sortedBy { it.ordem }, // Garante a ordem correta
             rotinas = rotinasComMetas.map { it.rotina },
@@ -63,7 +65,7 @@ class CronogramaViewModel @Inject constructor(
                 val itensAtualizados = listaAtual.mapIndexed { index, it ->
                     it.copy(ordem = index)
                 }
-                repository.updateItensCronograma(itensAtualizados)
+                eventoRepository.updateItensCronograma(itensAtualizados)
             }
         }
     }

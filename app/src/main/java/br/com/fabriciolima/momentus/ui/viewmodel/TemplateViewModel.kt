@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
+import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.ui.components.EventFormData
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +43,9 @@ data class TemplateUiState(
 
 @HiltViewModel
 class TemplateViewModel @Inject constructor(
-    private val repository: RotinaRepository
+    private val repository: RotinaRepository,
+    private val templateRepository: TemplateRepository,
+    private val eventoRepository: EventoRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TemplateUiState())
@@ -49,9 +54,9 @@ class TemplateViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             combine(
-                repository.todosOsTemplatesComEventos,
+                templateRepository.todosOsTemplatesComEventos,
                 repository.todasAsRotinasComMetas
-            ) { templates, rotinasComMetas ->
+            ) { templates: List<TemplateComEventos>, rotinasComMetas: List<RotinaComMeta> ->
                 val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
                 Pair(templates, rotinasMap)
             }.collect { (templates, rotinasMap) ->
@@ -89,7 +94,7 @@ class TemplateViewModel @Inject constructor(
             }
             try {
                 val novoTemplate = Template(id = UUID.randomUUID().toString(), nome = nomeTemplate)
-                repository.insertTemplate(novoTemplate)
+                templateRepository.insertTemplate(novoTemplate)
 
                 val novosItens = eventosData.mapNotNull { formData ->
                     formData.selectedRotina?.let {
@@ -105,7 +110,7 @@ class TemplateViewModel @Inject constructor(
                         )
                     }
                 }
-                novosItens.forEach { repository.insertItemCronograma(it) }
+                novosItens.forEach { eventoRepository.insertItemCronograma(it) }
                 _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
                 onResult(Result.Success(Unit))
             } catch (e: Exception) {
@@ -117,8 +122,8 @@ class TemplateViewModel @Inject constructor(
     fun deleteTemplate(templateId: String) {
         viewModelScope.launch {
             try {
-                val templateToDelete = Template(id = templateId, nome = "")
-                repository.deleteTemplate(templateToDelete)
+                val templateToDelete = _uiState.value.templates.find { it.template.id == templateId }?.template ?: return@launch
+                templateRepository.deleteTemplate(templateToDelete)
                 _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Falha ao deletar o template.")
@@ -129,9 +134,9 @@ class TemplateViewModel @Inject constructor(
     fun applyTemplateToDates(templateId: String, dates: List<LocalDate>) {
         viewModelScope.launch {
             try {
-                val templateWithEvents = repository.todosOsTemplatesComEventos.first()
+                val templateWithEvents = templateRepository.todosOsTemplatesComEventos.first()
                     .find { it.template.id == templateId }
-                
+
                 if (templateWithEvents == null) {
                     _uiState.value = _uiState.value.copy(error = "Template não encontrado.")
                     return@launch
@@ -146,7 +151,7 @@ class TemplateViewModel @Inject constructor(
                         )
                     }
                 }
-                newEvents.forEach { repository.insertItemCronograma(it) }
+                newEvents.forEach { eventoRepository.insertItemCronograma(it) }
                 _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Falha ao aplicar o template.")

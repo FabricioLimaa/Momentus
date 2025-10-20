@@ -5,7 +5,9 @@ import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
 import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
+import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSourceImpl
 import dagger.Binds
@@ -32,21 +34,39 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    fun provideTemplateRepository(
+        templateDao: TemplateDao,
+        @IoDispatcher dispatcher: CoroutineDispatcher
+    ): TemplateRepository {
+        return TemplateRepository(templateDao, dispatcher)
+    }
+
+    @Provides
+    @Singleton
+    fun provideEventoRepository(
+        itemCronogramaDao: ItemCronogramaDao,
+        @IoDispatcher dispatcher: CoroutineDispatcher
+    ): EventoRepository {
+        return EventoRepository(itemCronogramaDao, dispatcher)
+    }
+
+    @Provides
+    @Singleton
     fun provideRotinaRepository(
         rotinaDao: RotinaDao,
-        itemCronogramaDao: ItemCronogramaDao,
-        templateDao: TemplateDao,
         metaDao: MetaDao,
         habitoConcluidoDao: HabitoConcluidoDao,
+        templateRepository: TemplateRepository,
+        eventoRepository: EventoRepository,
         googleCalendarSource: GoogleCalendarSource,
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): RotinaRepository {
         return RotinaRepository(
             rotinaDao,
-            itemCronogramaDao,
-            templateDao,
             metaDao,
             habitoConcluidoDao,
+            templateRepository,
+            eventoRepository,
             googleCalendarSource,
             dispatcher
         )

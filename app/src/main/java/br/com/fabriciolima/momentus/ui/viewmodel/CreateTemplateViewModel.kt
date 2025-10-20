@@ -6,7 +6,9 @@ import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateEvent
+import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +23,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CreateTemplateViewModel @Inject constructor(
-    private val repository: RotinaRepository
+    private val repository: RotinaRepository,
+    private val templateRepository: TemplateRepository,
+    private val eventoRepository: EventoRepository
 ) : ViewModel() {
 
     private val _events = MutableStateFlow<List<TemplateEvent>>(emptyList())
@@ -60,7 +64,7 @@ class CreateTemplateViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val newTemplate = Template(nome = name)
-                repository.insertTemplate(newTemplate)
+                templateRepository.insertTemplate(newTemplate)
 
                 _events.value.forEach { eventUI ->
                     val eventDB = ItemCronograma(
@@ -73,7 +77,7 @@ class CreateTemplateViewModel @Inject constructor(
                         rotinaId = eventUI.categoria.id,
                         templateId = newTemplate.id
                     )
-                    repository.insertItemCronograma(eventDB)
+                    eventoRepository.insertItemCronograma(eventDB)
                 }
                 _templateName.value = ""
                 _events.value = emptyList()

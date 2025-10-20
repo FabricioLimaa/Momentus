@@ -8,8 +8,10 @@ import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.firebase.firestore.Exclude
+import com.google.firebase.firestore.ServerTimestamp
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Date
 
 @Keep
 @Entity(
@@ -52,7 +54,10 @@ data class ItemCronograma(
     val rotinaId: String = "",
     val templateId: String? = null,
 
-    val googleCalendarEventId: String? = null
+    val googleCalendarEventId: String? = null,
+
+    @ServerTimestamp
+    val lastUpdated: Date? = null
 ) {
     // Propriedades para serialização do LocalTime no Firestore
     var horarioInicioString: String

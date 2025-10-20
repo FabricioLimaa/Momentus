@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.RotinaComMeta
+import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
@@ -67,6 +68,7 @@ data class CalendarUiState(
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val repository: RotinaRepository,
+    private val eventoRepository: EventoRepository,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
     private val application: Application
@@ -104,10 +106,10 @@ class CalendarViewModel @Inject constructor(
 
         viewModelScope.launch {
             combine(
-                repository.todosOsItensDoCronograma,
+                eventoRepository.todosOsItensDoCronograma,
                 repository.todasAsRotinasComMetas,
                 repository.idsHabitosConcluidos
-            ) { allItems, rotinasComMetas, completedIds ->
+            ) { allItems: List<ItemCronograma>, rotinasComMetas: List<RotinaComMeta>, completedIds: List<String> ->
                 val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
                 Triple(allItems, rotinasMap, completedIds.toSet())
             }.collect { (allItems, rotinasMap, completedIds) ->
@@ -188,7 +190,7 @@ class CalendarViewModel @Inject constructor(
 
     fun showEventDetails(eventId: String) {
         viewModelScope.launch {
-            val event = repository.getItemCronograma(eventId)
+            val event = eventoRepository.getItemCronograma(eventId)
             if (event != null) {
                 if (event.data != null) {
                     val eventDate = Instant.ofEpochMilli(event.data!!).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -243,7 +245,7 @@ class CalendarViewModel @Inject constructor(
                     templateId = null,
                     googleCalendarEventId = googleEventId
                 )
-                repository.insertItemCronograma(novoItem)
+                eventoRepository.insertItemCronograma(novoItem)
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden)
                 WidgetUpdater.sendBroadcast(application)
@@ -286,7 +288,7 @@ class CalendarViewModel @Inject constructor(
                         is Result.Error -> _uiState.value = _uiState.value.copy(error = result.exception.message ?: "Falha ao sincronizar atualização com o Google Calendar.")
                     }
                 } else {
-                    repository.insertItemCronograma(itemAtualizado)
+                    eventoRepository.insertItemCronograma(itemAtualizado)
                 }
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)

@@ -48,6 +48,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.database.WidgetEventItem
+import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.ui.screens.CalendarActivity
 import dagger.hilt.EntryPoint
@@ -91,6 +92,7 @@ const val OPEN_NEW_EVENT_DIALOG_KEY = "br.com.fabriciolima.momentus.OPEN_NEW_EVE
 @InstallIn(SingletonComponent::class)
 interface WidgetUpdateEntryPoint {
     fun rotinaRepository(): RotinaRepository
+    fun eventoRepository(): EventoRepository
 }
 
 
@@ -303,16 +305,17 @@ class UpdateAction : ActionCallback {
 
             try {
                 val entryPoint = EntryPointAccessors.fromApplication(context, WidgetUpdateEntryPoint::class.java)
-                val repository = entryPoint.rotinaRepository()
+                val rotinaRepository = entryPoint.rotinaRepository()
+                val eventoRepository = entryPoint.eventoRepository()
 
-                val allRotinas = withContext(Dispatchers.IO) { repository.getTodasAsRotinasSync() }
+                val allRotinas = withContext(Dispatchers.IO) { rotinaRepository.getTodasAsRotinasSync() }
                 val allRotinaIds = allRotinas.map { it.id }.toSet()
 
                 val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
                 val allowedRotinaIds = prefs[EventWidgetStateKeys.configuredRotinasKey] ?: allRotinaIds
 
                 val widgetItems = withContext(Dispatchers.IO) {
-                    repository.getWidgetEvents(LocalDate.now(), allowedRotinaIds.ifEmpty { allRotinaIds })
+                    eventoRepository.getWidgetEvents(LocalDate.now(), allowedRotinaIds.ifEmpty { allRotinaIds })
                 }
 
                 val events = mapToSerializable(widgetItems)

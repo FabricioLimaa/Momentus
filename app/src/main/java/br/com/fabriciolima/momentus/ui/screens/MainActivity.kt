@@ -11,7 +11,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,17 +22,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.outlined.ListAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.repository.SyncStatus
 import br.com.fabriciolima.momentus.ui.components.RotinaListItem
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModel
@@ -56,6 +60,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoutinesScreen(
     viewModel: MainViewModel,
@@ -71,17 +76,30 @@ fun RoutinesScreen(
     }
 
     val rotinasComMetas by viewModel.rotinasComMetas.observeAsState(initial = emptyList())
+    val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // -- Cabeçalho --
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Categorias") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
+                actions = {
+                    SyncStatusIcon(status = syncStatus)
                 }
-            }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+        ) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Categorias", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(
                 text = "Crie e gerencie as categorias.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -94,50 +112,83 @@ fun RoutinesScreen(
                     val intent = Intent(context, EditorRotinaComposeActivity::class.java)
                     editorLauncher.launch(intent)
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Categoria")
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 Text("Nova Categoria")
             }
-        }
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // -- Conteúdo (Lista ou Estado Vazio) --
-        if (rotinasComMetas.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f), // Ocupa o espaço restante
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ListAlt,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text("Nenhuma categoria cadastrada.", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
-                Text("Clique no botão acima para criar sua primeira categoria.", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f), // Ocupa o espaço restante
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(rotinasComMetas, key = { it.rotina.id }) { rotinaComMeta ->
-                    RotinaListItem(
-                        rotinaComMeta = rotinaComMeta,
-                        onItemClicked = {
-                            val intent = Intent(context, EditorRotinaComposeActivity::class.java).apply {
-                                putExtra("ROTINA_PARA_EDITAR", it.rotina)
-                            }
-                            editorLauncher.launch(intent)
-                        }
+            if (rotinasComMetas.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f), // Ocupa o espaço restante
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ListAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Text(
+                        "Nenhuma categoria cadastrada.",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                    Text(
+                        "Clique no botão acima para criar sua primeira categoria.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f), // Ocupa o espaço restante
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(rotinasComMetas, key = { it.rotina.id }) { rotinaComMeta ->
+                        RotinaListItem(
+                            rotinaComMeta = rotinaComMeta,
+                            onItemClicked = {
+                                val intent = Intent(context, EditorRotinaComposeActivity::class.java).apply {
+                                    putExtra("ROTINA_PARA_EDITAR", it.rotina)
+                                }
+                                editorLauncher.launch(intent)
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+@Composable
+fun SyncStatusIcon(status: SyncStatus) {
+    val icon = when (status) {
+        SyncStatus.CONNECTED -> Icons.Default.CloudDone
+        SyncStatus.SYNCING -> Icons.Default.Sync
+        SyncStatus.OFFLINE -> Icons.Default.CloudOff
+    }
+    val tint = when (status) {
+        SyncStatus.CONNECTED -> Color(0xFF388E3C) // Verde
+        SyncStatus.SYNCING -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        SyncStatus.OFFLINE -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    }
+
+    Icon(
+        imageVector = icon,
+        contentDescription = "Status da Sincronização: $status",
+        tint = tint,
+        modifier = Modifier.padding(horizontal = 12.dp)
+    )
+}
+

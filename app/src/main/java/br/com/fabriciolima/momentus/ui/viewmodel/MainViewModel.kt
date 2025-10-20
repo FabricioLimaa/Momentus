@@ -6,7 +6,11 @@ import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Meta
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.SyncStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,8 +19,13 @@ class MainViewModel @Inject constructor(
     private val repository: RotinaRepository
 ) : ViewModel() {
 
-    // CORREÇÃO: Adicionando a propriedade que estava faltando na EditorRotinaActivity.
     val rotinasComMetas = repository.todasAsRotinasComMetas.asLiveData()
+
+    val syncStatus: StateFlow<SyncStatus> = repository.syncStatus.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = SyncStatus.OFFLINE
+    )
 
     /**
      * Insere ou atualiza uma rotina (categoria) no banco de dados.
