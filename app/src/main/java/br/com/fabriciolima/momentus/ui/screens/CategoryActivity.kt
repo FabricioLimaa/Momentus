@@ -140,7 +140,7 @@ fun CategoryScreen(
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
+        Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
             Spacer(modifier = Modifier.height(16.dp))
             Text("Categorias", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(

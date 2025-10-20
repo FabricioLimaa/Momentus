@@ -40,7 +40,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 21
-        versionName = "0.8.1-beta"
+        versionName = "0.8.2-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -159,8 +159,8 @@ dependencies {
     implementation(platform(libs.firebaseBom))
     implementation(libs.firebaseAnalytics)
     implementation(libs.playServicesAuth)
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 
     implementation(libs.googleApiClientAndroid) {
         exclude(group = "org.apache.httpcomponents")
