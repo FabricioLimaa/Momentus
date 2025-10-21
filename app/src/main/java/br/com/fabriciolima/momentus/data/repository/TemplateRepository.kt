@@ -33,10 +33,15 @@ class TemplateRepository @Inject constructor(
     val todosOsTemplatesComEventos: Flow<List<TemplateComEventos>> = templateDao.getTemplatesComEventos()
 
     fun startListeningForChanges() {
-        val userId = this.userId ?: return
+        val currentUserId = this.userId
+        Log.d("FirestoreDebug", "TemplateRepository: Tentando iniciar listener. UID: $currentUserId")
+        if (currentUserId == null) {
+            Log.w("FirestoreDebug", "TemplateRepository: UID nulo, listener não iniciado.")
+            return
+        }
         if (templatesListener != null) return
 
-        val templatesCollection = firestore.collection("users").document(userId).collection("templates")
+        val templatesCollection = firestore.collection("users").document(currentUserId).collection("templates")
         templatesListener = templatesCollection.addSnapshotListener { snapshots, e ->
             if (e != null) {
                 Log.w("Firestore", "Erro ao escutar por mudanças nos templates.", e)
@@ -57,7 +62,13 @@ class TemplateRepository @Inject constructor(
     }
 
     suspend fun syncTemplates() = withContext(dispatcher) {
-        val currentUserId = userId ?: return@withContext
+        val currentUserId = userId
+        Log.d("FirestoreDebug", "TemplateRepository: Tentando sincronizar templates. UID: $currentUserId")
+        if (currentUserId == null) {
+            Log.w("FirestoreDebug", "TemplateRepository: UID nulo, sincronização não realizada.")
+            return@withContext
+        }
+
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection("templates")
             val localTemplatesMap = templateDao.getAllSync().associateBy { it.id }

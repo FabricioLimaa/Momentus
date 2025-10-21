@@ -45,6 +45,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -56,6 +58,8 @@ class LoginActivity : ComponentActivity() {
     lateinit var repository: RotinaRepository
 
     private lateinit var googleSignInClient: GoogleSignInClient
+    private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
+
     private val _isSigningIn = mutableStateOf(false)
 
     private val googleSignInLauncher = registerForActivityResult(
@@ -92,11 +96,9 @@ class LoginActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        val account = GoogleSignIn.getLastSignedInAccount(this)
-        if (account != null) {
-            lifecycleScope.launch {
-                navigateToCalendar()
-            }
+        // Verifique o usuário do Firebase, não do Google Sign-In
+        if (firebaseAuth.currentUser != null) {
+            navigateToCalendar()
         }
     }
 
@@ -106,23 +108,38 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
-        lifecycleScope.launch {
-            try {
-                completedTask.getResult(ApiException::class.java)
-                navigateToCalendar()
-            } catch (e: ApiException) {
-                Log.w("LoginActivity", "Falha no login com Google: code=" + e.statusCode)
-                Toast.makeText(this@LoginActivity, "Falha no login com Google. Tente novamente.", Toast.LENGTH_LONG).show()
-            }
+        try {
+            val account = completedTask.getResult(ApiException::class.java)!!
+            firebaseAuthWithGoogle(account)
+        } catch (e: ApiException) {
+            _isSigningIn.value = false
+            Log.w("LoginActivity", "Falha no login com Google: code=" + e.statusCode)
+            Toast.makeText(this, "Falha ao obter conta Google. Tente novamente.", Toast.LENGTH_LONG).show()
         }
     }
 
-    private suspend fun navigateToCalendar() {
-        repository.syncAllDataToLocal()
-        
-        val intent = Intent(this, CalendarActivity::class.java)
-        startActivity(intent)
-        finish()
+    private fun firebaseAuthWithGoogle(account: GoogleSignInAccount) {
+        val credential = GoogleAuthProvider.getCredential(account.idToken!!, null)
+        firebaseAuth.signInWithCredential(credential)
+            .addOnSuccessListener {
+                // SUCESSO: O usuário do Firebase agora está disponível
+                Log.d("LoginActivity", "Firebase Auth SUCESSO. UID: ${it.user?.uid}")
+                navigateToCalendar()
+            }
+            .addOnFailureListener { e ->
+                _isSigningIn.value = false
+                Log.e("LoginActivity", "Firebase Auth FALHA", e)
+                Toast.makeText(this, "Falha na autenticação com Firebase. Tente novamente.", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun navigateToCalendar() {
+        lifecycleScope.launch {
+            repository.syncAllDataToLocal()
+            val intent = Intent(this@LoginActivity, CalendarActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
     }
 }
 

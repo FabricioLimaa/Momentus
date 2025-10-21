@@ -35,10 +35,15 @@ class EventoRepository @Inject constructor(
     val todosOsItensDoCronograma: Flow<List<ItemCronograma>> = itemCronogramaDao.getAllItems()
 
     fun startListeningForChanges() {
-        val userId = this.userId ?: return
+        val currentUserId = this.userId
+        Log.d("FirestoreDebug", "EventoRepository: Tentando iniciar listener. UID: $currentUserId")
+        if (currentUserId == null) {
+            Log.w("FirestoreDebug", "EventoRepository: UID nulo, listener não iniciado.")
+            return
+        }
         if (eventosListener != null) return
 
-        val eventosCollection = firestore.collection("users").document(userId).collection("eventos")
+        val eventosCollection = firestore.collection("users").document(currentUserId).collection("eventos")
         eventosListener = eventosCollection.addSnapshotListener { snapshots, e ->
             if (e != null) {
                 Log.w("Firestore", "Erro ao escutar por mudanças nos eventos.", e)
@@ -59,7 +64,13 @@ class EventoRepository @Inject constructor(
     }
 
     suspend fun syncEventos() = withContext(dispatcher) {
-        val currentUserId = userId ?: return@withContext
+        val currentUserId = userId
+        Log.d("FirestoreDebug", "EventoRepository: Tentando sincronizar eventos. UID: $currentUserId")
+        if (currentUserId == null) {
+            Log.w("FirestoreDebug", "EventoRepository: UID nulo, sincronização não realizada.")
+            return@withContext
+        }
+
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection("eventos")
             val localEventosMap = itemCronogramaDao.getAllSync().associateBy { it.id }
