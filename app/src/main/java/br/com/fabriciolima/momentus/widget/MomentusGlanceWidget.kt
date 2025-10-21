@@ -50,7 +50,7 @@ import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
-import br.com.fabriciolima.momentus.ui.screens.CalendarActivity
+import br.com.fabriciolima.momentus.ui.screens.LoginActivity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -196,9 +196,9 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 colorFilter = ColorFilter.tint(primaryTextColor),
                 modifier = GlanceModifier.size(36.dp).clickable(
                     actionStartActivity(
-                        Intent(context, CalendarActivity::class.java).apply {
+                        Intent(context, LoginActivity::class.java).apply {
                             putExtra(OPEN_NEW_EVENT_DIALOG_KEY, true)
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
                     )
                 ).padding(8.dp)
@@ -232,9 +232,9 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .clickable(
                     actionStartActivity(
-                        Intent(context, CalendarActivity::class.java).apply {
+                        Intent(context, LoginActivity::class.java).apply {
                             putExtra(EVENT_ID_KEY, event.id)
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
                     )
                 ),

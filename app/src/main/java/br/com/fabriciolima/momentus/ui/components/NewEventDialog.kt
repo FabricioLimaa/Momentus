@@ -56,7 +56,7 @@ import br.com.fabriciolima.momentus.ui.theme.TimePickerDialog
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,7 +73,7 @@ fun NewEventDialog(
 
     var titulo by remember { mutableStateOf(eventoParaEditar?.titulo ?: "") }
     var descricao by remember { mutableStateOf(eventoParaEditar?.descricao ?: "") }
-    var dataSelecionada by remember { mutableStateOf(eventoParaEditar?.data?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() } ?: selectedDate) }
+    var dataSelecionada by remember { mutableStateOf(eventoParaEditar?.data?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() } ?: selectedDate) }
     var horarioInicio by remember { mutableStateOf(eventoParaEditar?.horarioInicio ?: LocalTime.now().withMinute(0).withSecond(0)) }
     var horarioTermino by remember { mutableStateOf(eventoParaEditar?.horarioTermino ?: LocalTime.now().withMinute(0).withSecond(0).plusHours(1)) }
     var selectedRotina by remember { mutableStateOf<Rotina?>(null) }
@@ -100,13 +100,13 @@ fun NewEventDialog(
     }
 
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dataSelecionada.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dataSelecionada.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        dataSelecionada = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                        dataSelecionada = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
                 }) { Text("OK") }

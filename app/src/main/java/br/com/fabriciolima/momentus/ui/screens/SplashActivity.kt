@@ -48,8 +48,12 @@ class SplashActivity : ComponentActivity() {
             // Sincroniza todos os dados do usuário logado
             repository.syncAllDataToLocal()
             
-            // Navega para a tela principal
-            startActivity(Intent(this@SplashActivity, CalendarActivity::class.java))
+            // Navega para a tela principal, propagando a Intent original
+            val intent = Intent(this@SplashActivity, CalendarActivity::class.java).apply {
+                // Copia os extras (como EVENT_ID_KEY) da Intent que iniciou a SplashActivity
+                this@SplashActivity.intent.extras?.let { putExtras(it) }
+            }
+            startActivity(intent)
             finish() // Finaliza a SplashActivity para que o usuário não possa voltar para ela
         }
     }

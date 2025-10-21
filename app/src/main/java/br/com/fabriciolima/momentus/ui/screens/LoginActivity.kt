@@ -127,7 +127,11 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun navigateToLoadingScreen() {
-        val intent = Intent(this, SplashActivity::class.java)
+        // Propaga a Intent original para a próxima tela
+        val intent = Intent(this, SplashActivity::class.java).apply {
+            // Copia os extras (como EVENT_ID_KEY) da Intent que iniciou a LoginActivity
+            this@LoginActivity.intent.extras?.let { putExtras(it) }
+        }
         startActivity(intent)
         finish()
     }

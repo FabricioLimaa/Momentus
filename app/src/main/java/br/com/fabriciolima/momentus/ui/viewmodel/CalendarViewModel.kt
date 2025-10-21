@@ -30,6 +30,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import javax.inject.Inject
 
 sealed interface DialogState {
@@ -88,11 +89,11 @@ class CalendarViewModel @Inject constructor(
         _selectedDate
     ) { state, date ->
         val localEvents = state.allScheduleItems.filter {
-            it.data != null && Instant.ofEpochMilli(it.data).atZone(ZoneId.systemDefault()).toLocalDate() == date
+            it.data != null && Instant.ofEpochMilli(it.data).atZone(ZoneOffset.UTC).toLocalDate() == date
         }
         val googleEvents = state.googleCalendarEvents.filter { event ->
             val instant = Instant.ofEpochMilli(event.start.value)
-            instant.atZone(ZoneId.systemDefault()).toLocalDate() == date
+            instant.atZone(ZoneOffset.UTC).toLocalDate() == date
         }
         EventsForDate(localEvents, googleEvents)
     }.stateIn(
@@ -193,7 +194,7 @@ class CalendarViewModel @Inject constructor(
             val event = eventoRepository.getItemCronograma(eventId)
             if (event != null) {
                 if (event.data != null) {
-                    val eventDate = Instant.ofEpochMilli(event.data!!).atZone(ZoneId.systemDefault()).toLocalDate()
+                    val eventDate = Instant.ofEpochMilli(event.data!!).atZone(ZoneOffset.UTC).toLocalDate()
                     selectDate(eventDate)
                 }
                 _uiState.update { currentState ->
@@ -237,7 +238,7 @@ class CalendarViewModel @Inject constructor(
                 val novoItem = ItemCronograma(
                     titulo = titulo,
                     descricao = descricao,
-                    data = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    data = data.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
                     diaDaSemana = null,
                     horarioInicio = horarioInicio,
                     horarioTermino = horarioTermino,
@@ -276,7 +277,7 @@ class CalendarViewModel @Inject constructor(
                 val itemAtualizado = item.copy(
                     titulo = novoTitulo,
                     descricao = novaDescricao,
-                    data = novaData.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    data = novaData.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
                     horarioInicio = novoHorarioInicio,
                     horarioTermino = novoHorarioTermino,
                     rotinaId = novaRotina.id
