@@ -28,6 +28,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <activity
+            android:name=".ui.screens.SplashActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Momentus" />
 
         <activity android:name=".ui.screens.MainActivity" android:exported="false" />
         <activity android:name=".ui.screens.CalendarActivity" android:exported="false" />

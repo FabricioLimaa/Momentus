@@ -35,9 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
 import br.com.fabriciolima.momentus.R
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -48,14 +46,10 @@ import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
-
-    @Inject
-    lateinit var repository: RotinaRepository
 
     private lateinit var googleSignInClient: GoogleSignInClient
     private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
@@ -96,9 +90,9 @@ class LoginActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        // Verifique o usuário do Firebase, não do Google Sign-In
+        // Se o usuário já estiver logado, pule para a tela de carregamento/sincronização
         if (firebaseAuth.currentUser != null) {
-            navigateToCalendar()
+            navigateToLoadingScreen()
         }
     }
 
@@ -122,9 +116,8 @@ class LoginActivity : ComponentActivity() {
         val credential = GoogleAuthProvider.getCredential(account.idToken!!, null)
         firebaseAuth.signInWithCredential(credential)
             .addOnSuccessListener {
-                // SUCESSO: O usuário do Firebase agora está disponível
                 Log.d("LoginActivity", "Firebase Auth SUCESSO. UID: ${it.user?.uid}")
-                navigateToCalendar()
+                navigateToLoadingScreen()
             }
             .addOnFailureListener { e ->
                 _isSigningIn.value = false
@@ -133,13 +126,10 @@ class LoginActivity : ComponentActivity() {
             }
     }
 
-    private fun navigateToCalendar() {
-        lifecycleScope.launch {
-            repository.syncAllDataToLocal()
-            val intent = Intent(this@LoginActivity, CalendarActivity::class.java)
-            startActivity(intent)
-            finish()
-        }
+    private fun navigateToLoadingScreen() {
+        val intent = Intent(this, SplashActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 }
 
