@@ -1,6 +1,6 @@
 # Momentus 🚀
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
 [![Kotlin Version](https://img.shields.io/badge/Kotlin-1.9.0-blue.svg)](https://kotlinlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)]()
 
@@ -130,7 +130,7 @@ Para executar uma cópia local deste projeto, siga estes passos.
 
 ## 📄 Licença
 
-Distribuído sob a licença MIT. Veja `LICENSE.txt` para mais informações.
+Este projeto é licenciado sob uma licença proprietária. Todos os direitos são reservados. Veja `LICENSE.txt` para mais informações.
 
 ---
 
