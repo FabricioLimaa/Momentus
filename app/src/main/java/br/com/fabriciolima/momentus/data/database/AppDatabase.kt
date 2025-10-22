@@ -11,8 +11,8 @@ import br.com.fabriciolima.momentus.data.model.Template
 
 @Database(
     entities = [Rotina::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class],
-    version = 3, // ATUALIZADO
-    exportSchema = false // Adicionado para resolver o erro de compilação do KSP
+    version = 5, // ATUALIZADO
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

@@ -3,8 +3,6 @@ package br.com.fabriciolima.momentus.data.model
 import androidx.annotation.Keep
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.firebase.firestore.Exclude
@@ -16,20 +14,8 @@ import java.util.Date
 @Keep
 @Entity(
     tableName = "tabela_itens_cronograma",
-    foreignKeys = [
-        ForeignKey(
-            entity = Rotina::class,
-            parentColumns = ["id"],
-            childColumns = ["rotinaId"],
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = Template::class,
-            parentColumns = ["id"],
-            childColumns = ["templateId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
+    // Foreign Keys removidas para evitar crashes de sincronização com o Firestore.
+    // A integridade dos dados será garantida pela camada da UI/ViewModel.
     indices = [Index(value = ["rotinaId"]), Index(value = ["templateId"])]
 )
 data class ItemCronograma(
