@@ -74,6 +74,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
@@ -394,11 +395,30 @@ fun CreateTemplateDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
-            Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
-                Text(if(isEditMode) "Editar Template" else "Criar Template de Rotina", style = MaterialTheme.typography.titleLarge)
-                Text(if(isEditMode) "Ajuste os detalhes do seu template" else "Defina uma rotina com múltiplos eventos", style = MaterialTheme.typography.bodySmall)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(vertical = 48.dp, horizontal = 16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                        Text(if(isEditMode) "Editar Template" else "Criar Template de Rotina", style = MaterialTheme.typography.titleLarge)
+                        Text(if(isEditMode) "Ajuste os detalhes do seu template" else "Defina uma rotina com múltiplos eventos", style = MaterialTheme.typography.bodySmall)
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Fechar")
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
@@ -411,33 +431,38 @@ fun CreateTemplateDialog(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Eventos da Rotina", style = MaterialTheme.typography.titleMedium)
-                
-                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                    itemsIndexed(eventForms) { index, eventData ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Evento ${index + 1}", style = MaterialTheme.typography.labelMedium)
-                        EventTemplateForm(
-                            eventData = eventData,
-                            rotinas = rotinas,
-                            onDataChange = { updatedData ->
-                                eventForms = eventForms.toMutableList().also { it[index] = updatedData }
+                // Usar um Column com peso para que ele ocupe o espaço disponível e a lista possa rolar.
+                Column(modifier = Modifier.weight(1f)) {
+                    LazyColumn() {
+                        item {
+                            Text("Eventos da Rotina", style = MaterialTheme.typography.titleMedium)
+                        }
+                        itemsIndexed(eventForms) { index, eventData ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Evento ${index + 1}", style = MaterialTheme.typography.labelMedium)
+                            EventTemplateForm(
+                                eventData = eventData,
+                                rotinas = rotinas,
+                                onDataChange = { updatedData ->
+                                    eventForms = eventForms.toMutableList().also { it[index] = updatedData }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (index < eventForms.lastIndex) {
+                                Divider()
                             }
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        if(index < eventForms.lastIndex) {
-                            Divider()
+                        }
+                        item {
+                            TextButton(
+                                onClick = { eventForms = eventForms + EventFormData() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Adicionar Evento ao Template")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Adicionar Evento")
+                            }
                         }
                     }
-                }
-
-                TextButton(
-                    onClick = { eventForms = eventForms + EventFormData() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Adicionar Evento ao Template")
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Adicionar Evento")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
