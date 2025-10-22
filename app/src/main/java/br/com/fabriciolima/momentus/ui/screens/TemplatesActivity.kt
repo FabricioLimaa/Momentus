@@ -41,6 +41,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -253,7 +254,7 @@ fun TemplatesScreen(
             }
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (uiState.templates.isEmpty()) {
+            if (uiState.templates.isEmpty() && !uiState.isSyncing) {
                 Column(
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -276,6 +277,7 @@ fun TemplatesScreen(
                         TemplateCard(
                             templateComEventos = templateComEventos,
                             rotinasMap = uiState.rotinasMap,
+                            isSyncing = uiState.isSyncing,
                             onEditClick = { onShowEditDialog(templateComEventos) },
                             onDeleteClick = { onShowDeleteDialog(templateComEventos) },
                             onApplyClick = { onShowApplyDialog(templateComEventos) }
@@ -291,6 +293,7 @@ fun TemplatesScreen(
 fun TemplateCard(
     templateComEventos: TemplateComEventos, 
     rotinasMap: Map<String, Rotina>,
+    isSyncing: Boolean,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onApplyClick: () -> Unit
@@ -304,7 +307,15 @@ fun TemplateCard(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = templateComEventos.template.nome, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(text = "${templateComEventos.eventos.size} eventos", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (isSyncing) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sincronizando...", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    } else {
+                        Text(text = "${templateComEventos.eventos.size} eventos", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 Row {
                     IconButton(onClick = onApplyClick) {
@@ -319,12 +330,14 @@ fun TemplateCard(
                 }
             }
             
-            Divider(modifier = Modifier.padding(vertical = 12.dp))
+            if (!isSyncing) {
+                Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                templateComEventos.eventos.sortedBy { it.horarioInicio }.forEach { evento ->
-                    rotinasMap[evento.rotinaId]?.let { rotina ->
-                        TemplateEventItem(item = evento, rotina = rotina)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    templateComEventos.eventos.sortedBy { it.horarioInicio }.forEach { evento ->
+                        rotinasMap[evento.rotinaId]?.let { rotina ->
+                            TemplateEventItem(item = evento, rotina = rotina)
+                        }
                     }
                 }
             }

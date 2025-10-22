@@ -36,6 +36,7 @@ data class TemplateUiState(
     val rotinasMap: Map<String, Rotina> = emptyMap(),
     val dialogState: TemplateDialogState = TemplateDialogState.Hidden,
     val isLoading: Boolean = false,
+    val isSyncing: Boolean = true, // Novo estado para o indicador
     val error: String? = null
 )
 
@@ -51,6 +52,7 @@ class TemplateViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
             combine(
                 templateRepository.todosOsTemplatesComEventos,
                 rotinaRepository.getTodasAsRotinas()
@@ -61,7 +63,8 @@ class TemplateViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         templates = templates,
-                        rotinasMap = rotinasMap
+                        rotinasMap = rotinasMap,
+                        isSyncing = false // Desativa o indicador quando os dados chegam
                     )
                 }
             }
