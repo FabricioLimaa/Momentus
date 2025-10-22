@@ -41,9 +41,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +57,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -326,6 +328,17 @@ fun CreateTemplateDialog(
     var templateName by remember { mutableStateOf("") }
     var eventForms by remember { mutableStateOf(listOf(EventFormData())) }
 
+    val isFormValid by remember(templateName, eventForms) {
+        derivedStateOf {
+            templateName.isNotBlank() && eventForms.isNotEmpty() && eventForms.all {
+                it.titulo.isNotBlank() &&
+                it.selectedRotina != null &&
+                !it.horarioTermino.isBefore(it.horarioInicio) &&
+                it.horarioTermino != it.horarioInicio
+            }
+        }
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
@@ -338,7 +351,8 @@ fun CreateTemplateDialog(
                     onValueChange = { templateName = it },
                     label = { Text("Nome do Template") },
                     placeholder = { Text("ex: Dia de trabalho, Fim de semana") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = templateName.isBlank()
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -382,7 +396,10 @@ fun CreateTemplateDialog(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Cancelar") 
                     }
-                    Button(onClick = { onConfirm(templateName, eventForms) }) {
+                    Button(
+                        onClick = { onConfirm(templateName, eventForms) },
+                        enabled = isFormValid
+                    ) {
                         Icon(Icons.Default.Check, contentDescription = "Criar Template")
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Criar Template")
@@ -405,12 +422,21 @@ fun EventTemplateForm(
     var showEndTimePicker by remember { mutableStateOf(false) }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
 
+    val isTimeInvalid by remember(eventData.horarioInicio, eventData.horarioTermino) {
+        derivedStateOf {
+            eventData.horarioTermino.isBefore(eventData.horarioInicio) || eventData.horarioTermino == eventData.horarioInicio
+        }
+    }
+
     if (showStartTimePicker) {
         TimePickerDialog(
             title = "Hora de Início",
             initialTime = eventData.horarioInicio,
             onDismissRequest = { showStartTimePicker = false },
-            onConfirm = { onDataChange(eventData.copy(horarioInicio = it)) }
+            onConfirm = { 
+                onDataChange(eventData.copy(horarioInicio = it))
+                showStartTimePicker = false 
+            }
         )
     }
 
@@ -419,7 +445,10 @@ fun EventTemplateForm(
             title = "Hora de Término",
             initialTime = eventData.horarioTermino,
             onDismissRequest = { showEndTimePicker = false },
-            onConfirm = { onDataChange(eventData.copy(horarioTermino = it)) }
+            onConfirm = { 
+                onDataChange(eventData.copy(horarioTermino = it))
+                showEndTimePicker = false
+            }
         )
     }
 
@@ -428,7 +457,8 @@ fun EventTemplateForm(
             value = eventData.titulo,
             onValueChange = { onDataChange(eventData.copy(titulo = it)) },
             label = { Text("Título") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = eventData.titulo.isBlank()
         )
         OutlinedTextField(
             value = eventData.descricao,
@@ -438,43 +468,86 @@ fun EventTemplateForm(
         )
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = eventData.horarioInicio.format(timeFormatter),
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Início") },
-                modifier = Modifier.weight(1f).clickable { showStartTimePicker = true },
-                trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") }
-            )
-            OutlinedTextField(
-                value = eventData.horarioTermino.format(timeFormatter),
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Término") },
-                modifier = Modifier.weight(1f).clickable { showEndTimePicker = true },
-                trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") }
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = eventData.horarioInicio.format(timeFormatter),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Início") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") },
+                    isError = isTimeInvalid
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showStartTimePicker = true }
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = eventData.horarioTermino.format(timeFormatter),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Término") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") },
+                    isError = isTimeInvalid
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showEndTimePicker = true }
+                )
+            }
+        }
+
+        if (isTimeInvalid) {
+            Text(
+                text = "O horário de término deve ser depois do início",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
             )
         }
 
-        Box {
+        ExposedDropdownMenuBox(
+            expanded = showDropdown,
+            onExpandedChange = { showDropdown = !showDropdown },
+        ) {
             OutlinedTextField(
-                value = eventData.selectedRotina?.nome ?: "Selecione uma categoria",
-                onValueChange = { },
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
                 readOnly = true,
+                value = eventData.selectedRotina?.nome ?: "",
+                onValueChange = {},
                 label = { Text("Categoria") },
-                modifier = Modifier.fillMaxWidth().clickable { showDropdown = true },
+                isError = eventData.selectedRotina == null,
                 leadingIcon = {
                     eventData.selectedRotina?.cor?.let {
                         val color = try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { Color.Gray }
                         Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                     }
-                }
+                },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
             )
-            DropdownMenu(expanded = showDropdown, onDismissRequest = { showDropdown = false }, modifier = Modifier.fillMaxWidth()) {
+            ExposedDropdownMenu(
+                expanded = showDropdown,
+                onDismissRequest = { showDropdown = false },
+            ) {
                 rotinas.forEach { rotina ->
+                    val isSelected = rotina == eventData.selectedRotina
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.width(24.dp)) {
+                                    if (isSelected) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = "Selecionado",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
                                 val color = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
                                 Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -484,7 +557,8 @@ fun EventTemplateForm(
                         onClick = {
                             onDataChange(eventData.copy(selectedRotina = rotina))
                             showDropdown = false
-                        }
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                     )
                 }
             }
