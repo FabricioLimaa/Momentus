@@ -25,4 +25,3 @@ gradlew.bat
 .gitignore
 proguard-rules.pro
 libs.versions.toml
-screenshots/
