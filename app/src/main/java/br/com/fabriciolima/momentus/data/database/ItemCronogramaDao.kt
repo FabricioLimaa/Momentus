@@ -8,24 +8,8 @@ import androidx.room.Query
 import androidx.room.Update
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import kotlinx.coroutines.flow.Flow
-import java.time.LocalTime
+import java.time.LocalDate
 
-/**
- * Classe de dados para transportar informações de eventos para o widget.
- * Combina dados do ItemCronograma e da Rotina.
- */
-data class WidgetEventItem(
-    val id: String,
-    val titulo: String,
-    val horarioInicio: LocalTime,
-    val horarioTermino: LocalTime,
-    val nomeRotina: String,
-    val corRotina: String?
-)
-
-/**
- * DAO para a entidade ItemCronograma.
- */
 @Dao
 interface ItemCronogramaDao {
 
@@ -41,62 +25,48 @@ interface ItemCronogramaDao {
     @Delete
     suspend fun delete(item: ItemCronograma)
 
-    @Query("DELETE FROM tabela_itens_cronograma")
-    suspend fun clear()
-
-    @Query("SELECT * FROM tabela_itens_cronograma")
+    @Query("SELECT * FROM tabela_itens_cronograma ORDER BY horarioInicio ASC")
     fun getAllItems(): Flow<List<ItemCronograma>>
 
     @Query("SELECT * FROM tabela_itens_cronograma")
     fun getAllSync(): List<ItemCronograma>
 
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE diaDaSemana = :dayOfWeek")
+    fun getItemsByDayOfWeek(dayOfWeek: String): Flow<List<ItemCronograma>>
+
     @Query("SELECT * FROM tabela_itens_cronograma WHERE id = :itemId")
     suspend fun getItemById(itemId: String): ItemCronograma?
 
-    @Query("SELECT * FROM tabela_itens_cronograma WHERE diaDaSemana = :dia")
-    fun getItemsByDayOfWeek(dia: String): Flow<List<ItemCronograma>>
+    @Query("DELETE FROM tabela_itens_cronograma WHERE templateId = :templateId")
+    suspend fun deleteByTemplateId(templateId: String)
 
-    /**
-     * Busca de forma SÍNCRONA todos os itens que são de uma data específica OU de um dia da semana recorrente,
-     * E que pertencem a uma das rotinas permitidas.
-     */
-    @Query("""
-        SELECT * FROM tabela_itens_cronograma 
-        WHERE 
-            (
-                (data / 86400000) = :epochDay 
-                OR 
-                (diaDaSemana = :dayOfWeekName AND data IS NULL)
-            )
-            AND rotinaId IN (:allowedRotinaIds)
-    """)
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE data = :date OR diaDaSemana = :dayOfWeekName")
+    fun getWidgetEventItemsRaw(date: Long, dayOfWeekName: String): List<ItemCronograma>
+
+    @Query(
+        "SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, r.nome as nomeRotina, r.cor as corRotina " +
+        "FROM tabela_itens_cronograma tic " +
+        "JOIN tabela_rotinas r ON tic.rotinaId = r.id " +
+        "WHERE (tic.data = :epochDay OR tic.diaDaSemana = :dayOfWeekName) AND tic.rotinaId IN (:allowedRotinaIds)"
+    )
+    fun getWidgetEventItems(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem>
+
+    @Query(
+        "SELECT * FROM tabela_itens_cronograma " +
+        "WHERE (data = :epochDay OR diaDaSemana = :dayOfWeekName) AND rotinaId IN (:allowedRotinaIds)"
+    )
     fun getForWidget(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<ItemCronograma>
 
-
-    /**
-     * NOVA CONSULTA OTIMIZADA PARA O WIDGET.
-     * Busca e une os dados do evento e da rotina em uma única chamada.
-     */
-    @Query("""
-        SELECT
-            i.id,
-            i.titulo,
-            i.horarioInicio,
-            i.horarioTermino,
-            r.nome AS nomeRotina,
-            r.cor AS corRotina
-        FROM
-            tabela_itens_cronograma AS i
-        INNER JOIN
-            tabela_rotinas AS r ON i.rotinaId = r.id
-        WHERE
-            (
-                (i.data / 86400000) = :epochDay
-                OR
-                (i.diaDaSemana = :dayOfWeekName AND i.data IS NULL)
-            )
-            AND i.rotinaId IN (:allowedRotinaIds)
-        ORDER BY i.horarioInicio ASC
-    """)
-    fun getWidgetEventItems(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem>
+    @Query("DELETE FROM tabela_itens_cronograma")
+    suspend fun clear()
 }
+
+data class WidgetEventItem(
+    val id: String,
+    val titulo: String,
+    val horarioInicio: String,
+    val horarioTermino: String,
+    val descricao: String?,
+    val nomeRotina: String,
+    val corRotina: String
+)

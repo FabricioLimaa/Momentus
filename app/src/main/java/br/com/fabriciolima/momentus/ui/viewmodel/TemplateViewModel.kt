@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
-import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
@@ -14,22 +13,20 @@ import br.com.fabriciolima.momentus.ui.components.EventFormData
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
 
 sealed interface TemplateDialogState {
     object Hidden : TemplateDialogState
     object CreateNew : TemplateDialogState
+    data class Edit(val template: TemplateComEventos) : TemplateDialogState
     data class ConfirmDelete(val template: TemplateComEventos) : TemplateDialogState
     data class ApplyTemplate(val template: TemplateComEventos) : TemplateDialogState
 }
@@ -37,14 +34,15 @@ sealed interface TemplateDialogState {
 data class TemplateUiState(
     val templates: List<TemplateComEventos> = emptyList(),
     val rotinasMap: Map<String, Rotina> = emptyMap(),
-    val error: String? = null,
-    val dialogState: TemplateDialogState = TemplateDialogState.Hidden
+    val dialogState: TemplateDialogState = TemplateDialogState.Hidden,
+    val isLoading: Boolean = false,
+    val error: String? = null
 )
 
 @HiltViewModel
 class TemplateViewModel @Inject constructor(
-    private val repository: RotinaRepository,
     private val templateRepository: TemplateRepository,
+    private val rotinaRepository: RotinaRepository,
     private val eventoRepository: EventoRepository
 ) : ViewModel() {
 
@@ -55,13 +53,13 @@ class TemplateViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 templateRepository.todosOsTemplatesComEventos,
-                repository.todasAsRotinasComMetas
-            ) { templates: List<TemplateComEventos>, rotinasComMetas: List<RotinaComMeta> ->
-                val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
-                Pair(templates, rotinasMap)
+                rotinaRepository.getTodasAsRotinas()
+            ) { templates, rotinas ->
+                val rotinasMap = rotinas.associateBy { it.id }
+                templates to rotinasMap
             }.collect { (templates, rotinasMap) ->
-                _uiState.update { currentState ->
-                    currentState.copy(
+                _uiState.update {
+                    it.copy(
                         templates = templates,
                         rotinasMap = rotinasMap
                     )
@@ -71,95 +69,107 @@ class TemplateViewModel @Inject constructor(
     }
 
     fun onShowCreateDialog() {
-        _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.CreateNew)
+        _uiState.update { it.copy(dialogState = TemplateDialogState.CreateNew) }
+    }
+
+    fun onShowEditDialog(template: TemplateComEventos) {
+        _uiState.update { it.copy(dialogState = TemplateDialogState.Edit(template)) }
     }
 
     fun onShowDeleteDialog(template: TemplateComEventos) {
-        _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.ConfirmDelete(template))
+        _uiState.update { it.copy(dialogState = TemplateDialogState.ConfirmDelete(template)) }
     }
 
     fun onShowApplyDialog(template: TemplateComEventos) {
-        _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.ApplyTemplate(template))
+        _uiState.update { it.copy(dialogState = TemplateDialogState.ApplyTemplate(template)) }
     }
 
     fun onDialogDismiss() {
-        _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
+        _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
     }
 
-    fun salvarTemplateCompleto(nomeTemplate: String, eventosData: List<EventFormData>, onResult: (Result<Unit>) -> Unit) {
+    fun salvarTemplateCompleto(
+        templateId: String?,
+        nomeTemplate: String,
+        eventosForm: List<EventFormData>,
+        onResult: (Result<Unit>) -> Unit
+    ) {
         viewModelScope.launch {
-            if (nomeTemplate.isBlank()) {
-                onResult(Result.Error(Exception("O nome do template não pode estar vazio.")))
-                return@launch
-            }
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val novoTemplate = Template(id = UUID.randomUUID().toString(), nome = nomeTemplate)
-                templateRepository.insertTemplate(novoTemplate)
-
-                val novosItens = eventosData.mapNotNull { formData ->
-                    formData.selectedRotina?.let {
-                        ItemCronograma(
-                            titulo = formData.titulo,
-                            descricao = formData.descricao,
-                            horarioInicio = formData.horarioInicio,
-                            horarioTermino = formData.horarioTermino,
-                            rotinaId = it.id,
-                            templateId = novoTemplate.id,
-                            diaDaSemana = null,
-                            data = null
-                        )
-                    }
+                val id = templateId ?: UUID.randomUUID().toString()
+                val template = Template(id, nomeTemplate)
+                val eventos = eventosForm.map {
+                    ItemCronograma(
+                        titulo = it.titulo,
+                        descricao = it.descricao,
+                        horarioInicio = it.horarioInicio,
+                        horarioTermino = it.horarioTermino,
+                        rotinaId = it.selectedRotina!!.id,
+                        templateId = id
+                    )
                 }
-                novosItens.forEach { eventoRepository.insertItemCronograma(it) }
-                _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
+
+                if (templateId != null) {
+                    eventoRepository.deleteEventsByTemplateId(templateId)
+                }
+                templateRepository.insertTemplate(template)
+                eventoRepository.insertAll(eventos)
+
                 onResult(Result.Success(Unit))
+                _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
             } catch (e: Exception) {
                 onResult(Result.Error(e))
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
 
-    fun deleteTemplate(templateId: String) {
+    fun deleteTemplate(template: Template) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val templateToDelete = _uiState.value.templates.find { it.template.id == templateId }?.template ?: return@launch
-                templateRepository.deleteTemplate(templateToDelete)
-                _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
+                eventoRepository.deleteEventsByTemplateId(template.id)
+                templateRepository.deleteTemplate(template)
+                _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = "Falha ao deletar o template.")
+                _uiState.update { it.copy(error = e.message) }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
 
     fun applyTemplateToDates(templateId: String, dates: List<LocalDate>) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val templateWithEvents = templateRepository.todosOsTemplatesComEventos.first()
-                    .find { it.template.id == templateId }
-
-                if (templateWithEvents == null) {
-                    _uiState.value = _uiState.value.copy(error = "Template não encontrado.")
-                    return@launch
-                }
-
-                val newEvents = dates.flatMap { date ->
-                    templateWithEvents.eventos.map { templateEvent ->
-                        templateEvent.copy(
-                            id = UUID.randomUUID().toString(),
-                            data = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                            templateId = null
-                        )
+                val templateComEventos = templateRepository.todosOsTemplatesComEventos.first().find { it.template.id == templateId }
+                if (templateComEventos != null) {
+                    val novosEventos = mutableListOf<ItemCronograma>()
+                    dates.forEach { date ->
+                        templateComEventos.eventos.forEach { eventoTemplate ->
+                            val novoEvento = eventoTemplate.copy(
+                                id = UUID.randomUUID().toString(),
+                                data = date.atStartOfDay().toInstant(java.time.ZoneOffset.UTC).toEpochMilli(),
+                                templateId = null
+                            )
+                            novosEventos.add(novoEvento)
+                        }
                     }
+                    eventoRepository.insertAll(novosEventos)
+                    _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
                 }
-                newEvents.forEach { eventoRepository.insertItemCronograma(it) }
-                _uiState.value = _uiState.value.copy(dialogState = TemplateDialogState.Hidden)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = "Falha ao aplicar o template.")
+                _uiState.update { it.copy(error = e.message) }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
 
     fun onErrorShown() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.update { it.copy(error = null) }
     }
 }

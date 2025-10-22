@@ -1,14 +1,25 @@
 package br.com.fabriciolima.momentus.ui.components
 
+import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import java.time.LocalTime
-import java.util.UUID
 
 data class EventFormData(
-    val id: UUID = UUID.randomUUID(),
-    var titulo: String = "",
-    var descricao: String = "",
-    var selectedRotina: Rotina? = null,
-    var horarioInicio: LocalTime = LocalTime.of(9, 0),
-    var horarioTermino: LocalTime = LocalTime.of(10, 0)
-)
+    val titulo: String = "",
+    val descricao: String = "",
+    val horarioInicio: LocalTime = LocalTime.now().withSecond(0).withNano(0),
+    val horarioTermino: LocalTime = LocalTime.now().withSecond(0).withNano(0).plusHours(1),
+    val selectedRotina: Rotina? = null
+) {
+    companion object {
+        fun fromItemCronograma(item: ItemCronograma, rotinas: List<Rotina>): EventFormData {
+            return EventFormData(
+                titulo = item.titulo,
+                descricao = item.descricao ?: "",
+                horarioInicio = item.horarioInicio,
+                horarioTermino = item.horarioTermino,
+                selectedRotina = rotinas.find { it.id == item.rotinaId }
+            )
+        }
+    }
+}

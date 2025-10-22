@@ -130,6 +130,10 @@ class EventoRepository @Inject constructor(
                 .addOnFailureListener { e -> Log.w("Firestore", "Erro ao salvar evento na nuvem", e) }
         }
     }
+    
+    suspend fun insertAll(items: List<ItemCronograma>) {
+        itemCronogramaDao.insertAll(items)
+    }
 
     suspend fun updateItensCronograma(items: List<ItemCronograma>) {
         itemCronogramaDao.updateAll(items)
@@ -158,6 +162,10 @@ class EventoRepository @Inject constructor(
         } catch (e: Exception) {
             Result.Error(Exception("Falha ao excluir evento.", e))
         }
+    }
+
+    suspend fun deleteEventsByTemplateId(templateId: String) {
+        itemCronogramaDao.deleteByTemplateId(templateId)
     }
 
     fun getItensParaWidget(data: LocalDate, allowedRotinaIds: Set<String>): List<ItemCronograma> {

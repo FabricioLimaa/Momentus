@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Warning
@@ -75,6 +76,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.ui.components.ApplyTemplateDialog
 import br.com.fabriciolima.momentus.ui.components.EventFormData
@@ -105,6 +107,7 @@ class TemplatesActivity : ComponentActivity() {
                     uiState = uiState,
                     onNavigateUp = { finish() },
                     onShowCreateDialog = viewModel::onShowCreateDialog,
+                    onShowEditDialog = viewModel::onShowEditDialog,
                     onShowDeleteDialog = viewModel::onShowDeleteDialog,
                     onShowApplyDialog = viewModel::onShowApplyDialog,
                     onDialogDismiss = viewModel::onDialogDismiss,
@@ -124,11 +127,12 @@ fun TemplatesScreen(
     uiState: TemplateUiState,
     onNavigateUp: () -> Unit,
     onShowCreateDialog: () -> Unit,
+    onShowEditDialog: (TemplateComEventos) -> Unit,
     onShowDeleteDialog: (TemplateComEventos) -> Unit,
     onShowApplyDialog: (TemplateComEventos) -> Unit,
     onDialogDismiss: () -> Unit,
-    onSaveTemplate: (String, List<EventFormData>, (Result<Unit>) -> Unit) -> Unit,
-    onDeleteTemplate: (String) -> Unit,
+    onSaveTemplate: (String?, String, List<EventFormData>, (Result<Unit>) -> Unit) -> Unit,
+    onDeleteTemplate: (Template) -> Unit,
     onApplyTemplate: (String, List<LocalDate>) -> Unit,
     onErrorShown: () -> Unit
 ) {
@@ -148,12 +152,33 @@ fun TemplatesScreen(
             CreateTemplateDialog(
                 rotinas = uiState.rotinasMap.values.toList(),
                 onDismiss = onDialogDismiss,
-                onConfirm = { name, events ->
-                    onSaveTemplate(name, events) { result ->
+                onConfirm = { id, name, events ->
+                    onSaveTemplate(id, name, events) { result ->
                         when (result) {
                             is Result.Success -> {
                                 scope.launch {
                                     snackbarHostState.showSnackbar("Template salvo com sucesso!")
+                                }
+                            }
+                            is Result.Error -> {
+                                Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                }
+            )
+        }
+        is TemplateDialogState.Edit -> {
+            CreateTemplateDialog(
+                templateToEdit = dialogState.template,
+                rotinas = uiState.rotinasMap.values.toList(),
+                onDismiss = onDialogDismiss,
+                onConfirm = { id, name, events ->
+                    onSaveTemplate(id, name, events) { result ->
+                        when (result) {
+                            is Result.Success -> {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Template atualizado com sucesso!")
                                 }
                             }
                             is Result.Error -> {
@@ -171,7 +196,7 @@ fun TemplatesScreen(
                 title = { Text("Deletar Template") },
                 text = { Text("Você tem certeza que quer deletar o template \"${dialogState.template.template.nome}\"? Essa ação não pode ser desfeita.") },
                 confirmButton = {
-                    Button(onClick = { onDeleteTemplate(dialogState.template.template.id) }) { 
+                    Button(onClick = { onDeleteTemplate(dialogState.template.template) }) { 
                         Icon(Icons.Default.Delete, contentDescription = "Deletar")
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("DELETAR") 
@@ -204,7 +229,7 @@ fun TemplatesScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text("Templates de Rotina", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(
-                text = "Crie rotinas e aplique em múltiplos dias",
+                text = "Crie e edite suas rotinas para aplicar em vários dias",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -243,6 +268,7 @@ fun TemplatesScreen(
                         TemplateCard(
                             templateComEventos = templateComEventos,
                             rotinasMap = uiState.rotinasMap,
+                            onEditClick = { onShowEditDialog(templateComEventos) },
                             onDeleteClick = { onShowDeleteDialog(templateComEventos) },
                             onApplyClick = { onShowApplyDialog(templateComEventos) }
                         )
@@ -257,6 +283,7 @@ fun TemplatesScreen(
 fun TemplateCard(
     templateComEventos: TemplateComEventos, 
     rotinasMap: Map<String, Rotina>,
+    onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onApplyClick: () -> Unit
 ) {
@@ -267,13 +294,16 @@ fun TemplateCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(text = templateComEventos.template.nome, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(text = "${templateComEventos.eventos.size} eventos", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row {
-                     IconButton(onClick = onApplyClick) {
+                    IconButton(onClick = onApplyClick) {
                         Icon(Icons.Default.ContentCopy, contentDescription = "Aplicar Template", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = onEditClick) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar Template")
                     }
                     IconButton(onClick = onDeleteClick) {
                         Icon(Icons.Default.Delete, contentDescription = "Deletar Template", tint = MaterialTheme.colorScheme.error)
@@ -321,12 +351,16 @@ fun TemplateEventItem(item: ItemCronograma, rotina: Rotina) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTemplateDialog(
+    templateToEdit: TemplateComEventos? = null,
     rotinas: List<Rotina>,
     onDismiss: () -> Unit,
-    onConfirm: (String, List<EventFormData>) -> Unit
+    onConfirm: (id: String?, name: String, events: List<EventFormData>) -> Unit
 ) {
-    var templateName by remember { mutableStateOf("") }
-    var eventForms by remember { mutableStateOf(listOf(EventFormData())) }
+    val isEditMode = templateToEdit != null
+    var templateName by remember { mutableStateOf(templateToEdit?.template?.nome ?: "") }
+    var eventForms by remember { mutableStateOf(
+        templateToEdit?.eventos?.map { EventFormData.fromItemCronograma(it, rotinas) } ?: listOf(EventFormData())
+    ) }
 
     val isFormValid by remember(templateName, eventForms) {
         derivedStateOf {
@@ -342,8 +376,8 @@ fun CreateTemplateDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
-                Text("Criar Template de Rotina", style = MaterialTheme.typography.titleLarge)
-                Text("Defina uma rotina com múltiplos eventos", style = MaterialTheme.typography.bodySmall)
+                Text(if(isEditMode) "Editar Template" else "Criar Template de Rotina", style = MaterialTheme.typography.titleLarge)
+                Text(if(isEditMode) "Ajuste os detalhes do seu template" else "Defina uma rotina com múltiplos eventos", style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
@@ -397,12 +431,12 @@ fun CreateTemplateDialog(
                         Text("Cancelar") 
                     }
                     Button(
-                        onClick = { onConfirm(templateName, eventForms) },
+                        onClick = { onConfirm(templateToEdit?.template?.id, templateName, eventForms) },
                         enabled = isFormValid
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = "Criar Template")
+                        Icon(Icons.Default.Check, contentDescription = if(isEditMode) "Salvar Alterações" else "Criar Template")
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Criar Template")
+                        Text(if(isEditMode) "Salvar Alterações" else "Criar Template")
                     }
                 }
             }
