@@ -46,7 +46,7 @@ Você tem o direito de:
 - **Eliminar** seus dados pessoais tratados com seu consentimento.
 - **Obter informação** sobre as entidades com as quais o controlador realizou uso compartilhado de dados.
 
-Para exercer esses direitos ou para qualquer dúvida, entre em contato pelo e-mail: [SEU-EMAIL-DE-CONTATO@example.com]
+Para exercer esses direitos ou para qualquer dúvida, entre em contato pelo e-mail: [fabriciodacostalima@gmail.com]
 
 A maneira mais simples de excluir todos os seus dados é deletando sua conta no aplicativo, o que resultará na remoção de todas as suas informações de nossos sistemas.
 
@@ -103,7 +103,7 @@ Under LGPD and general data protection principles, you have the right to:
 - **Delete** your personal data processed with your consent.
 - **Obtain information** about the entities with which the controller has shared data.
 
-To exercise these rights or for any questions, please contact us at: [YOUR-CONTACT-EMAIL@example.com]
+To exercise these rights or for any questions, please contact us at: [fabriciodacostalima@gmail.com]
 
 The simplest way to delete all your data is by deleting your account within the app, which will result in the removal of all your information from our systems.
 
