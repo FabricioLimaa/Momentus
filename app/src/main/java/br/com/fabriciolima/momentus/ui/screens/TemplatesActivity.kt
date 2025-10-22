@@ -133,7 +133,7 @@ fun TemplatesScreen(
     onDialogDismiss: () -> Unit,
     onSaveTemplate: (String?, String, List<EventFormData>, (Result<Unit>) -> Unit) -> Unit,
     onDeleteTemplate: (Template) -> Unit,
-    onApplyTemplate: (String, List<LocalDate>) -> Unit,
+    onApplyTemplate: (String, List<LocalDate>, (Result<Unit>) -> Unit) -> Unit,
     onErrorShown: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -208,7 +208,15 @@ fun TemplatesScreen(
         is TemplateDialogState.ApplyTemplate -> {
             ApplyTemplateDialog(
                 onDismiss = onDialogDismiss,
-                onConfirm = { dates -> onApplyTemplate(dialogState.template.template.id, dates) }
+                onConfirm = { dates ->
+                    onApplyTemplate(dialogState.template.template.id, dates) { result ->
+                        if (result is Result.Success) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Template aplicado com sucesso!")
+                            }
+                        }
+                    }
+                }
             )
         }
         is TemplateDialogState.Hidden -> {}

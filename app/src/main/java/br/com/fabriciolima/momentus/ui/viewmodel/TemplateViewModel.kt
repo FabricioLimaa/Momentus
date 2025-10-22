@@ -141,7 +141,7 @@ class TemplateViewModel @Inject constructor(
         }
     }
 
-    fun applyTemplateToDates(templateId: String, dates: List<LocalDate>) {
+    fun applyTemplateToDates(templateId: String, dates: List<LocalDate>, onResult: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -160,9 +160,11 @@ class TemplateViewModel @Inject constructor(
                     }
                     eventoRepository.insertAll(novosEventos)
                     _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
+                    onResult(Result.Success(Unit))
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.message) }
+                onResult(Result.Error(e))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
