@@ -43,10 +43,10 @@ data class ItemCronograma(
     val diaDaSemana: String? = null, // Para eventos de template (SEG, TER, etc.)
 
     @get:Exclude @set:Exclude
-    var horarioInicio: LocalTime = LocalTime.now(),
+    var horarioInicio: LocalTime = LocalTime.of(0, 0),
 
     @get:Exclude @set:Exclude
-    var horarioTermino: LocalTime = LocalTime.now().plusHours(1),
+    var horarioTermino: LocalTime = LocalTime.of(0, 0),
 
     @ColumnInfo(defaultValue = "0")
     val ordem: Int = 0,
@@ -61,10 +61,10 @@ data class ItemCronograma(
 ) {
     // Propriedades para serialização do LocalTime no Firestore
     var horarioInicioString: String
-        @Exclude get() = horarioInicio.format(DateTimeFormatter.ISO_LOCAL_TIME)
+        get() = horarioInicio.format(DateTimeFormatter.ISO_LOCAL_TIME)
         set(value) { horarioInicio = LocalTime.parse(value, DateTimeFormatter.ISO_LOCAL_TIME) }
 
     var horarioTerminoString: String
-        @Exclude get() = horarioTermino.format(DateTimeFormatter.ISO_LOCAL_TIME)
+        get() = horarioTermino.format(DateTimeFormatter.ISO_LOCAL_TIME)
         set(value) { horarioTermino = LocalTime.parse(value, DateTimeFormatter.ISO_LOCAL_TIME) }
 }

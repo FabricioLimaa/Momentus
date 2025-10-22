@@ -4,6 +4,7 @@
 /app/release
 release
 *release
+schemas
 
 # Arquivos gerados pelo IDE (Android Studio)
 .idea/
@@ -24,3 +25,4 @@ gradlew.bat
 .gitignore
 proguard-rules.pro
 libs.versions.toml
+screenshots/

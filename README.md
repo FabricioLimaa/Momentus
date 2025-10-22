@@ -8,9 +8,6 @@
 
 <br/>
 
-<!-- Optional: Add a nice banner or gif of the app here -->
-<!-- ![Momentus Banner](link-to-your-banner.png) -->
-
 ---
 
 ## 📋 Índice
@@ -64,9 +61,18 @@ O **Momentus** resolve isso de forma elegante. Ele funciona como uma ponte intel
 
 ## 📸 Telas
 
-<!-- Adicione aqui screenshots do seu aplicativo -->
-<!-- Ex: -->
-<!-- <img src="link-para-screenshot1.png" width="200"/> <img src="link-para-screenshot2.png" width="200"/> -->
+<p align="center">
+  <img src="screenshots/02-login.png" width="200" alt="Tela de Login">
+  <img src="screenshots/04-calendar.png" width="200" alt="Tela Principal do Calendário">
+  <img src="screenshots/01-new-event.png" width="200" alt="Criação de Novo Evento">
+  <img src="screenshots/03-categories.png" width="200" alt="Gerenciamento de Categorias">
+</p>
+<p align="center">
+  <img src="screenshots/06-templates.png" width="200" alt="Criação de Templates de Rotina">
+  <img src="screenshots/07-navigation-drawer.png" width="200" alt="Menu de Navegação">
+  <img src="screenshots/08-widget.png" width="200" alt="Widget na Tela Inicial">
+  <img src="screenshots/05-loading.png" width="200" alt="Tela de Carregamento">
+</p>
 
 ---
 
@@ -77,15 +83,17 @@ Este projeto foi construído utilizando tecnologias modernas e seguindo as boas 
 - **Linguagem:** **[Kotlin](https://kotlinlang.org/)** (100% Kotlin-first)
 - **Arquitetura:** **MVVM (Model-View-ViewModel)**
   - Separação clara de responsabilidades, facilitando a manutenção e testes.
-- **UI:** **Android Views (XML)** com **Material Design 3**
-  - Interface moderna, reativa e seguindo as diretrizes de design do Google.
+- **UI:** **Jetpack Compose** com **Material Design 3**
+  - A interface é construída de forma declarativa, resultando em um código mais conciso e poderoso.
 - **Componentes Principais:**
-  - `ViewModel` e `LiveData`: Para gerenciamento de estado reativo e ciclo de vida consciente.
+  - `ViewModel` e `StateFlow`: Para gerenciamento de estado reativo e ciclo de vida consciente, utilizando o poder das Coroutines.
+  - `Hilt`: Para injeção de dependência, simplificando o gerenciamento de dependências e melhorando a testabilidade.
   - `Room Persistence Library`: Para o banco de dados local (SQLite) e persistência de dados offline.
-  - `Coroutines`: Para gerenciamento de operações assíncronas de forma simples e eficiente.
-  - `RecyclerView` e `ViewPager2`: Para listas e telas deslizáveis de alta performance.
+  - `Coroutines`: Para gerenciamento de operações assíncronas em toda a aplicação.
+  - `Glance`: Para criação de widgets da tela inicial modernos e reativos.
 - **APIs e Integração:**
-  - **Google Sign-In for Android**: Para autenticação segura e simplificada.
+  - **Firebase Authentication**: Para autenticação segura e simplificada com o Google.
+  - **Cloud Firestore**: Para armazenamento de dados na nuvem e sincronização em tempo real entre dispositivos.
   - **Google Calendar API**: Para manipulação de eventos na agenda do usuário.
 
 ---

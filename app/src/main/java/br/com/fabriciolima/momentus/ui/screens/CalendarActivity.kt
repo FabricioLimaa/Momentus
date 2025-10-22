@@ -101,6 +101,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -504,12 +505,12 @@ fun CalendarGrid(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit, u
     val daysInMonth = yearMonth.lengthOfMonth()
 
     val localEventsByDate = uiState.allScheduleItems.groupBy {
-        it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneId.systemDefault()).toLocalDate() }
+        it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneOffset.UTC).toLocalDate() }
     }
 
     val googleEventsByDate = uiState.googleCalendarEvents.groupBy { event ->
         val instant = Instant.ofEpochMilli(event.start.value)
-        instant.atZone(ZoneId.systemDefault()).toLocalDate()
+        instant.atZone(ZoneOffset.UTC).toLocalDate()
     }
 
     Column {
@@ -670,7 +671,7 @@ fun EventsForDay(
 fun GoogleEventListItem(event: GoogleCalendarEvent) {
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val instant = Instant.ofEpochMilli(event.start.value)
-    val startTime = instant.atZone(ZoneId.systemDefault()).toLocalTime()
+    val startTime = instant.atZone(ZoneOffset.UTC).toLocalTime()
 
     Card(
         modifier = Modifier.fillMaxWidth(),

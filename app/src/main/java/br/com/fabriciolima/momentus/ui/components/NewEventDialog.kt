@@ -1,5 +1,6 @@
 package br.com.fabriciolima.momentus.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +60,8 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
+private const val TAG = "NewEventDialog"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewEventDialog(
@@ -88,6 +91,14 @@ fun NewEventDialog(
     var showEndTimePicker by remember { mutableStateOf(false) }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
+
+    LaunchedEffect(eventoParaEditar) {
+        if (!isEditMode) {
+            horarioInicio = LocalTime.now().withSecond(0).withNano(0)
+            horarioTermino = horarioInicio.plusHours(1)
+            Log.d(TAG, "LaunchedEffect: Horário resetado para novo evento. Início: $horarioInicio, Término: $horarioTermino")
+        }
+    }
 
     LaunchedEffect(rotinas, eventoParaEditar) {
         if (rotinas.isNotEmpty()) {
