@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.EventBusy
@@ -440,6 +441,18 @@ fun AppDrawerContent(account: GoogleSignInAccount?, onNavigate: () -> Unit, onLo
             }
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Divider()
+
+                NavigationDrawerItem(
+                    label = { Text("Informações Legais") },
+                    selected = false,
+                    onClick = {
+                        context.startActivity(Intent(context, LegalActivity::class.java))
+                        onNavigate()
+                    },
+                    icon = { Icon(Icons.Default.Info, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(text = "USUÁRIO", style = MaterialTheme.typography.labelSmall)
                 Spacer(modifier = Modifier.height(8.dp))

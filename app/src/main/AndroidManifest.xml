@@ -40,7 +40,8 @@
         <activity android:name=".ui.screens.EditorRotinaComposeActivity" android:exported="false" />
         <activity android:name=".ui.screens.TemplatesActivity" android:exported="false" />
         <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
-        <activity android:name=".ui.screens.CategoryActivity" android:exported="false" /><!-- android:exported="false" -->
+        <activity android:name=".ui.screens.CategoryActivity" android:exported="false" />
+        <activity android:name=".ui.screens.LegalActivity" android:exported="false" />
 
         <activity
             android:name=".ui.screens.WidgetConfigurationActivity"
