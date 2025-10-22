@@ -130,7 +130,7 @@ Para executar uma cópia local deste projeto, siga estes passos.
 
 ## 📄 Licença
 
-Este projeto é licenciado sob uma licença proprietária. Todos os direitos são reservados. Veja `LICENSE.txt` para mais informações.
+Este projeto é licenciado sob uma licença proprietária. Todos os direitos são reservados. Veja [`LICENSE.txt`](https://github.com/FabricioLimaa/Momentus/blob/main/LICENSE.txt) para mais informações.
 
 ---
 
