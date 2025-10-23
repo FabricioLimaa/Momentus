@@ -334,14 +334,9 @@ class CalendarViewModel @Inject constructor(
 
     fun fetchGoogleCalendarEvents() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            try {
-                when (val result = repository.fetchGoogleCalendarEvents()) {
-                    is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
-                    is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
-                }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
+            when (val result = repository.fetchGoogleCalendarEvents()) {
+                is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
+                is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
             }
         }
     }

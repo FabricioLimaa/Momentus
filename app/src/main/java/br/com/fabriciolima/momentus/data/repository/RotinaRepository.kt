@@ -53,6 +53,9 @@ open class RotinaRepository @Inject constructor(
     private val _syncStatus = MutableStateFlow(SyncStatus.OFFLINE)
     val syncStatus = _syncStatus.asStateFlow()
 
+    private val _syncMessage = MutableStateFlow("Preparando...")
+    val syncMessage = _syncMessage.asStateFlow()
+
     open val todasAsRotinasComMetas: Flow<List<RotinaComMeta>> = rotinaDao.getRotinasComMetas()
     val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao.getIdsConcluidos()
     open val stats: Flow<List<StatsResult>> = rotinaDao.getStats()
@@ -97,12 +100,17 @@ open class RotinaRepository @Inject constructor(
     suspend fun syncAllDataToLocal() {
         _syncStatus.value = SyncStatus.SYNCING
         try {
+            _syncMessage.value = "Sincronizando rotinas..."
             syncRotinas()
+            _syncMessage.value = "Sincronizando templates..."
             templateRepository.syncTemplates()
+            _syncMessage.value = "Sincronizando eventos..."
             eventoRepository.syncEventos()
+            _syncMessage.value = "Sincronização concluída!"
             _syncStatus.value = SyncStatus.CONNECTED
         } catch (e: Exception) {
             Log.e(TAG, "Erro durante a sincronização geral.", e)
+            _syncMessage.value = "Falha na sincronização."
             _syncStatus.value = SyncStatus.OFFLINE
         }
     }
