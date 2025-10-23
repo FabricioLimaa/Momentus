@@ -3,6 +3,7 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,20 +26,22 @@ sealed interface CategoryDialogState {
 
 data class CategoryUiState(
     val categories: List<Rotina> = emptyList(),
-    val dialogState: CategoryDialogState = CategoryDialogState.Hidden
+    val dialogState: CategoryDialogState = CategoryDialogState.Hidden,
+    val error: String? = null // Adicionado para mensagens de erro
 )
 
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
-    private val repository: RotinaRepository
+    private val rotinaRepository: RotinaRepository,
+    private val eventoRepository: EventoRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CategoryUiState())
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
-    val allRotinas: StateFlow<List<Rotina>> = repository.todasAsRotinasComMetas
+    private val allRotinas: StateFlow<List<Rotina>> = rotinaRepository.todasAsRotinasComMetas
         .map { listaRotinaComMeta ->
-            listaRotinaComMeta.map { it.rotina } // Extrai apenas o objeto Rotina
+            listaRotinaComMeta.map { it.rotina }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -54,39 +57,52 @@ class CategoryViewModel @Inject constructor(
     }
 
     fun onShowCreateDialog() {
-        _uiState.value = _uiState.value.copy(dialogState = CategoryDialogState.CreateNew)
+        _uiState.update { it.copy(dialogState = CategoryDialogState.CreateNew) }
     }
 
     fun onShowEditDialog(category: Rotina) {
-        _uiState.value = _uiState.value.copy(dialogState = CategoryDialogState.Edit(category))
+        _uiState.update { it.copy(dialogState = CategoryDialogState.Edit(category)) }
     }
 
     fun onShowConfirmDeleteDialog(category: Rotina) {
-        _uiState.value = _uiState.value.copy(dialogState = CategoryDialogState.ConfirmDelete(category))
+        _uiState.update { it.copy(dialogState = CategoryDialogState.ConfirmDelete(category)) }
     }
 
     fun onDialogDismiss() {
-        _uiState.value = _uiState.value.copy(dialogState = CategoryDialogState.Hidden)
+        _uiState.update { it.copy(dialogState = CategoryDialogState.Hidden) }
     }
 
     fun upsertRotina(id: String?, nome: String, cor: String) {
         viewModelScope.launch {
+            val currentCategories = allRotinas.value
+            val isDuplicate = currentCategories.any { it.nome.equals(nome, ignoreCase = true) && it.id != id }
+
+            if (isDuplicate) {
+                _uiState.update { it.copy(error = "Uma categoria com este nome já existe.") }
+                return@launch
+            }
+
             val rotina = Rotina(
                 id = id ?: UUID.randomUUID().toString(),
-                nome = nome,
+                nome = nome.trim(),
                 cor = cor,
                 descricao = null,
                 tag = null
             )
-            repository.insertRotina(rotina)
-            onDialogDismiss() // Esconde o diálogo após a operação
+            rotinaRepository.insertRotina(rotina)
+            onDialogDismiss()
         }
     }
 
     fun deleteRotina(rotina: Rotina) {
         viewModelScope.launch {
-            repository.deleteRotina(rotina)
-            onDialogDismiss() // Esconde o diálogo após a operação
+            eventoRepository.deleteEventsByRotinaId(rotina.id)
+            rotinaRepository.deleteRotina(rotina)
+            onDialogDismiss()
         }
+    }
+
+    fun onErrorShown() {
+        _uiState.update { it.copy(error = null) }
     }
 }

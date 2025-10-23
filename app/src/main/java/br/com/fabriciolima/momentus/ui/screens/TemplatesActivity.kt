@@ -239,7 +239,7 @@ fun TemplatesScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text("Templates de Rotina", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(
-                text = "Crie e aplique rotinas em vários dias",
+                text = "Crie e aplique rotinas em vários dias", 
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -380,8 +380,12 @@ fun CreateTemplateDialog(
 ) {
     val isEditMode = templateToEdit != null
     var templateName by remember { mutableStateOf(templateToEdit?.template?.nome ?: "") }
+
+    val defaultCategory = remember { rotinas.find { it.nome.equals("Outros", ignoreCase = true) } }
+
     var eventForms by remember { mutableStateOf(
-        templateToEdit?.eventos?.map { EventFormData.fromItemCronograma(it, rotinas) } ?: listOf(EventFormData())
+        templateToEdit?.eventos?.map { EventFormData.fromItemCronograma(it, rotinas) } 
+            ?: listOf(EventFormData(selectedRotina = defaultCategory))
     ) }
 
     val isFormValid by remember(templateName, eventForms) {
@@ -440,7 +444,7 @@ fun CreateTemplateDialog(
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("Evento ${index + 1}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-                                if (eventForms.size > 1) { // Só mostra o botão de deletar se houver mais de um evento
+                                if (eventForms.size > 1) { 
                                     IconButton(onClick = { eventForms = eventForms.toMutableList().also { it.removeAt(index) } }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Remover Evento", tint = MaterialTheme.colorScheme.error)
                                     }
@@ -460,7 +464,7 @@ fun CreateTemplateDialog(
                         }
                         item {
                             TextButton(
-                                onClick = { eventForms = eventForms + EventFormData() },
+                                onClick = { eventForms = eventForms + EventFormData(selectedRotina = defaultCategory) },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = "Adicionar Evento ao Template")

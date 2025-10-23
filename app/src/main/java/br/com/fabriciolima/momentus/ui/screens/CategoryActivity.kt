@@ -38,8 +38,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,6 +56,7 @@ import br.com.fabriciolima.momentus.ui.viewmodel.CategoryDialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.CategoryUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.CategoryViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class CategoryActivity : ComponentActivity() {
@@ -73,7 +76,8 @@ class CategoryActivity : ComponentActivity() {
                     onShowConfirmDeleteDialog = viewModel::onShowConfirmDeleteDialog,
                     onDialogDismiss = viewModel::onDialogDismiss,
                     onUpsertCategory = viewModel::upsertRotina,
-                    onDeleteCategory = viewModel::deleteRotina
+                    onDeleteCategory = viewModel::deleteRotina,
+                    onErrorShown = viewModel::onErrorShown // Passando a nova função
                 )
             }
         }
@@ -90,10 +94,21 @@ fun CategoryScreen(
     onShowConfirmDeleteDialog: (Rotina) -> Unit,
     onDialogDismiss: () -> Unit,
     onUpsertCategory: (String?, String, String) -> Unit,
-    onDeleteCategory: (Rotina) -> Unit
+    onDeleteCategory: (Rotina) -> Unit,
+    onErrorShown: () -> Unit // Nova função para resetar o erro
 ) {
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let {
+            scope.launch {
+                snackbarHostState.showSnackbar(it)
+                onErrorShown()
+            }
+        }
+    }
 
     when (val dialogState = uiState.dialogState) {
         is CategoryDialogState.CreateNew -> {
