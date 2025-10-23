@@ -56,7 +56,6 @@ import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.glance.color.ColorProvider
-import br.com.fabriciolima.momentus.widget.WidgetUpdater
 
 // --- DATA E ESTADO DO WIDGET ---
 
@@ -157,8 +156,10 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 else -> {
                     LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
                         items(count = events.size, itemId = { events[it].id.hashCode().toLong() }) { index ->
-                            val event = events[index]
-                            EventListItem(context, event)
+                            EventListItem(context, events[index])
+                            if (index < events.size - 1) {
+                                Spacer(GlanceModifier.height(20.dp)) // AUMENTADO
+                            }
                         }
                     }
                 }
@@ -213,14 +214,14 @@ class MomentusGlanceWidget : GlanceAppWidget() {
             Color.Gray
         }
         val categoryColorProvider = ColorProvider(categoryColor, categoryColor)
-        val categoryColorAlphaProvider = ColorProvider(categoryColor.copy(alpha = 0.25f), categoryColor.copy(alpha = 0.25f))
+        val categoryColorAlphaProvider = ColorProvider(categoryColor.copy(alpha = 0.2f), categoryColor.copy(alpha = 0.2f))
 
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .background(itemBackgroundColor)
                 .cornerRadius(16.dp)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(16.dp)
                 .clickable(
                     actionStartActivity(
                         Intent(context, LoginActivity::class.java).apply {
@@ -231,22 +232,22 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = GlanceModifier
-                    .size(10.dp)
-                    .background(categoryColorProvider)
-                    .cornerRadius(5.dp)
-            ) {}
-
-            Spacer(GlanceModifier.width(16.dp))
-
             Column(modifier = GlanceModifier.defaultWeight()) {
-                Text(
-                    text = event.title.ifBlank { "(Sem título)" },
-                    style = TextStyle(color = primaryTextColor, fontWeight = FontWeight.Bold, fontSize = 16.sp),
-                    maxLines = 1
-                )
-                Spacer(GlanceModifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = GlanceModifier
+                            .size(8.dp)
+                            .background(categoryColorProvider)
+                            .cornerRadius(4.dp)
+                    ) {}
+                    Spacer(GlanceModifier.width(8.dp))
+                    Text(
+                        text = event.title.ifBlank { "(Sem título)" },
+                        style = TextStyle(color = primaryTextColor, fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                        maxLines = 1
+                    )
+                }
+                Spacer(GlanceModifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         provider = ImageProvider(R.drawable.ic_time),
@@ -262,9 +263,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                     )
                 }
             }
-
             Spacer(GlanceModifier.width(8.dp))
-
             Box(
                 modifier = GlanceModifier
                     .background(categoryColorAlphaProvider)
@@ -278,11 +277,8 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 )
             }
         }
-        Spacer(GlanceModifier.height(75.dp))
     }
 }
-
-// --- LÓGICA DE ATUALIZAÇÃO ---
 
 class UpdateAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {

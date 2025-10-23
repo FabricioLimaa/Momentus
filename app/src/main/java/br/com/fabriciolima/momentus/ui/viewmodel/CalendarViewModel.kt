@@ -249,7 +249,7 @@ class CalendarViewModel @Inject constructor(
                 eventoRepository.insertItemCronograma(novoItem)
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden)
-                WidgetUpdater.sendBroadcast(application)
+                WidgetUpdater.requestUpdate(application)
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -293,7 +293,7 @@ class CalendarViewModel @Inject constructor(
                 }
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)
-                WidgetUpdater.sendBroadcast(application)
+                WidgetUpdater.requestUpdate(application)
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -308,7 +308,7 @@ class CalendarViewModel @Inject constructor(
                     is Result.Success -> {
                         fetchGoogleCalendarEvents()
                         _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
-                        WidgetUpdater.sendBroadcast(application)
+                        WidgetUpdater.requestUpdate(application)
                     }
                     is Result.Error -> {
                         _uiState.value = _uiState.value.copy(error = result.exception.message)

@@ -1,11 +1,9 @@
 package br.com.fabriciolima.momentus.widget
 
-import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.util.Log
 import androidx.glance.GlanceId
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
@@ -14,6 +12,8 @@ import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -24,6 +24,8 @@ import java.time.format.DateTimeFormatter
 private const val TAG = "WidgetUpdater"
 
 object WidgetUpdater {
+
+    private val coroutineScope = MainScope()
 
     /**
      *  Executa a lógica de atualização completa para uma instância específica do widget.
@@ -86,20 +88,18 @@ object WidgetUpdater {
     }
 
     /**
-     * Envia uma transmissão para o sistema, solicitando a atualização de todos os widgets.
-     * Usado pelos ViewModels.
+     * Dispara a atualização para todas as instâncias ativas do widget.
+     * Usado pelos ViewModels para notificar o widget sobre mudanças nos dados.
      */
-    fun sendBroadcast(context: Context) {
-        Log.d(TAG, "Enviando broadcast para atualizar todos os widgets.")
-        val manager = AppWidgetManager.getInstance(context)
-        val componentName = ComponentName(context, MomentusGlanceWidgetReceiver::class.java)
-        val appWidgetIds = manager.getAppWidgetIds(componentName)
-
-        val updateIntent = Intent(context, MomentusGlanceWidgetReceiver::class.java).apply {
-            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+    fun requestUpdate(context: Context) {
+        coroutineScope.launch {
+            Log.d(TAG, "Solicitando atualização para todos os widgets.")
+            val manager = GlanceAppWidgetManager(context)
+            val glanceIds = manager.getGlanceIds(MomentusGlanceWidget::class.java)
+            glanceIds.forEach { glanceId ->
+                update(context, glanceId)
+            }
         }
-        context.sendBroadcast(updateIntent)
     }
 
     private fun mapToSerializable(items: List<WidgetEventItem>): List<WidgetEvent> {

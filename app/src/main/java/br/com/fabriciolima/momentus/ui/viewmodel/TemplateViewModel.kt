@@ -1,5 +1,6 @@
 package br.com.fabriciolima.momentus.ui.viewmodel
 
+import android.app.Application
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.ui.components.EventFormData
 import br.com.fabriciolima.momentus.util.Result
+import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +49,8 @@ data class TemplateUiState(
 class TemplateViewModel @Inject constructor(
     private val templateRepository: TemplateRepository,
     private val rotinaRepository: RotinaRepository,
-    private val eventoRepository: EventoRepository
+    private val eventoRepository: EventoRepository,
+    private val application: Application // Adicionado
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TemplateUiState())
@@ -185,6 +188,7 @@ class TemplateViewModel @Inject constructor(
                     }
 
                     eventoRepository.insertAll(novosEventos)
+                    WidgetUpdater.requestUpdate(application)
                     _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
                     onResult(Result.Success(Unit))
                 } else {
