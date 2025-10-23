@@ -62,8 +62,8 @@ class LegalActivity : ComponentActivity() {
                             }
                         }
                         when (selectedTabIndex) {
-                            0 -> LegalContentViewer(fileName = "TERMS_AND_CONDITIONS.md")
-                            1 -> LegalContentViewer(fileName = "PRIVACY_POLICY.md")
+                            0 -> LegalContentViewer(fileName = "TERMS_AND_CONDITIONS.txt")
+                            1 -> LegalContentViewer(fileName = "PRIVACY_POLICY.txt")
                             2 -> LegalContentViewer(fileName = "LICENSE.txt")
                         }
                     }

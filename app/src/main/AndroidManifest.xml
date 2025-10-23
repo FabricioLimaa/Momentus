@@ -42,6 +42,7 @@
         <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
         <activity android:name=".ui.screens.CategoryActivity" android:exported="false" />
         <activity android:name=".ui.screens.LegalActivity" android:exported="false" />
+        <activity android:name=".ui.screens.TermsActivity" android:exported="false" />
 
         <activity
             android:name=".ui.screens.WidgetConfigurationActivity"

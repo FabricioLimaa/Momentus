@@ -8,8 +8,11 @@ import br.com.fabriciolima.momentus.data.database.TemplateDao
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
+import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSourceImpl
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -34,9 +37,19 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    fun provideUserRepository(
+        firestore: FirebaseFirestore,
+        auth: FirebaseAuth,
+        @IoDispatcher dispatcher: CoroutineDispatcher
+    ): UserRepository {
+        return UserRepository(firestore, auth, dispatcher)
+    }
+
+    @Provides
+    @Singleton
     fun provideTemplateRepository(
         templateDao: TemplateDao,
-        eventoRepository: EventoRepository, // Adicionado
+        eventoRepository: EventoRepository,
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): TemplateRepository {
         return TemplateRepository(templateDao, eventoRepository, dispatcher)
