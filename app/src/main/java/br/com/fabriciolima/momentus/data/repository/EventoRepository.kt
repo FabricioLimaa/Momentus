@@ -17,8 +17,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val TAG = "EventoRepository"
 
 @Singleton
 class EventoRepository @Inject constructor(
@@ -133,6 +136,16 @@ class EventoRepository @Inject constructor(
     
     suspend fun insertAll(items: List<ItemCronograma>) {
         itemCronogramaDao.insertAll(items)
+        userId?.let { userId ->
+            val batch = firestore.batch()
+            items.forEach { item ->
+                val docRef = firestore.collection("users").document(userId).collection("eventos").document(item.id)
+                batch.set(docRef, item)
+            }
+            batch.commit()
+                .addOnSuccessListener { Log.d("Firestore", "${items.size} eventos inseridos na nuvem.") }
+                .addOnFailureListener { e -> Log.w("Firestore", "Erro ao inserir eventos na nuvem", e) }
+        }
     }
 
     suspend fun updateItensCronograma(items: List<ItemCronograma>) {
@@ -164,26 +177,35 @@ class EventoRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteEventsByTemplateId(templateId: String) {
+    suspend fun deleteEventsByTemplateId(templateId: String) = withContext(dispatcher) {
+        Log.d(TAG, "Deletando eventos do DB local para templateId: $templateId")
         itemCronogramaDao.deleteByTemplateId(templateId)
+        
+        userId?.let {
+            val collectionRef = firestore.collection("users").document(it).collection("eventos")
+            val query = collectionRef.whereEqualTo("templateId", templateId)
+            val batch = firestore.batch()
+            val documents = query.get().await()
+            documents.forEach { document ->
+                batch.delete(document.reference)
+            }
+            batch.commit().await()
+            Log.d(TAG, "Deletados ${documents.size()} eventos do Firestore para templateId: $templateId")
+        }
     }
 
-    fun getItensParaWidget(data: LocalDate, allowedRotinaIds: Set<String>): List<ItemCronograma> {
-        val epochDay = data.toEpochDay()
-        val dayOfWeekName = data.dayOfWeek.name.substring(0, 3)
-
-        if (allowedRotinaIds.isEmpty()) return emptyList()
-
-        return itemCronogramaDao.getForWidget(epochDay, dayOfWeekName, allowedRotinaIds)
+    suspend fun deleteEventsByRotinaId(rotinaId: String) {
+        itemCronogramaDao.deleteByRotinaId(rotinaId)
     }
 
     fun getWidgetEvents(data: LocalDate, allowedRotinaIds: Set<String>): List<WidgetEventItem> {
         if (allowedRotinaIds.isEmpty()) return emptyList()
 
-        val epochDay = data.toEpochDay()
+        val startOfDayMillis = data.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val endOfDayMillis = data.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() - 1
         val dayOfWeekName = data.dayOfWeek.name.substring(0, 3)
 
-        return itemCronogramaDao.getWidgetEventItems(epochDay, dayOfWeekName, allowedRotinaIds)
+        return itemCronogramaDao.getWidgetEventItems(startOfDayMillis, endOfDayMillis, dayOfWeekName, allowedRotinaIds)
     }
     suspend fun clear() = withContext(dispatcher){
         itemCronogramaDao.clear()

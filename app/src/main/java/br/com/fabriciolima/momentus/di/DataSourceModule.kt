@@ -36,9 +36,10 @@ object RepositoryModule {
     @Singleton
     fun provideTemplateRepository(
         templateDao: TemplateDao,
+        eventoRepository: EventoRepository, // Adicionado
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): TemplateRepository {
-        return TemplateRepository(templateDao, dispatcher)
+        return TemplateRepository(templateDao, eventoRepository, dispatcher)
     }
 
     @Provides

@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -27,7 +26,6 @@ import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
-import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
@@ -42,28 +40,23 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import br.com.fabriciolima.momentus.R
-import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.ui.screens.LoginActivity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.glance.color.ColorProvider
+import br.com.fabriciolima.momentus.widget.WidgetUpdater
 
 // --- DATA E ESTADO DO WIDGET ---
 
@@ -108,8 +101,6 @@ class MomentusGlanceWidget : GlanceAppWidget() {
     private val secondaryTextColor = ColorProvider(day = Color(0xFF3C3C43), night = Color(0xFFEBEBF5))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        UpdateAction.run(context, id)
-
         provideContent {
             val prefs = currentState<Preferences>()
             val isLoading = prefs[EventWidgetStateKeys.loadingKey] ?: true
@@ -291,76 +282,10 @@ class MomentusGlanceWidget : GlanceAppWidget() {
     }
 }
 
-// --- LÓGICA DE ATUALIZAÇÃO (ACTION) ---
+// --- LÓGICA DE ATUALIZAÇÃO ---
 
 class UpdateAction : ActionCallback {
-
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        run(context, glanceId)
-    }
-
-    companion object {
-        suspend fun run(context: Context, glanceId: GlanceId) {
-            updateState(context, glanceId) { it[EventWidgetStateKeys.loadingKey] = true; it.remove(EventWidgetStateKeys.errorKey) }
-
-            try {
-                val entryPoint = EntryPointAccessors.fromApplication(context, WidgetUpdateEntryPoint::class.java)
-                val rotinaRepository = entryPoint.rotinaRepository()
-                val eventoRepository = entryPoint.eventoRepository()
-
-                val allRotinas = withContext(Dispatchers.IO) { rotinaRepository.getTodasAsRotinasSync() }
-                val allRotinaIds = allRotinas.map { it.id }.toSet()
-
-                val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
-                val allowedRotinaIds = prefs[EventWidgetStateKeys.configuredRotinasKey] ?: allRotinaIds
-
-                val widgetItems = withContext(Dispatchers.IO) {
-                    eventoRepository.getWidgetEvents(LocalDate.now(), allowedRotinaIds.ifEmpty { allRotinaIds })
-                }
-
-                val events = mapToSerializable(widgetItems)
-                val eventsJson = Json.encodeToString(events)
-
-                updateState(context, glanceId) {
-                    it[EventWidgetStateKeys.eventsKey] = eventsJson
-                    it[EventWidgetStateKeys.loadingKey] = false
-                    if (it[EventWidgetStateKeys.configuredRotinasKey] == null) {
-                        it[EventWidgetStateKeys.configuredRotinasKey] = allRotinaIds
-                    }
-                }
-
-            } catch (e: Exception) {
-                updateState(context, glanceId) {
-                    it[EventWidgetStateKeys.errorKey] = "Falha ao carregar eventos."
-                    it[EventWidgetStateKeys.loadingKey] = false
-                }
-                e.printStackTrace()
-            } finally {
-                MomentusGlanceWidget().update(context, glanceId)
-            }
-        }
-
-        private suspend fun updateState(
-            context: Context,
-            glanceId: GlanceId,
-            block: (MutablePreferences) -> Unit
-        ) {
-            updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) {
-                it.toMutablePreferences().apply(block).toPreferences()
-            }
-        }
-
-        private fun mapToSerializable(items: List<WidgetEventItem>): List<WidgetEvent> {
-            val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-            return items.map { item ->
-                WidgetEvent(
-                    id = item.id,
-                    title = item.titulo,
-                    timeRange = "${item.horarioInicio.format(timeFormatter)} - ${item.horarioTermino.format(timeFormatter)}",
-                    categoryName = item.nomeRotina,
-                    categoryColor = item.corRotina
-                )
-            }
-        }
+        WidgetUpdater.update(context, glanceId)
     }
 }

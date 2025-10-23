@@ -40,22 +40,16 @@ interface ItemCronogramaDao {
     @Query("DELETE FROM tabela_itens_cronograma WHERE templateId = :templateId")
     suspend fun deleteByTemplateId(templateId: String)
 
-    @Query("SELECT * FROM tabela_itens_cronograma WHERE data = :date OR diaDaSemana = :dayOfWeekName")
-    fun getWidgetEventItemsRaw(date: Long, dayOfWeekName: String): List<ItemCronograma>
+    @Query("DELETE FROM tabela_itens_cronograma WHERE rotinaId = :rotinaId")
+    suspend fun deleteByRotinaId(rotinaId: String)
 
     @Query(
         "SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, r.nome as nomeRotina, r.cor as corRotina " +
         "FROM tabela_itens_cronograma tic " +
         "JOIN tabela_rotinas r ON tic.rotinaId = r.id " +
-        "WHERE (tic.data = :epochDay OR tic.diaDaSemana = :dayOfWeekName) AND tic.rotinaId IN (:allowedRotinaIds)"
+        "WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) AND tic.rotinaId IN (:allowedRotinaIds)"
     )
-    fun getWidgetEventItems(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem>
-
-    @Query(
-        "SELECT * FROM tabela_itens_cronograma " +
-        "WHERE (data = :epochDay OR diaDaSemana = :dayOfWeekName) AND rotinaId IN (:allowedRotinaIds)"
-    )
-    fun getForWidget(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<ItemCronograma>
+    fun getWidgetEventItems(startOfDayMillis: Long, endOfDayMillis: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem>
 
     @Query("DELETE FROM tabela_itens_cronograma")
     suspend fun clear()

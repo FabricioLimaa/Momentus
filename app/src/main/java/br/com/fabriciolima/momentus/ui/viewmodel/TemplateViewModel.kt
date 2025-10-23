@@ -1,5 +1,6 @@
 package br.com.fabriciolima.momentus.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
@@ -22,6 +23,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
+
+private const val TAG = "TemplateViewModel"
 
 sealed interface TemplateDialogState {
     object Hidden : TemplateDialogState
@@ -98,6 +101,7 @@ class TemplateViewModel @Inject constructor(
         onResult: (Result<Unit>) -> Unit
     ) {
         viewModelScope.launch {
+            Log.d(TAG, "Iniciando salvarTemplateCompleto. Modo Edição: ${templateId != null}, ID: $templateId")
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val id = templateId ?: UUID.randomUUID().toString()
@@ -114,14 +118,20 @@ class TemplateViewModel @Inject constructor(
                 }
 
                 if (templateId != null) {
+                    Log.d(TAG, "MODO EDIÇÃO: Deletando eventos antigos para o template ID: $templateId")
                     eventoRepository.deleteEventsByTemplateId(templateId)
                 }
+                
+                Log.d(TAG, "Salvando template (Pai): ${template.id}")
                 templateRepository.insertTemplate(template)
+
+                Log.d(TAG, "Salvando ${eventos.size} eventos (Filhos) para o template ID: ${template.id}")
                 eventoRepository.insertAll(eventos)
 
                 onResult(Result.Success(Unit))
                 _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
             } catch (e: Exception) {
+                Log.e(TAG, "Erro em salvarTemplateCompleto", e)
                 onResult(Result.Error(e))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }

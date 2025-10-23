@@ -2,6 +2,7 @@ package br.com.fabriciolima.momentus.data.repository
 
 import android.util.Log
 import br.com.fabriciolima.momentus.data.database.TemplateDao
+import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.di.IoDispatcher
@@ -21,6 +22,7 @@ import javax.inject.Singleton
 @Singleton
 class TemplateRepository @Inject constructor(
     private val templateDao: TemplateDao,
+    private val eventoRepository: EventoRepository,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
@@ -51,6 +53,7 @@ class TemplateRepository @Inject constructor(
                 CoroutineScope(dispatcher).launch {
                     templateDao.insertAll(it)
                     Log.d("Firestore", "${it.size} templates sincronizados em tempo real.")
+                    eventoRepository.startListeningForChanges()
                 }
             }
         }
@@ -59,6 +62,7 @@ class TemplateRepository @Inject constructor(
     fun stopListeningForChanges() {
         templatesListener?.remove()
         templatesListener = null
+        eventoRepository.stopListeningForChanges()
     }
 
     suspend fun syncTemplates() = withContext(dispatcher) {
@@ -123,6 +127,12 @@ class TemplateRepository @Inject constructor(
                 .addOnSuccessListener { Log.d("Firestore", "Template ${template.id} salvo na nuvem.") }
                 .addOnFailureListener { e -> Log.w("Firestore", "Erro ao salvar template na nuvem", e) }
         }
+    }
+
+    suspend fun saveTemplateWithEvents(template: Template, eventos: List<ItemCronograma>) = withContext(dispatcher) {
+        templateDao.update(template)
+        eventoRepository.deleteEventsByTemplateId(template.id)
+        eventoRepository.insertAll(eventos)
     }
 
     suspend fun deleteTemplate(template: Template) {
