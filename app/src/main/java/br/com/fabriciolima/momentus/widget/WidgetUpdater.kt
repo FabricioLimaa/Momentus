@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 private const val TAG = "WidgetUpdater"
@@ -104,10 +105,12 @@ object WidgetUpdater {
     private fun mapToSerializable(items: List<WidgetEventItem>): List<WidgetEvent> {
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
         return items.map { item ->
+            val horarioInicio = LocalTime.parse(item.horarioInicio)
+            val horarioTermino = LocalTime.parse(item.horarioTermino)
             WidgetEvent(
                 id = item.id,
                 title = item.titulo,
-                timeRange = "${item.horarioInicio.format(timeFormatter)} - ${item.horarioTermino.format(timeFormatter)}",
+                timeRange = "${timeFormatter.format(horarioInicio)} - ${timeFormatter.format(horarioTermino)}",
                 categoryName = item.nomeRotina,
                 categoryColor = item.corRotina
             )
