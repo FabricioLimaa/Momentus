@@ -239,7 +239,7 @@ fun TemplatesScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text("Templates de Rotina", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(
-                text = "Crie e aplique rotinas em vários dias", // NÃO MODIFICAR
+                text = "Crie e aplique rotinas em vários dias",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -431,7 +431,6 @@ fun CreateTemplateDialog(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Usar um Column com peso para que ele ocupe o espaço disponível e a lista possa rolar.
                 Column(modifier = Modifier.weight(1f)) {
                     LazyColumn() {
                         item {
@@ -439,7 +438,14 @@ fun CreateTemplateDialog(
                         }
                         itemsIndexed(eventForms) { index, eventData ->
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Evento ${index + 1}", style = MaterialTheme.typography.labelMedium)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Evento ${index + 1}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                                if (eventForms.size > 1) { // Só mostra o botão de deletar se houver mais de um evento
+                                    IconButton(onClick = { eventForms = eventForms.toMutableList().also { it.removeAt(index) } }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Remover Evento", tint = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
                             EventTemplateForm(
                                 eventData = eventData,
                                 rotinas = rotinas,
