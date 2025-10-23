@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.google.gms.services)
     alias(libs.plugins.dagger.hilt.android)
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("kotlin-kapt")
 }
 
 // 1. Carrega as propriedades do keystore de forma segura
@@ -40,7 +41,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 21
-        versionName = "0.8.8-beta"
+        versionName = "0.9.1-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -176,4 +177,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

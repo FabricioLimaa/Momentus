@@ -144,7 +144,7 @@ class TemplateViewModel @Inject constructor(
         }
     }
 
-    fun applyTemplateToDates(templateId: String, dates: List<LocalDate>, onResult: (Result<Unit>) -> Unit) {
+    fun applyTemplateToDates(templateId: String, dates: List<LocalDate>, saveToGoogle: Boolean, onResult: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -161,9 +161,28 @@ class TemplateViewModel @Inject constructor(
                             novosEventos.add(novoEvento)
                         }
                     }
+                    
+                    if(saveToGoogle) {
+                        novosEventos.forEach { evento ->
+                            val rotina = rotinaRepository.getTodasAsRotinas().first().find { it.id == evento.rotinaId }
+                            if (rotina != null) {
+                                rotinaRepository.salvarEventoNoGoogle(
+                                    titulo = evento.titulo,
+                                    descricao = evento.descricao,
+                                    data = LocalDate.ofEpochDay(evento.data!! / (24 * 60 * 60 * 1000)),
+                                    horarioInicio = evento.horarioInicio,
+                                    horarioTermino = evento.horarioTermino,
+                                    cor = rotina.cor
+                                )
+                            }
+                        }
+                    }
+
                     eventoRepository.insertAll(novosEventos)
                     _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
                     onResult(Result.Success(Unit))
+                } else {
+                    onResult(Result.Error(Exception("Template não encontrado.")))
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.message) }

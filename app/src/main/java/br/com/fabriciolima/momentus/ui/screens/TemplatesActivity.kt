@@ -31,7 +31,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentPasteGo
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
@@ -135,7 +135,7 @@ fun TemplatesScreen(
     onDialogDismiss: () -> Unit,
     onSaveTemplate: (String?, String, List<EventFormData>, (Result<Unit>) -> Unit) -> Unit,
     onDeleteTemplate: (Template) -> Unit,
-    onApplyTemplate: (String, List<LocalDate>, (Result<Unit>) -> Unit) -> Unit,
+    onApplyTemplate: (String, List<LocalDate>, Boolean, (Result<Unit>) -> Unit) -> Unit,
     onErrorShown: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -210,8 +210,8 @@ fun TemplatesScreen(
         is TemplateDialogState.ApplyTemplate -> {
             ApplyTemplateDialog(
                 onDismiss = onDialogDismiss,
-                onConfirm = { dates ->
-                    onApplyTemplate(dialogState.template.template.id, dates) { result ->
+                onConfirm = { dates, saveToGoogle ->
+                    onApplyTemplate(dialogState.template.template.id, dates, saveToGoogle) { result ->
                         if (result is Result.Success) {
                             scope.launch {
                                 snackbarHostState.showSnackbar("Template aplicado com sucesso!")
@@ -239,7 +239,7 @@ fun TemplatesScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text("Templates de Rotina", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(
-                text = "Crie e edite suas rotinas para aplicar em vários dias",
+                text = "Crie e aplique rotinas em vários dias", // NÃO MODIFICAR
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -320,7 +320,7 @@ fun TemplateCard(
                 }
                 Row {
                     IconButton(onClick = onApplyClick) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Aplicar Template", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.ContentPasteGo, contentDescription = "Aplicar Template", tint = MaterialTheme.colorScheme.primary)
                     }
                     IconButton(onClick = onEditClick) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar Template")
