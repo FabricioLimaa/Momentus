@@ -19,6 +19,8 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val TAG = "TemplateRepository"
+
 @Singleton
 class TemplateRepository @Inject constructor(
     private val templateDao: TemplateDao,
@@ -36,9 +38,9 @@ class TemplateRepository @Inject constructor(
 
     fun startListeningForChanges() {
         val currentUserId = this.userId
-        Log.d("FirestoreDebug", "TemplateRepository: Tentando iniciar listener. UID: $currentUserId")
+        Log.d(TAG, "Tentando iniciar listener. UID: $currentUserId")
         if (currentUserId == null) {
-            Log.w("FirestoreDebug", "TemplateRepository: UID nulo, listener não iniciado.")
+            Log.w(TAG, "UID nulo, listener não iniciado.")
             return
         }
         if (templatesListener != null) return
@@ -46,13 +48,13 @@ class TemplateRepository @Inject constructor(
         val templatesCollection = firestore.collection("users").document(currentUserId).collection("templates")
         templatesListener = templatesCollection.addSnapshotListener { snapshots, e ->
             if (e != null) {
-                Log.w("Firestore", "Erro ao escutar por mudanças nos templates.", e)
+                Log.w(TAG, "Erro ao escutar por mudanças nos templates.", e)
                 return@addSnapshotListener
             }
             snapshots?.toObjects<Template>()?.let {
                 CoroutineScope(dispatcher).launch {
                     templateDao.insertAll(it)
-                    Log.d("Firestore", "${it.size} templates sincronizados em tempo real.")
+                    Log.d(TAG, "${it.size} templates sincronizados em tempo real.")
                     eventoRepository.startListeningForChanges()
                 }
             }
@@ -67,9 +69,9 @@ class TemplateRepository @Inject constructor(
 
     suspend fun syncTemplates() = withContext(dispatcher) {
         val currentUserId = userId
-        Log.d("FirestoreDebug", "TemplateRepository: Tentando sincronizar templates. UID: $currentUserId")
+        Log.d(TAG, "Tentando sincronizar templates. UID: $currentUserId")
         if (currentUserId == null) {
-            Log.w("FirestoreDebug", "TemplateRepository: UID nulo, sincronização não realizada.")
+            Log.w(TAG, "UID nulo, sincronização não realizada.")
             return@withContext
         }
 
@@ -102,16 +104,16 @@ class TemplateRepository @Inject constructor(
                 val batch = firestore.batch()
                 itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
                 batch.commit().await()
-                Log.d("Firestore", "${itemsToUpload.size} templates locais enviados para a nuvem.")
+                Log.d(TAG, "${itemsToUpload.size} templates locais enviados para a nuvem.")
             }
 
             if (itemsToDownload.isNotEmpty()) {
                 templateDao.insertAll(itemsToDownload.toList())
-                Log.d("Firestore", "${itemsToDownload.size} templates da nuvem sincronizados para o banco local.")
+                Log.d(TAG, "${itemsToDownload.size} templates da nuvem sincronizados para o banco local.")
             }
 
         } catch (e: Exception) {
-            Log.e("Firestore", "Erro ao sincronizar templates.", e)
+            Log.e(TAG, "Erro ao sincronizar templates.", e)
         }
     }
 
@@ -120,31 +122,35 @@ class TemplateRepository @Inject constructor(
     }
 
     suspend fun insertTemplate(template: Template) {
+        Log.d(TAG, "Inserindo/Atualizando template: ID=${template.id}, Nome=${template.nome}")
         templateDao.insert(template)
         userId?.let {
             firestore.collection("users").document(it).collection("templates").document(template.id)
                 .set(template)
-                .addOnSuccessListener { Log.d("Firestore", "Template ${template.id} salvo na nuvem.") }
-                .addOnFailureListener { e -> Log.w("Firestore", "Erro ao salvar template na nuvem", e) }
+                .addOnSuccessListener { Log.d(TAG, "Template ${template.id} salvo com sucesso no Firestore.") }
+                .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar template ${template.id} no Firestore.", e) }
         }
     }
 
     suspend fun saveTemplateWithEvents(template: Template, eventos: List<ItemCronograma>) = withContext(dispatcher) {
+        Log.d(TAG, "Salvando template com eventos (transacional): ID=${template.id}")
         templateDao.update(template)
         eventoRepository.deleteEventsByTemplateId(template.id)
         eventoRepository.insertAll(eventos)
     }
 
     suspend fun deleteTemplate(template: Template) {
+        Log.d(TAG, "Deletando template: ID=${template.id}, Nome=${template.nome}")
         templateDao.delete(template)
         userId?.let {
             firestore.collection("users").document(it).collection("templates").document(template.id)
                 .delete()
-                .addOnSuccessListener { Log.d("Firestore", "Template ${template.id} deletado da nuvem.") }
-                .addOnFailureListener { e -> Log.w("Firestore", "Erro ao deletar template da nuvem", e) }
+                .addOnSuccessListener { Log.d(TAG, "Template ${template.id} deletado com sucesso do Firestore.") }
+                .addOnFailureListener { e -> Log.w(TAG, "Erro ao deletar template ${template.id} do Firestore.", e) }
         }
     }
     suspend fun clear() = withContext(dispatcher){
+        Log.d(TAG, "Limpando todos os templates do banco de dados local.")
         templateDao.clear()
     }
 }

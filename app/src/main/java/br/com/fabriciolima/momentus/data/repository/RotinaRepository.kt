@@ -31,6 +31,8 @@ import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val TAG = "RotinaRepository"
+
 enum class SyncStatus { OFFLINE, SYNCING, CONNECTED }
 
 @Singleton
@@ -64,11 +66,10 @@ open class RotinaRepository @Inject constructor(
 
         _syncStatus.value = SyncStatus.SYNCING
 
-        // Listener para Rotinas
         val rotinasCollection = firestore.collection("users").document(userId).collection("rotinas")
         rotinasListener = rotinasCollection.addSnapshotListener { snapshots, e ->
             if (e != null) {
-                Log.w("Firestore", "Erro ao escutar por mudanças nas rotinas.", e)
+                Log.w(TAG, "Erro ao escutar por mudanças nas rotinas.", e)
                 _syncStatus.value = SyncStatus.OFFLINE
                 return@addSnapshotListener
             }
@@ -76,7 +77,7 @@ open class RotinaRepository @Inject constructor(
             snapshots?.toObjects<Rotina>()?.let {
                 CoroutineScope(dispatcher).launch {
                     rotinaDao.insertAll(it)
-                    Log.d("Firestore", "${it.size} rotinas sincronizadas em tempo real.")
+                    Log.d(TAG, "${it.size} rotinas sincronizadas em tempo real.")
                 }
             }
         }
@@ -101,7 +102,7 @@ open class RotinaRepository @Inject constructor(
             eventoRepository.syncEventos()
             _syncStatus.value = SyncStatus.CONNECTED
         } catch (e: Exception) {
-            Log.e("Firestore", "Erro durante a sincronização geral.", e)
+            Log.e(TAG, "Erro durante a sincronização geral.", e)
             _syncStatus.value = SyncStatus.OFFLINE
         }
     }
@@ -137,21 +138,22 @@ open class RotinaRepository @Inject constructor(
                 val batch = firestore.batch()
                 itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
                 batch.commit().await()
-                Log.d("Firestore", "${itemsToUpload.size} rotinas locais enviadas para a nuvem.")
+                Log.d(TAG, "${itemsToUpload.size} rotinas locais enviadas para a nuvem.")
             }
 
             if (itemsToDownload.isNotEmpty()) {
                 rotinaDao.insertAll(itemsToDownload.toList())
-                Log.d("Firestore", "${itemsToDownload.size} rotinas da nuvem sincronizadas para o banco local.")
+                Log.d(TAG, "${itemsToDownload.size} rotinas da nuvem sincronizadas para o banco local.")
             }
 
         } catch (e: Exception) {
-            Log.e("Firestore", "Erro ao sincronizar rotinas.", e)
-            throw e // Lança a exceção para ser tratada pelo syncAllDataToLocal
+            Log.e(TAG, "Erro ao sincronizar rotinas.", e)
+            throw e
         }
     }
 
     suspend fun clearAllLocalData() = withContext(dispatcher) {
+        Log.w(TAG, "Limpando todos os dados locais do banco de dados.")
         rotinaDao.clear()
         templateRepository.clear()
         eventoRepository.clear()
@@ -168,55 +170,25 @@ open class RotinaRepository @Inject constructor(
     }
 
     open suspend fun insertRotina(rotina: Rotina) {
+        Log.d(TAG, "Inserindo/Atualizando rotina: ID=${rotina.id}, Nome=${rotina.nome}")
         rotinaDao.insert(rotina)
-
-        val currentUser = auth.currentUser
-        val rotinaId = rotina.id
-        val documentPath = "/users/${currentUser?.uid}/rotinas/$rotinaId"
-
-        Log.d("FirestoreDebug", "Tentando salvar rotina.")
-        Log.d("FirestoreDebug", "Usuário autenticado? UID: ${currentUser?.uid}")
-        Log.d("FirestoreDebug", "Caminho do documento: $documentPath")
-
-        if (currentUser == null) {
-            Log.e("FirestoreDebug", "Falha ao salvar rotina: Usuário é nulo. Operação no Firestore não será tentada.")
-            return
+        userId?.let {
+            firestore.collection("users").document(it).collection("rotinas").document(rotina.id)
+                .set(rotina)
+                .addOnSuccessListener { Log.d(TAG, "Rotina ${rotina.id} salva com sucesso no Firestore.") }
+                .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar rotina ${rotina.id} no Firestore.", e) }
         }
-
-        firestore.collection("users").document(currentUser.uid).collection("rotinas").document(rotinaId)
-            .set(rotina)
-            .addOnSuccessListener {
-                Log.d("FirestoreDebug", "SUCESSO! Rotina salva em: $documentPath")
-            }
-            .addOnFailureListener { e ->
-                Log.e("FirestoreDebug", "FALHA ao salvar rotina em: $documentPath", e)
-            }
     }
 
     open suspend fun deleteRotina(rotina: Rotina) {
+        Log.d(TAG, "Deletando rotina: ID=${rotina.id}, Nome=${rotina.nome}")
         rotinaDao.delete(rotina)
-
-        val currentUser = auth.currentUser
-        val rotinaId = rotina.id
-        val documentPath = "/users/${currentUser?.uid}/rotinas/$rotinaId"
-
-        Log.d("FirestoreDebug", "Tentando deletar rotina.")
-        Log.d("FirestoreDebug", "Usuário autenticado? UID: ${currentUser?.uid}")
-        Log.d("FirestoreDebug", "Caminho do documento: $documentPath")
-
-        if (currentUser == null) {
-            Log.e("FirestoreDebug", "Falha ao deletar rotina: Usuário é nulo. Operação no Firestore não será tentada.")
-            return
+        userId?.let {
+            firestore.collection("users").document(it).collection("rotinas").document(rotina.id)
+                .delete()
+                .addOnSuccessListener { Log.d(TAG, "Rotina ${rotina.id} deletada com sucesso do Firestore.") }
+                .addOnFailureListener { e -> Log.w(TAG, "Erro ao deletar rotina ${rotina.id} do Firestore.", e) }
         }
-
-        firestore.collection("users").document(currentUser.uid).collection("rotinas").document(rotinaId)
-            .delete()
-            .addOnSuccessListener {
-                Log.d("FirestoreDebug", "SUCESSO! Rotina deletada de: $documentPath")
-            }
-            .addOnFailureListener { e ->
-                Log.e("FirestoreDebug", "FALHA ao deletar rotina de: $documentPath", e)
-            }
     }
 
     fun getMetaParaRotina(rotinaId: String): Flow<Meta?> {
