@@ -245,9 +245,9 @@ open class RotinaRepository @Inject constructor(
         cor: String?
     ): Result<String?> = googleCalendarSource.saveEvent(titulo, descricao, data, horarioInicio, horarioTermino, cor)
 
-    suspend fun atualizarEventoCompleto(item: ItemCronograma): Result<String?> = withContext(dispatcher) {
+    suspend fun atualizarEventoCompleto(item: ItemCronograma, cor: String?): Result<String?> = withContext(dispatcher) {
         try {
-            val result = googleCalendarSource.updateEvent(item)
+            val result = googleCalendarSource.updateEvent(item, cor)
             if (result is Result.Success) {
                 eventoRepository.insertItemCronograma(item.copy(googleCalendarEventId = result.data))
             }

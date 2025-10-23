@@ -77,15 +77,18 @@ class GoogleCalendarSourceImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateEvent(item: ItemCronograma): Result<String?> = withContext(dispatcher) {
+    override suspend fun updateEvent(item: ItemCronograma, cor: String?): Result<String?> = withContext(dispatcher) {
         try {
             val account = GoogleSignIn.getLastSignedInAccount(context)
                 ?: return@withContext Result.Error(Exception("Nenhuma conta Google conectada."))
 
             val service = getService(account)
+            val googleColorId = cor?.let { getGoogleColorId(it) }
+
             val event = Event().apply {
                 summary = item.titulo
                 description = item.descricao
+                colorId = googleColorId
                 val zoneId = ZoneId.systemDefault()
                 val eventDate = item.data?.let { java.time.Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate() } ?: LocalDate.now()
                 val startInstant = eventDate.atTime(item.horarioInicio).atZone(zoneId).toInstant()

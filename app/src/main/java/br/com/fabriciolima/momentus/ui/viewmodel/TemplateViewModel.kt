@@ -118,15 +118,11 @@ class TemplateViewModel @Inject constructor(
                 }
 
                 if (templateId != null) {
-                    Log.d(TAG, "MODO EDIÇÃO: Deletando eventos antigos para o template ID: $templateId")
-                    eventoRepository.deleteEventsByTemplateId(templateId)
+                    templateRepository.saveTemplateWithEvents(template, eventos)
+                } else {
+                    templateRepository.insertTemplate(template)
+                    eventoRepository.insertAll(eventos)
                 }
-                
-                Log.d(TAG, "Salvando template (Pai): ${template.id}")
-                templateRepository.insertTemplate(template)
-
-                Log.d(TAG, "Salvando ${eventos.size} eventos (Filhos) para o template ID: ${template.id}")
-                eventoRepository.insertAll(eventos)
 
                 onResult(Result.Success(Unit))
                 _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }

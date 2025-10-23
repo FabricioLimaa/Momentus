@@ -6,9 +6,6 @@ import br.com.fabriciolima.momentus.util.Result
 import java.time.LocalDate
 import java.time.LocalTime
 
-/**
- * Interface que define o contrato para a fonte de dados do Google Calendar.
- */
 interface GoogleCalendarSource {
 
     suspend fun saveEvent(
@@ -17,10 +14,10 @@ interface GoogleCalendarSource {
         data: LocalDate,
         horarioInicio: LocalTime,
         horarioTermino: LocalTime,
-        cor: String? // Parâmetro da cor adicionado
+        cor: String?
     ): Result<String?>
 
-    suspend fun updateEvent(item: ItemCronograma): Result<String?>
+    suspend fun updateEvent(item: ItemCronograma, cor: String?): Result<String?>
 
     suspend fun deleteEvent(eventId: String): Result<Unit>
 

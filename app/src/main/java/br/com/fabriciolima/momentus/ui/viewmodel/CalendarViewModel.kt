@@ -284,7 +284,7 @@ class CalendarViewModel @Inject constructor(
                 )
 
                 if (sincronizarComGoogle) {
-                    when (val result = repository.atualizarEventoCompleto(itemAtualizado)) {
+                    when (val result = repository.atualizarEventoCompleto(itemAtualizado, novaRotina.cor)) {
                         is Result.Success -> fetchGoogleCalendarEvents()
                         is Result.Error -> _uiState.value = _uiState.value.copy(error = result.exception.message ?: "Falha ao sincronizar atualização com o Google Calendar.")
                     }

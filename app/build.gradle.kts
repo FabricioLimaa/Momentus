@@ -8,7 +8,6 @@ plugins {
     alias(libs.plugins.google.gms.services)
     alias(libs.plugins.dagger.hilt.android)
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("kotlin-kapt")
 }
 
 // 1. Carrega as propriedades do keystore de forma segura
@@ -41,7 +40,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 21
-        versionName = "0.9.2-beta"
+        versionName = "0.9.35-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
