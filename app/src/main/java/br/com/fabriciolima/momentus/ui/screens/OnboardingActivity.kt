@@ -68,9 +68,9 @@ data class OnboardingPage(
 @Composable
 fun OnboardingScreen(viewModel: SplashViewModel, onOnboardingFinished: () -> Unit) {
     val pages = listOf(
-        OnboardingPage(R.mipmap.ic_launcher, "Bem-vindo ao Momentus", "Organize sua rotina e transforme seus hábitos em eventos concretos."),
-        OnboardingPage(R.mipmap.ic_launcher, "Crie Templates", "Monte sua semana ideal criando templates de rotina reutilizáveis."),
-        OnboardingPage(R.mipmap.ic_launcher, "Aplique e Sincronize", "Aplique seus templates para semanas ou meses e sincronize tudo com sua Agenda Google.")
+        OnboardingPage(R.drawable.ic_launcher_foreground, "Bem-vindo ao Momentus", "Organize sua rotina e transforme seus hábitos em eventos concretos."),
+        OnboardingPage(R.drawable.ic_launcher_foreground, "Crie Templates", "Monte sua semana ideal criando templates de rotina reutilizáveis."),
+        OnboardingPage(R.drawable.ic_launcher_foreground, "Aplique e Sincronize", "Aplique seus templates para semanas ou meses e sincronize tudo com sua Agenda Google.")
     )
 
     val pagerState = rememberPagerState(pageCount = { pages.size })

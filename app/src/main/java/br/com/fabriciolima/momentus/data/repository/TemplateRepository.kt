@@ -22,7 +22,7 @@ import javax.inject.Singleton
 private const val TAG = "TemplateRepository"
 
 @Singleton
-class TemplateRepository @Inject constructor(
+open class TemplateRepository @Inject constructor(
     private val templateDao: TemplateDao,
     private val eventoRepository: EventoRepository,
     @IoDispatcher private val dispatcher: CoroutineDispatcher

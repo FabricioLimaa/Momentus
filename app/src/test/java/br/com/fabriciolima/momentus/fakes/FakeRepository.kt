@@ -14,7 +14,9 @@ import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.model.StatsResult
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
+import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.Result
@@ -25,14 +27,18 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import java.time.LocalDate
 import java.time.LocalTime
 
+// Fakes para os Repositórios
+class FakeEventoRepository : EventoRepository(FakeItemCronogramaDao(), StandardTestDispatcher())
+class FakeTemplateRepository : TemplateRepository(FakeTemplateDao(), FakeEventoRepository(), StandardTestDispatcher())
+
 class FakeRepository : RotinaRepository(
-    FakeRotinaDao(),
-    FakeItemCronogramaDao(),
-    FakeTemplateDao(),
-    FakeMetaDao(),
-    FakeHabitoConcluidoDao(),
-    FakeGoogleCalendarSource(),
-    StandardTestDispatcher()
+    rotinaDao = FakeRotinaDao(),
+    metaDao = FakeMetaDao(),
+    habitoConcluidoDao = FakeHabitoConcluidoDao(),
+    templateRepository = FakeTemplateRepository(),
+    eventoRepository = FakeEventoRepository(),
+    googleCalendarSource = FakeGoogleCalendarSource(),
+    dispatcher = StandardTestDispatcher()
 ) {
 
     private val rotinasFlow = MutableStateFlow<List<RotinaComMeta>>(emptyList())
@@ -71,7 +77,7 @@ class FakeGoogleCalendarSource : GoogleCalendarSource {
         return Result.Success("fake-event-id")
     }
 
-    override suspend fun updateEvent(item: ItemCronograma): Result<String?> {
+    override suspend fun updateEvent(item: ItemCronograma, cor: String?): Result<String?> {
         return Result.Success(item.googleCalendarEventId)
     }
 
@@ -84,6 +90,8 @@ class FakeGoogleCalendarSource : GoogleCalendarSource {
     }
 }
 
+// --- Fakes para os DAOs ---
+
 class FakeRotinaDao : RotinaDao {
     override fun getRotinasComMetas(): Flow<List<RotinaComMeta>> = emptyFlow()
     override fun getAllSync(): List<Rotina> = emptyList()
@@ -92,36 +100,44 @@ class FakeRotinaDao : RotinaDao {
     override suspend fun delete(rotina: Rotina) {}
     override fun getStats(): Flow<List<StatsResult>> = emptyFlow()
     override fun getAll(): Flow<List<Rotina>> = emptyFlow()
+    override suspend fun clear() {}
 }
 
 class FakeItemCronogramaDao : ItemCronogramaDao {
     override fun getAllItems(): Flow<List<ItemCronograma>> = emptyFlow()
-    override fun getForWidget(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<ItemCronograma> = emptyList()
-    override fun getItemsByDayOfWeek(dia: String): Flow<List<ItemCronograma>> = emptyFlow()
+    override fun getItemsByDayOfWeek(dayOfWeek: String): Flow<List<ItemCronograma>> = emptyFlow()
     override suspend fun insert(item: ItemCronograma) {}
     override suspend fun insertAll(items: List<ItemCronograma>) {}
     override suspend fun updateAll(items: List<ItemCronograma>) {}
     override suspend fun delete(item: ItemCronograma) {}
     override suspend fun getItemById(itemId: String): ItemCronograma? = null
-    override fun getWidgetEventItems(epochDay: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem> = emptyList()
+    override suspend fun deleteByTemplateId(templateId: String) {}
+    override suspend fun deleteByRotinaId(rotinaId: String) {}
+    override fun getWidgetEventItems(startOfDayMillis: Long, endOfDayMillis: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem> = emptyList()
+    override fun getAllSync(): List<ItemCronograma> = emptyList()
+    override suspend fun clear() {}
 }
 
 class FakeTemplateDao : TemplateDao {
     override fun getTemplatesComEventos(): Flow<List<TemplateComEventos>> = emptyFlow()
     override fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos> = emptyFlow()
-    override suspend fun insert(template: Template) {}
+    override suspend fun insert(vararg templates: Template) {}
     override suspend fun insertAll(templates: List<Template>) {}
-    override suspend fun delete(template: Template) {}
+    override suspend fun update(template: Template) {}
+    override suspend fun delete(vararg templates: Template) {}
     override fun getAllSync(): List<Template> = emptyList()
+    override suspend fun clear() {}
 }
 
 class FakeMetaDao : MetaDao {
     override fun getMetaParaRotina(rotinaId: String): Flow<Meta?> = emptyFlow()
     override suspend fun insertOrUpdate(meta: Meta) {}
+    override suspend fun clear() {}
 }
 
 class FakeHabitoConcluidoDao : HabitoConcluidoDao {
     override fun getIdsConcluidos(): Flow<List<String>> = emptyFlow()
     override suspend fun insert(habito: HabitoConcluido) {}
     override suspend fun delete(itemCronogramaId: String) {}
+    override suspend fun clear() {}
 }

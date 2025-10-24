@@ -24,7 +24,7 @@ import javax.inject.Singleton
 private const val TAG = "EventoRepository"
 
 @Singleton
-class EventoRepository @Inject constructor(
+open class EventoRepository @Inject constructor(
     private val itemCronogramaDao: ItemCronogramaDao,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
@@ -138,6 +138,16 @@ class EventoRepository @Inject constructor(
     suspend fun insertAll(items: List<ItemCronograma>) {
         Log.d(TAG, "Inserindo ${items.size} eventos em lote.")
         itemCronogramaDao.insertAll(items)
+        userId?.let { userId ->
+            val batch = firestore.batch()
+            items.forEach { item ->
+                val docRef = firestore.collection("users").document(userId).collection("eventos").document(item.id)
+                batch.set(docRef, item)
+            }
+            batch.commit()
+                .addOnSuccessListener { Log.d(TAG, "${items.size} eventos inseridos na nuvem.") }
+                .addOnFailureListener { e -> Log.w(TAG, "Erro ao inserir eventos na nuvem", e) }
+        }
     }
 
     suspend fun updateItensCronograma(items: List<ItemCronograma>) {
@@ -171,9 +181,21 @@ class EventoRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteEventsByTemplateId(templateId: String) {
-        Log.d(TAG, "Deletando eventos por templateId: $templateId")
+    suspend fun deleteEventsByTemplateId(templateId: String) = withContext(dispatcher) {
+        Log.d(TAG, "Deletando eventos do DB local para templateId: $templateId")
         itemCronogramaDao.deleteByTemplateId(templateId)
+        
+        userId?.let {
+            val collectionRef = firestore.collection("users").document(it).collection("eventos")
+            val query = collectionRef.whereEqualTo("templateId", templateId)
+            val batch = firestore.batch()
+            val documents = query.get().await()
+            documents.forEach { document ->
+                batch.delete(document.reference)
+            }
+            batch.commit().await()
+            Log.d(TAG, "Deletados ${documents.size()} eventos do Firestore para templateId: $templateId")
+        }
     }
 
     suspend fun deleteEventsByRotinaId(rotinaId: String) {
