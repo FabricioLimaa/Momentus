@@ -41,6 +41,7 @@ import br.com.fabriciolima.momentus.data.repository.SyncStatus
 import br.com.fabriciolima.momentus.ui.components.RotinaListItem
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModel
+import br.com.fabriciolima.momentus.widget.OPEN_NEW_EVENT_DIALOG_KEY
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -49,6 +50,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Verifica se a Activity foi iniciada com a intenção de criar um novo evento (vinda do widget)
+        if (intent.getBooleanExtra(OPEN_NEW_EVENT_DIALOG_KEY, false)) {
+            // Navega para a tela de criação de evento
+            val newEventIntent = Intent(this, CreateTemplateActivity::class.java).apply {
+                // Limpa o extra para não entrar em loop caso o usuário volte
+                removeExtra(OPEN_NEW_EVENT_DIALOG_KEY)
+            }
+            startActivity(newEventIntent)
+            // Finaliza a MainActivity para não deixá-la na pilha de volta
+            finish()
+            return // Impede a execução do setContent abaixo
+        }
+
         setContent {
             MomentusTheme {
                 RoutinesScreen(
@@ -191,4 +206,3 @@ fun SyncStatusIcon(status: SyncStatus) {
         modifier = Modifier.padding(horizontal = 12.dp)
     )
 }
-

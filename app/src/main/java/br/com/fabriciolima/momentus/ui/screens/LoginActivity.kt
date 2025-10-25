@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
+import br.com.fabriciolima.momentus.widget.OPEN_NEW_EVENT_DIALOG_KEY
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -90,9 +91,9 @@ class LoginActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        // Se o usuário já estiver logado, pule para a tela de carregamento/sincronização
+        // Se o usuário já estiver logado, navegue para a tela correta
         if (firebaseAuth.currentUser != null) {
-            navigateToLoadingScreen()
+            handleNavigation()
         }
     }
 
@@ -117,7 +118,7 @@ class LoginActivity : ComponentActivity() {
         firebaseAuth.signInWithCredential(credential)
             .addOnSuccessListener {
                 Log.d("LoginActivity", "Firebase Auth SUCESSO. UID: ${it.user?.uid}")
-                navigateToLoadingScreen()
+                handleNavigation()
             }
             .addOnFailureListener { e ->
                 _isSigningIn.value = false
@@ -126,13 +127,20 @@ class LoginActivity : ComponentActivity() {
             }
     }
 
-    private fun navigateToLoadingScreen() {
-        // Propaga a Intent original para a próxima tela
-        val intent = Intent(this, SplashActivity::class.java).apply {
-            // Copia os extras (como EVENT_ID_KEY) da Intent que iniciou a LoginActivity
-            this@LoginActivity.intent.extras?.let { putExtras(it) }
+    private fun handleNavigation() {
+        val openNewEvent = intent.getBooleanExtra(OPEN_NEW_EVENT_DIALOG_KEY, false)
+        val targetIntent = if (openNewEvent) {
+            // Se veio do widget para criar evento, vai direto para a CalendarActivity
+            // com a informação para abrir a tela de novo evento.
+            Intent(this, CalendarActivity::class.java)
+        } else {
+            // Caso contrário, segue o fluxo normal pela SplashActivity.
+            Intent(this, SplashActivity::class.java)
         }
-        startActivity(intent)
+
+        // Propaga a Intent original para a próxima tela
+        intent.extras?.let { targetIntent.putExtras(it) }
+        startActivity(targetIntent)
         finish()
     }
 }
