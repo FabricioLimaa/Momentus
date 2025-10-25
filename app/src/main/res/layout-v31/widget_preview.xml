@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/system_neutral2_50"
     android:orientation="vertical"
-    android:padding="16dp"
-    tools:targetApi="31">
+    android:padding="16dp">
 
     <!-- Cabeçalho Falso -->
     <LinearLayout
@@ -30,14 +28,14 @@
             android:layout_height="24dp"
             android:layout_marginStart="8dp"
             android:src="@drawable/ic_add"
-            app:tint="?android:attr/textColorPrimary" />
+            android:tint="?android:attr/textColorPrimary" />
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_marginStart="8dp"
             android:src="@drawable/ic_refresh"
-            app:tint="?android:attr/textColorPrimary" />
+            android:tint="?android:attr/textColorPrimary" />
 
     </LinearLayout>
 
@@ -49,8 +47,7 @@
         android:background="@android:color/system_neutral2_100"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="16dp"
-        tools:targetApi="31">
+        android:padding="16dp">
 
         <LinearLayout
             android:layout_width="0dp"
