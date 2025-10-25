@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
+import br.com.fabriciolima.momentus.widget.EVENT_ID_KEY
 import br.com.fabriciolima.momentus.widget.OPEN_NEW_EVENT_DIALOG_KEY
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -129,16 +130,17 @@ class LoginActivity : ComponentActivity() {
 
     private fun handleNavigation() {
         val openNewEvent = intent.getBooleanExtra(OPEN_NEW_EVENT_DIALOG_KEY, false)
-        val targetIntent = if (openNewEvent) {
-            // Se veio do widget para criar evento, vai direto para a CalendarActivity
-            // com a informação para abrir a tela de novo evento.
+        val eventId = intent.getStringExtra(EVENT_ID_KEY)
+
+        // Se a intenção veio do widget (para criar ou visualizar um evento), vá para a CalendarActivity.
+        val targetIntent = if (openNewEvent || eventId != null) {
             Intent(this, CalendarActivity::class.java)
         } else {
-            // Caso contrário, segue o fluxo normal pela SplashActivity.
+            // Caso contrário, siga o fluxo normal pela SplashActivity.
             Intent(this, SplashActivity::class.java)
         }
 
-        // Propaga a Intent original para a próxima tela
+        // Propaga os extras da Intent original (como EVENT_ID_KEY) para a próxima tela.
         intent.extras?.let { targetIntent.putExtras(it) }
         startActivity(targetIntent)
         finish()
