@@ -100,6 +100,8 @@ open class RotinaRepository @Inject constructor(
     suspend fun syncAllDataToLocal() {
         _syncStatus.value = SyncStatus.SYNCING
         try {
+            _syncMessage.value = "Verificando dados iniciais..."
+            ensureDefaultRotinaExists()
             _syncMessage.value = "Sincronizando rotinas..."
             syncRotinas()
             _syncMessage.value = "Sincronizando templates..."
@@ -112,6 +114,25 @@ open class RotinaRepository @Inject constructor(
             Log.e(TAG, "Erro durante a sincronização geral.", e)
             _syncMessage.value = "Falha na sincronização."
             _syncStatus.value = SyncStatus.OFFLINE
+        }
+    }
+
+    private suspend fun ensureDefaultRotinaExists() = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
+        val rotinasCollection = firestore.collection("users").document(currentUserId).collection("rotinas")
+        try {
+            val querySnapshot = rotinasCollection.whereEqualTo("nome", "Outros").limit(1).get().await()
+            if (querySnapshot.isEmpty) {
+                Log.d(TAG, "Nenhuma rotina 'Outros' encontrada. Criando rotina padrão.")
+                val defaultRotina = Rotina(
+                    id = java.util.UUID.randomUUID().toString(),
+                    nome = "Outros",
+                    cor = "#808080"
+                )
+                insertRotina(defaultRotina)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao verificar ou criar a rotina padrão 'Outros'.", e)
         }
     }
 
