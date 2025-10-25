@@ -47,7 +47,8 @@ interface ItemCronogramaDao {
         "SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, r.nome as nomeRotina, r.cor as corRotina " +
         "FROM tabela_itens_cronograma tic " +
         "JOIN tabela_rotinas r ON tic.rotinaId = r.id " +
-        "WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) AND tic.rotinaId IN (:allowedRotinaIds)"
+        "WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) AND tic.rotinaId IN (:allowedRotinaIds) " +
+        "ORDER BY tic.horarioInicio ASC"
     )
     fun getWidgetEventItems(startOfDayMillis: Long, endOfDayMillis: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem>
 
