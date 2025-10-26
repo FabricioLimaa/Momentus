@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.SplashViewModel
-import br.com.fabriciolima.momentus.widget.OPEN_NEW_EVENT_DIALOG_KEY
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -47,9 +46,8 @@ class OnboardingActivity : ComponentActivity() {
                 OnboardingScreen(
                     viewModel = viewModel,
                     onOnboardingFinished = {
-                        // Leva o usuário direto para a criação do primeiro evento
-                        startActivity(Intent(this, CalendarActivity::class.java).apply {
-                            putExtra(OPEN_NEW_EVENT_DIALOG_KEY, true)
+                        // Navega para a SplashActivity para reavaliar o destino
+                        startActivity(Intent(this, SplashActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         })
                         finish()
