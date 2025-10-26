@@ -2,8 +2,10 @@ package br.com.fabriciolima.momentus.data.repository
 
 import android.util.Log
 import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
+import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
 import br.com.fabriciolima.momentus.data.database.RotinaDao
+import br.com.fabriciolima.momentus.data.database.StatsSummary
 import br.com.fabriciolima.momentus.data.model.HabitoConcluido
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Meta
@@ -40,6 +42,7 @@ open class RotinaRepository @Inject constructor(
     private val rotinaDao: RotinaDao,
     private val metaDao: MetaDao,
     private val habitoConcluidoDao: HabitoConcluidoDao,
+    private val itemCronogramaDao: ItemCronogramaDao, // Adicionado
     private val templateRepository: TemplateRepository,
     private val eventoRepository: EventoRepository,
     private val googleCalendarSource: GoogleCalendarSource,
@@ -117,23 +120,13 @@ open class RotinaRepository @Inject constructor(
         }
     }
 
-    private suspend fun ensureDefaultRotinaExists() = withContext(dispatcher) {
-        val currentUserId = userId ?: return@withContext
-        val rotinasCollection = firestore.collection("users").document(currentUserId).collection("rotinas")
-        try {
-            val querySnapshot = rotinasCollection.whereEqualTo("nome", "Outros").limit(1).get().await()
-            if (querySnapshot.isEmpty) {
-                Log.d(TAG, "Nenhuma rotina 'Outros' encontrada. Criando rotina padrão.")
-                val defaultRotina = Rotina(
-                    id = java.util.UUID.randomUUID().toString(),
-                    nome = "Outros",
-                    cor = "#808080"
-                )
-                insertRotina(defaultRotina)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Erro ao verificar ou criar a rotina padrão 'Outros'.", e)
-        }
+    private suspend fun ensureDefaultRotinaExists() {
+        val defaultRotina = Rotina(
+            id = "default-outros",
+            nome = "Outros",
+            cor = "#808080"
+        )
+        insertRotina(defaultRotina, isDefault = true)
     }
 
     private suspend fun syncRotinas() = withContext(dispatcher) {
@@ -198,15 +191,36 @@ open class RotinaRepository @Inject constructor(
         return rotinaDao.getAll()
     }
 
-    open suspend fun insertRotina(rotina: Rotina) {
+    fun getStatsSummary(since: Long): Flow<List<StatsSummary>> {
+        return habitoConcluidoDao.getConcluidosCountByRotina(since)
+    }
+
+    fun getSchedulableEventsForRotina(rotinaId: String, since: Long): Flow<List<ItemCronograma>> {
+        return itemCronogramaDao.getSchedulableEventsForRotina(rotinaId, since)
+    }
+
+    open suspend fun insertRotina(rotina: Rotina, isDefault: Boolean = false) = withContext(dispatcher) {
+        val currentUserId = userId ?: run {
+            Log.w(TAG, "Tentativa de inserir rotina sem usuário logado.")
+            return@withContext
+        }
+
+        val rotinasCollection = firestore.collection("users").document(currentUserId).collection("rotinas")
+
+        if (!isDefault) {
+            val querySnapshot = rotinasCollection.whereEqualTo("nome", rotina.nome).get().await()
+            val exists = querySnapshot.documents.any { it.getString("nome").equals(rotina.nome, ignoreCase = true) }
+            if (exists) {
+                Log.w(TAG, "Bloqueio de inserção: Rotina com nome '${rotina.nome}' já existe.")
+                return@withContext
+            }
+        }
+
         Log.d(TAG, "Inserindo/Atualizando rotina: ID=${rotina.id}, Nome=${rotina.nome}")
         rotinaDao.insert(rotina)
-        userId?.let {
-            firestore.collection("users").document(it).collection("rotinas").document(rotina.id)
-                .set(rotina)
-                .addOnSuccessListener { Log.d(TAG, "Rotina ${rotina.id} salva com sucesso no Firestore.") }
-                .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar rotina ${rotina.id} no Firestore.", e) }
-        }
+        rotinasCollection.document(rotina.id).set(rotina)
+            .addOnSuccessListener { Log.d(TAG, "Rotina ${rotina.id} salva com sucesso no Firestore.") }
+            .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar rotina ${rotina.id} no Firestore.", e) }
     }
 
     open suspend fun deleteRotina(rotina: Rotina) {

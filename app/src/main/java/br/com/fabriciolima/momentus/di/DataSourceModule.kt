@@ -70,6 +70,7 @@ object RepositoryModule {
         rotinaDao: RotinaDao,
         metaDao: MetaDao,
         habitoConcluidoDao: HabitoConcluidoDao,
+        itemCronogramaDao: ItemCronogramaDao, // Adicionado o parâmetro que faltava
         templateRepository: TemplateRepository,
         eventoRepository: EventoRepository,
         googleCalendarSource: GoogleCalendarSource,
@@ -79,6 +80,7 @@ object RepositoryModule {
             rotinaDao,
             metaDao,
             habitoConcluidoDao,
+            itemCronogramaDao, // Passado o parâmetro na ordem correta
             templateRepository,
             eventoRepository,
             googleCalendarSource,

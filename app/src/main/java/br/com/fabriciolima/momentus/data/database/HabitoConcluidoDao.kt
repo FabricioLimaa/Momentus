@@ -20,4 +20,21 @@ interface HabitoConcluidoDao {
 
     @Query("DELETE FROM tabela_habitos_concluidos")
     suspend fun clear()
+
+    @Query("""
+        SELECT r.id as rotinaId, r.nome as rotinaNome, r.cor as rotinaCor, COUNT(thc.itemCronogramaId) as concluidos
+        FROM tabela_habitos_concluidos thc
+        JOIN tabela_itens_cronograma tic ON thc.itemCronogramaId = tic.id
+        JOIN tabela_rotinas r ON tic.rotinaId = r.id
+        WHERE thc.dataConclusao >= :since
+        GROUP BY r.id, r.nome, r.cor
+    """)
+    fun getConcluidosCountByRotina(since: Long): Flow<List<StatsSummary>>
 }
+
+data class StatsSummary(
+    val rotinaId: String,
+    val rotinaNome: String,
+    val rotinaCor: String,
+    val concluidos: Int
+)

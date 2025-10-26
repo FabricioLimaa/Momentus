@@ -54,6 +54,16 @@ interface ItemCronogramaDao {
 
     @Query("DELETE FROM tabela_itens_cronograma")
     suspend fun clear()
+
+    @Query("""
+        SELECT * 
+        FROM tabela_itens_cronograma
+        WHERE rotinaId = :rotinaId AND (
+            (data IS NOT NULL AND data >= :since) OR 
+            (diaDaSemana IS NOT NULL)
+        )
+    """)
+    fun getSchedulableEventsForRotina(rotinaId: String, since: Long): Flow<List<ItemCronograma>>
 }
 
 data class WidgetEventItem(

@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -436,6 +437,16 @@ fun AppDrawerContent(account: GoogleSignInAccount?, onNavigate: () -> Unit, onLo
                         onNavigate()
                     },
                     icon = { Icon(Icons.Default.Category, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                 NavigationDrawerItem(
+                    label = { Text("Estatísticas") },
+                    selected = false,
+                    onClick = {
+                        context.startActivity(Intent(context, StatsActivity::class.java))
+                        onNavigate()
+                    },
+                    icon = { Icon(Icons.Default.Assessment, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }
