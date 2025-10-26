@@ -7,15 +7,17 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.ServerTimestamp
+import kotlinx.serialization.Serializable
+import br.com.fabriciolima.momentus.util.DateSerializer
+import br.com.fabriciolima.momentus.util.LocalTimeSerializer
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Date
 
 @Keep
+@Serializable
 @Entity(
     tableName = "tabela_itens_cronograma",
-    // Foreign Keys removidas para evitar crashes de sincronização com o Firestore.
-    // A integridade dos dados será garantida pela camada da UI/ViewModel.
     indices = [Index(value = ["rotinaId"]), Index(value = ["templateId"])]
 )
 data class ItemCronograma(
@@ -28,9 +30,11 @@ data class ItemCronograma(
     val data: Long? = null, // Para eventos únicos
     val diaDaSemana: String? = null, // Para eventos de template (SEG, TER, etc.)
 
+    @Serializable(with = LocalTimeSerializer::class)
     @get:Exclude @set:Exclude
     var horarioInicio: LocalTime = LocalTime.of(0, 0),
 
+    @Serializable(with = LocalTimeSerializer::class)
     @get:Exclude @set:Exclude
     var horarioTermino: LocalTime = LocalTime.of(0, 0),
 
@@ -42,6 +46,7 @@ data class ItemCronograma(
 
     val googleCalendarEventId: String? = null,
 
+    @Serializable(with = DateSerializer::class)
     @ServerTimestamp
     val lastUpdated: Date? = null
 ) {

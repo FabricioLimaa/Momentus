@@ -1,5 +1,6 @@
 package br.com.fabriciolima.momentus.ui.screens
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.filled.ContentPasteGo
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
@@ -50,6 +52,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -109,13 +112,16 @@ class TemplatesActivity : ComponentActivity() {
                     uiState = uiState,
                     onNavigateUp = { finish() },
                     onShowCreateDialog = viewModel::onShowCreateDialog,
+                    onShowImportDialog = viewModel::onShowImportDialog, 
                     onShowEditDialog = viewModel::onShowEditDialog,
                     onShowDeleteDialog = viewModel::onShowDeleteDialog,
                     onShowApplyDialog = viewModel::onShowApplyDialog,
                     onDialogDismiss = viewModel::onDialogDismiss,
                     onSaveTemplate = viewModel::salvarTemplateCompleto,
+                    onImportTemplate = viewModel::importTemplateFromJson, 
                     onDeleteTemplate = viewModel::deleteTemplate,
                     onApplyTemplate = viewModel::applyTemplateToDates,
+                    getShareableJson = viewModel::getShareableJsonForTemplate, // Adicionado
                     onErrorShown = viewModel::onErrorShown
                 )
             }
@@ -129,13 +135,16 @@ fun TemplatesScreen(
     uiState: TemplateUiState,
     onNavigateUp: () -> Unit,
     onShowCreateDialog: () -> Unit,
+    onShowImportDialog: () -> Unit,
     onShowEditDialog: (TemplateComEventos) -> Unit,
     onShowDeleteDialog: (TemplateComEventos) -> Unit,
     onShowApplyDialog: (TemplateComEventos) -> Unit,
     onDialogDismiss: () -> Unit,
     onSaveTemplate: (String?, String, List<EventFormData>, (Result<Unit>) -> Unit) -> Unit,
+    onImportTemplate: (String, (Result<Unit>) -> Unit) -> Unit,
     onDeleteTemplate: (Template) -> Unit,
     onApplyTemplate: (String, List<LocalDate>, Boolean, (Result<Unit>) -> Unit) -> Unit,
+    getShareableJson: (String) -> String?, // Adicionado
     onErrorShown: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -164,6 +173,27 @@ fun TemplatesScreen(
                             }
                             is Result.Error -> {
                                 Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                }
+            )
+        }
+        is TemplateDialogState.Import -> { 
+            ImportTemplateDialog(
+                onDismiss = onDialogDismiss,
+                onConfirm = { jsonString ->
+                    onImportTemplate(jsonString) { result ->
+                        when (result) {
+                            is Result.Success -> {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Template importado com sucesso!")
+                                }
+                            }
+                            is Result.Error -> {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(result.exception.message ?: "Erro desconhecido")
+                                }
                             }
                         }
                     }
@@ -245,13 +275,23 @@ fun TemplatesScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = onShowCreateDialog,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Adicionar Template")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Novo Template", fontSize = 16.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onShowCreateDialog,
+                    modifier = Modifier.weight(1f).height(50.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Adicionar Template")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Novo")
+                }
+                OutlinedButton(
+                    onClick = onShowImportDialog, 
+                    modifier = Modifier.weight(1f).height(50.dp)
+                ) {
+                    Icon(Icons.Default.ContentPasteGo, contentDescription = "Importar Template")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Importar")
+                }
             }
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -279,6 +319,18 @@ fun TemplatesScreen(
                             templateComEventos = templateComEventos,
                             rotinasMap = uiState.rotinasMap,
                             isSyncing = uiState.isSyncing,
+                            onShareClick = { // Adicionado
+                                val shareableJson = getShareableJson(templateComEventos.template.id)
+                                if (shareableJson != null) {
+                                    val sendIntent: Intent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, shareableJson)
+                                        type = "text/plain"
+                                    }
+                                    val shareIntent = Intent.createChooser(sendIntent, "Compartilhar Template")
+                                    context.startActivity(shareIntent)
+                                }
+                            },
                             onEditClick = { onShowEditDialog(templateComEventos) },
                             onDeleteClick = { onShowDeleteDialog(templateComEventos) },
                             onApplyClick = { onShowApplyDialog(templateComEventos) }
@@ -291,10 +343,47 @@ fun TemplatesScreen(
 }
 
 @Composable
+fun ImportTemplateDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var jsonString by remember { mutableStateOf("") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Importar Template") },
+        text = {
+            Column {
+                Text("Cole o código do template compartilhado abaixo para adicioná-lo à sua lista.")
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = jsonString,
+                    onValueChange = { jsonString = it },
+                    label = { Text("Código do Template (JSON)") },
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    maxLines = 10
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(jsonString) }, enabled = jsonString.isNotBlank()) {
+                Text("Importar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@Composable
 fun TemplateCard(
     templateComEventos: TemplateComEventos, 
     rotinasMap: Map<String, Rotina>,
     isSyncing: Boolean,
+    onShareClick: () -> Unit, // Adicionado
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onApplyClick: () -> Unit
@@ -321,6 +410,9 @@ fun TemplateCard(
                 Row {
                     IconButton(onClick = onApplyClick) {
                         Icon(Icons.Default.ContentPasteGo, contentDescription = "Aplicar Template", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = onShareClick) { // Adicionado
+                        Icon(Icons.Default.Share, contentDescription = "Compartilhar Template")
                     }
                     IconButton(onClick = onEditClick) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar Template")

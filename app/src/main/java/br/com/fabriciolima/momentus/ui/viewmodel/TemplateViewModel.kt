@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.SharedTemplate
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
@@ -22,6 +23,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
@@ -31,6 +34,7 @@ private const val TAG = "TemplateViewModel"
 sealed interface TemplateDialogState {
     object Hidden : TemplateDialogState
     object CreateNew : TemplateDialogState
+    object Import : TemplateDialogState
     data class Edit(val template: TemplateComEventos) : TemplateDialogState
     data class ConfirmDelete(val template: TemplateComEventos) : TemplateDialogState
     data class ApplyTemplate(val template: TemplateComEventos) : TemplateDialogState
@@ -41,7 +45,7 @@ data class TemplateUiState(
     val rotinasMap: Map<String, Rotina> = emptyMap(),
     val dialogState: TemplateDialogState = TemplateDialogState.Hidden,
     val isLoading: Boolean = false,
-    val isSyncing: Boolean = true, // Novo estado para o indicador
+    val isSyncing: Boolean = true,
     val error: String? = null
 )
 
@@ -50,7 +54,7 @@ class TemplateViewModel @Inject constructor(
     private val templateRepository: TemplateRepository,
     private val rotinaRepository: RotinaRepository,
     private val eventoRepository: EventoRepository,
-    private val application: Application // Adicionado
+    private val application: Application
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TemplateUiState())
@@ -70,7 +74,7 @@ class TemplateViewModel @Inject constructor(
                     it.copy(
                         templates = templates,
                         rotinasMap = rotinasMap,
-                        isSyncing = false // Desativa o indicador quando os dados chegam
+                        isSyncing = false
                     )
                 }
             }
@@ -79,6 +83,10 @@ class TemplateViewModel @Inject constructor(
 
     fun onShowCreateDialog() {
         _uiState.update { it.copy(dialogState = TemplateDialogState.CreateNew) }
+    }
+
+    fun onShowImportDialog() {
+        _uiState.update { it.copy(dialogState = TemplateDialogState.Import) }
     }
 
     fun onShowEditDialog(template: TemplateComEventos) {
@@ -95,6 +103,50 @@ class TemplateViewModel @Inject constructor(
 
     fun onDialogDismiss() {
         _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
+    }
+
+    fun getShareableJsonForTemplate(templateId: String): String? {
+        val templateComEventos = uiState.value.templates.find { it.template.id == templateId }
+        if (templateComEventos == null) return null
+
+        val shareableData = SharedTemplate(
+            template = templateComEventos.template,
+            eventos = templateComEventos.eventos
+        )
+        return Json.encodeToString(shareableData)
+    }
+
+    fun importTemplateFromJson(jsonString: String, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val sharedTemplate = Json.decodeFromString<SharedTemplate>(jsonString)
+
+                val newTemplate = sharedTemplate.template.copy(
+                    id = UUID.randomUUID().toString(),
+                    nome = "${sharedTemplate.template.nome} (Importado)"
+                )
+
+                val newEventos = sharedTemplate.eventos.map {
+                    it.copy(
+                        id = UUID.randomUUID().toString(),
+                        templateId = newTemplate.id
+                    )
+                }
+
+                templateRepository.insertTemplate(newTemplate)
+                eventoRepository.insertAll(newEventos)
+
+                onResult(Result.Success(Unit))
+                _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Falha ao importar template do JSON", e)
+                onResult(Result.Error(Exception("Código inválido ou corrompido.", e)))
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
     }
 
     fun salvarTemplateCompleto(

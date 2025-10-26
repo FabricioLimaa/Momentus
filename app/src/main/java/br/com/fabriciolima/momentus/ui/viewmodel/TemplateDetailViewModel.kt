@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.RotinaComMeta
+import br.com.fabriciolima.momentus.data.model.SharedTemplate
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.RotinaRepository
@@ -16,6 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.time.LocalTime
 import javax.inject.Inject
 
@@ -50,6 +53,17 @@ class TemplateDetailViewModel @Inject constructor(
 
     fun loadTemplate(id: String) {
         _templateId.value = id
+    }
+
+    fun getShareableJson(): String? {
+        val currentTemplate = uiState.value.template?.template ?: return null
+        val currentEventos = uiState.value.template?.eventos ?: return null
+
+        val shareableData = SharedTemplate(
+            template = currentTemplate,
+            eventos = currentEventos
+        )
+        return Json.encodeToString(shareableData)
     }
 
     fun addEventToTemplate(titulo: String, descricao: String?, horarioInicio: LocalTime, horarioTermino: LocalTime, rotina: Rotina) {
