@@ -104,6 +104,7 @@ object WidgetUpdater {
 
     private fun mapToSerializable(items: List<WidgetEventItem>): List<WidgetEvent> {
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        val now = LocalTime.now()
         return items.map { item ->
             val horarioInicio = LocalTime.parse(item.horarioInicio)
             val horarioTermino = LocalTime.parse(item.horarioTermino)
@@ -112,7 +113,8 @@ object WidgetUpdater {
                 title = item.titulo,
                 timeRange = "${timeFormatter.format(horarioInicio)} - ${timeFormatter.format(horarioTermino)}",
                 categoryName = item.nomeRotina,
-                categoryColor = item.corRotina
+                categoryColor = item.corRotina,
+                isPast = now.isAfter(horarioTermino) // Novo campo
             )
         }
     }

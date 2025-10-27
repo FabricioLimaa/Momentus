@@ -65,7 +65,8 @@ data class WidgetEvent(
     val title: String,
     val timeRange: String,
     val categoryName: String,
-    val categoryColor: String?
+    val categoryColor: String?,
+    val isPast: Boolean = false // Novo campo
 )
 
 object EventWidgetStateKeys {
@@ -213,8 +214,26 @@ class MomentusGlanceWidget : GlanceAppWidget() {
         } catch (e: Exception) {
             Color.Gray
         }
-        val categoryColorProvider = ColorProvider(categoryColor, categoryColor)
-        val categoryColorAlphaProvider = ColorProvider(categoryColor.copy(alpha = 0.2f), categoryColor.copy(alpha = 0.2f))
+
+        val itemAlpha = if (event.isPast) 0.5f else 1f
+
+        // CORREÇÃO: Aplicando alfa para Day e Night em todos os ColorProviders
+        val categoryColorProvider = ColorProvider(
+            day = categoryColor.copy(alpha = itemAlpha),
+            night = categoryColor.copy(alpha = itemAlpha)
+        )
+        val categoryColorAlphaProvider = ColorProvider(
+            day = categoryColor.copy(alpha = 0.2f * itemAlpha),
+            night = categoryColor.copy(alpha = 0.2f * itemAlpha)
+        )
+        val primaryTextColorProvider = ColorProvider(
+            day = Color.Black.copy(alpha = itemAlpha),
+            night = Color.White.copy(alpha = itemAlpha)
+        )
+        val secondaryTextColorProvider = ColorProvider(
+            day = Color(0xFF3C3C43).copy(alpha = itemAlpha),
+            night = Color(0xFFEBEBF5).copy(alpha = itemAlpha)
+        )
 
         Row(
             modifier = GlanceModifier
@@ -243,7 +262,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                     Spacer(GlanceModifier.width(8.dp))
                     Text(
                         text = event.title.ifBlank { "(Sem título)" },
-                        style = TextStyle(color = primaryTextColor, fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                        style = TextStyle(color = primaryTextColorProvider, fontWeight = FontWeight.Bold, fontSize = 16.sp),
                         maxLines = 1
                     )
                 }
@@ -252,13 +271,13 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                     Image(
                         provider = ImageProvider(R.drawable.ic_time),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(secondaryTextColor),
+                        colorFilter = ColorFilter.tint(secondaryTextColorProvider),
                         modifier = GlanceModifier.size(14.dp)
                     )
                     Spacer(GlanceModifier.width(4.dp))
                     Text(
                         text = event.timeRange,
-                        style = TextStyle(color = secondaryTextColor, fontSize = 14.sp),
+                        style = TextStyle(color = secondaryTextColorProvider, fontSize = 14.sp),
                         maxLines = 1
                     )
                 }

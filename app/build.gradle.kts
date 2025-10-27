@@ -106,6 +106,8 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation("androidx.hilt:hilt-work:1.2.0") // Adicionado para integração com WorkManager
+    ksp("androidx.hilt:hilt-compiler:1.2.0") // Adicionado para integração com WorkManager
 
     // Glance for App Widgets
     implementation(libs.androidx.glance)
@@ -172,8 +174,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.androidx.core.testing)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1") // Adicionado para os testes
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 }

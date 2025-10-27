@@ -19,6 +19,17 @@
         android:theme="@style/Theme.Momentus"
         tools:targetApi="31">
 
+        <!-- Remove o inicializador padrão do WorkManager para usar a inicialização sob demanda -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                tools:node="remove" />
+        </provider>
+
         <activity
             android:name=".ui.screens.LoginActivity"
             android:exported="true"
@@ -28,7 +39,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
+
         <activity
             android:name=".ui.screens.SplashActivity"
             android:exported="false"
