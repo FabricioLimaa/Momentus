@@ -3,18 +3,17 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Rotina
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.domain.usecase.DeleteCategoryUseCase
+import br.com.fabriciolima.momentus.domain.usecase.GetCategoriesUseCase
+import br.com.fabriciolima.momentus.domain.usecase.UpsertCategoryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 sealed interface CategoryDialogState {
@@ -32,17 +31,16 @@ data class CategoryUiState(
 
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
-    private val rotinaRepository: RotinaRepository,
-    private val eventoRepository: EventoRepository
+    private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val upsertCategoryUseCase: UpsertCategoryUseCase,
+    private val deleteCategoryUseCase: DeleteCategoryUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CategoryUiState())
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
-    private val allRotinas: StateFlow<List<Rotina>> = rotinaRepository.todasAsRotinasComMetas
-        .map { listaRotinaComMeta ->
-            listaRotinaComMeta.map { it.rotina }
-        }.stateIn(
+    private val allRotinas: StateFlow<List<Rotina>> = getCategoriesUseCase()
+        .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
@@ -74,30 +72,18 @@ class CategoryViewModel @Inject constructor(
 
     fun upsertRotina(id: String?, nome: String, cor: String) {
         viewModelScope.launch {
-            val currentCategories = allRotinas.value
-            val isDuplicate = currentCategories.any { it.nome.equals(nome, ignoreCase = true) && it.id != id }
-
-            if (isDuplicate) {
-                _uiState.update { it.copy(error = "Uma categoria com este nome já existe.") }
-                return@launch
+            try {
+                upsertCategoryUseCase(id, nome, cor)
+                onDialogDismiss()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = e.message) }
             }
-
-            val rotina = Rotina(
-                id = id ?: UUID.randomUUID().toString(),
-                nome = nome.trim(),
-                cor = cor,
-                descricao = null,
-                tag = null
-            )
-            rotinaRepository.insertRotina(rotina)
-            onDialogDismiss()
         }
     }
 
     fun deleteRotina(rotina: Rotina) {
         viewModelScope.launch {
-            eventoRepository.deleteEventsByRotinaId(rotina.id)
-            rotinaRepository.deleteRotina(rotina)
+            deleteCategoryUseCase(rotina)
             onDialogDismiss()
         }
     }
