@@ -36,9 +36,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.repository.SyncStatus
-import br.com.fabriciolima.momentus.ui.components.RotinaListItem
+import br.com.fabriciolima.momentus.ui.components.CategoryListItem
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModel
 import br.com.fabriciolima.momentus.widget.OPEN_NEW_EVENT_DIALOG_KEY
@@ -90,7 +89,7 @@ fun RoutinesScreen(
         }
     }
 
-    val rotinasComMetas by viewModel.rotinasComMetas.observeAsState(initial = emptyList())
+    val categoriesWithMetas by viewModel.categoriesWithMetas.observeAsState(initial = emptyList())
     val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -137,7 +136,7 @@ fun RoutinesScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (rotinasComMetas.isEmpty()) {
+            if (categoriesWithMetas.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -169,14 +168,17 @@ fun RoutinesScreen(
                     contentPadding = PaddingValues(bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(rotinasComMetas, key = { it.rotina.id }) { rotinaComMeta ->
-                        RotinaListItem(
-                            rotinaComMeta = rotinaComMeta,
-                            onItemClicked = {
+                    items(categoriesWithMetas, key = { it.category.id }) { categoryWithMeta ->
+                        CategoryListItem(
+                            item = categoryWithMeta,
+                            onEdit = { item ->
                                 val intent = Intent(context, EditorRotinaComposeActivity::class.java).apply {
-                                    putExtra("ROTINA_PARA_EDITAR", it.rotina)
+                                    putExtra("CATEGORY_TO_EDIT", item.category)
                                 }
                                 editorLauncher.launch(intent)
+                            },
+                            onDelete = { item ->
+                                viewModel.deleteCategory(item.category)
                             }
                         )
                     }

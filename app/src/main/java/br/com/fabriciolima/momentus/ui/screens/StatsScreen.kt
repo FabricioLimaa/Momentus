@@ -89,7 +89,7 @@ fun CompletionRateItem(rate: CompletionRate) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    text = rate.rotinaNome,
+                    text = rate.categoryName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -106,7 +106,7 @@ fun CompletionRateItem(rate: CompletionRate) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp),
-                color = rate.rotinaCor.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.primary } },
+                color = rate.categoryColor.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.primary } },
                 strokeCap = StrokeCap.Round
             )
         }

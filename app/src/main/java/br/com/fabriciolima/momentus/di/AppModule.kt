@@ -3,10 +3,10 @@ package br.com.fabriciolima.momentus.di
 import android.content.Context
 import androidx.room.Room
 import br.com.fabriciolima.momentus.data.database.AppDatabase
+import br.com.fabriciolima.momentus.data.database.CategoryDao
 import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
-import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -54,8 +54,8 @@ object AppModule {
     }
 
     @Provides
-    fun provideRotinaDao(appDatabase: AppDatabase): RotinaDao {
-        return appDatabase.rotinaDao()
+    fun provideCategoryDao(appDatabase: AppDatabase): CategoryDao {
+        return appDatabase.categoryDao()
     }
 
     @Provides

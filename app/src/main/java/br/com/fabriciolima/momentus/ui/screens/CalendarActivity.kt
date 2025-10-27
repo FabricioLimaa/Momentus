@@ -78,8 +78,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.ui.components.EventDetailDialog
 import br.com.fabriciolima.momentus.ui.components.EventListItem
 import br.com.fabriciolima.momentus.ui.components.NewEventDialog
@@ -121,7 +121,7 @@ class CalendarActivity : ComponentActivity() {
             MomentusTheme {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
-                val todasAsRotinas by viewModel.todasAsRotinas.collectAsStateWithLifecycle()
+                val allCategories by viewModel.allCategories.collectAsStateWithLifecycle()
                 val eventsForSelectedDate by viewModel.eventsForSelectedDate.collectAsStateWithLifecycle()
                 val account = GoogleSignIn.getLastSignedInAccount(this)
 
@@ -155,7 +155,7 @@ class CalendarActivity : ComponentActivity() {
                     CalendarScreen(
                         uiState = uiState,
                         selectedDate = selectedDate,
-                        todasAsRotinas = todasAsRotinas,
+                        allCategories = allCategories,
                         eventsForSelectedDate = eventsForSelectedDate,
                         account = account,
                         onDateSelected = viewModel::selectDate,
@@ -164,12 +164,12 @@ class CalendarActivity : ComponentActivity() {
                         onMenuClick = { scope.launch { drawerState.open() } },
                         onAddNewEventClicked = viewModel::onAddNewEventClicked,
                         onDialogDismiss = viewModel::onDialogDismiss,
-                        onSaveEvent = viewModel::salvarEventoUnico,
-                        onUpdateEvent = viewModel::atualizarEvento,
+                        onSaveEvent = viewModel::saveSingleEvent,
+                        onUpdateEvent = viewModel::updateEvent,
                         onShowDetailClicked = viewModel::onShowDetailClicked,
                         onEditEventClicked = viewModel::onEditEventClicked,
                         onConfirmDeleteClicked = viewModel::onConfirmDeleteClicked,
-                        onDeleteEvent = viewModel::excluirEvento,
+                        onDeleteEvent = viewModel::deleteEvent,
                         onErrorShown = viewModel::onErrorShown,
                         onSuccessMessageShown = viewModel::onSuccessMessageShown
                     )
@@ -229,7 +229,7 @@ fun UserAvatar(account: GoogleSignInAccount?, modifier: Modifier = Modifier) {
 fun CalendarScreen(
     uiState: CalendarUiState,
     selectedDate: LocalDate,
-    todasAsRotinas: List<Rotina>,
+    allCategories: List<Category>,
     eventsForSelectedDate: EventsForDate,
     account: GoogleSignInAccount?,
     onDateSelected: (LocalDate) -> Unit,
@@ -238,8 +238,8 @@ fun CalendarScreen(
     onMenuClick: () -> Unit,
     onAddNewEventClicked: () -> Unit,
     onDialogDismiss: () -> Unit,
-    onSaveEvent: (String, String?, LocalDate, LocalTime, LocalTime, Rotina, Boolean) -> Unit,
-    onUpdateEvent: (ItemCronograma, String, String?, LocalDate, LocalTime, LocalTime, Rotina, Boolean) -> Unit,
+    onSaveEvent: (String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit,
+    onUpdateEvent: (ItemCronograma, String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit,
     onShowDetailClicked: (ItemCronograma) -> Unit,
     onEditEventClicked: (ItemCronograma) -> Unit,
     onConfirmDeleteClicked: (ItemCronograma) -> Unit,
@@ -268,10 +268,10 @@ fun CalendarScreen(
             NewEventDialog(
                 eventoParaEditar = null,
                 selectedDate = selectedDate,
-                rotinas = todasAsRotinas,
+                categories = allCategories,
                 onDismiss = onDialogDismiss,
-                onConfirm = { _, titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle ->
-                    onSaveEvent(titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle)
+                onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                    onSaveEvent(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
                 }
             )
         }
@@ -279,21 +279,21 @@ fun CalendarScreen(
             NewEventDialog(
                 eventoParaEditar = dialogState.event,
                 selectedDate = selectedDate,
-                rotinas = todasAsRotinas,
+                categories = allCategories,
                 onDismiss = onDialogDismiss,
-                onConfirm = { item, titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle ->
+                onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
                     if (item != null) {
-                        onUpdateEvent(item, titulo, descricao, data, inicio, fim, rotina, salvarNoGoogle)
+                        onUpdateEvent(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
                     }
                 }
             )
         }
         is DialogState.ShowDetail -> {
-            val rotina = uiState.rotinasMap[dialogState.event.rotinaId]
-            if (rotina != null) {
+            val category = uiState.categoriesMap[dialogState.event.categoryId]
+            if (category != null) {
                 EventDetailDialog(
                     event = dialogState.event,
-                    rotina = rotina,
+                    category = category,
                     onDismiss = onDialogDismiss,
                     onEditClick = { onEditEventClicked(dialogState.event) },
                     onDeleteClick = { onConfirmDeleteClicked(dialogState.event) }
@@ -562,7 +562,7 @@ fun CalendarGrid(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit, u
                 val localEventsForDay = localEventsByDate[day] ?: emptyList()
                 val googleEventsForDay = googleEventsByDate[day] ?: emptyList()
 
-                DayCell(day, isSelected, isCurrentMonth, localEventsForDay, googleEventsForDay, uiState.rotinasMap, onDateSelected)
+                DayCell(day, isSelected, isCurrentMonth, localEventsForDay, googleEventsForDay, uiState.categoriesMap, onDateSelected)
             }
         }
     }
@@ -575,7 +575,7 @@ fun DayCell(
     isCurrentMonth: Boolean,
     localEvents: List<ItemCronograma>,
     googleEvents: List<GoogleCalendarEvent>,
-    rotinasMap: Map<String, Rotina>,
+    categoriesMap: Map<String, Category>,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val textColor = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
@@ -610,8 +610,8 @@ fun DayCell(
                 modifier = Modifier.height(8.dp)
             ) {
                 localEvents.take(2).forEach { event ->
-                    val rotina = rotinasMap[event.rotinaId]
-                    val eventColor = rotina?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } } ?: MaterialTheme.colorScheme.secondary
+                    val category = categoriesMap[event.categoryId]
+                    val eventColor = category?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } } ?: MaterialTheme.colorScheme.secondary
                     Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
                 }
 
@@ -677,9 +677,9 @@ fun EventsForDay(
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(eventsForDate.localEvents) {
-                    val rotina = uiState.rotinasMap[it.rotinaId]
-                    if (rotina != null) {
-                        EventListItem(item = it, rotina = rotina, modifier = Modifier.clickable { onEventClick(it) })
+                    val category = uiState.categoriesMap[it.categoryId]
+                    if (category != null) {
+                        EventListItem(item = it, category = category, modifier = Modifier.clickable { onEventClick(it) })
                     }
                 }
 

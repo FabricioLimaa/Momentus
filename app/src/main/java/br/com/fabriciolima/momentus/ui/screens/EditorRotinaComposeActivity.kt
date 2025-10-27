@@ -42,7 +42,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -55,16 +55,16 @@ class EditorRotinaComposeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val rotinaParaEditar = getSerializable(intent, "ROTINA_PARA_EDITAR", Rotina::class.java)
+        val categoryToEdit = getSerializable(intent, "CATEGORY_TO_EDIT", Category::class.java)
 
         setContent {
             MomentusTheme {
                 EditorScreen(
-                    rotinaInicial = rotinaParaEditar,
+                    initialCategory = categoryToEdit,
                     viewModel = viewModel,
                     onNavigateBack = { finish() },
-                    onSave = { rotinaSalva ->
-                        val resultIntent = Intent().putExtra("ROTINA_SALVA", rotinaSalva)
+                    onSave = { savedCategory ->
+                        val resultIntent = Intent().putExtra("SAVED_CATEGORY", savedCategory)
                         setResult(Activity.RESULT_OK, resultIntent)
                         finish()
                     }
@@ -87,31 +87,31 @@ fun <T : Serializable?> getSerializable(intent: Intent, key: String, clazz: Clas
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditorScreen(
-    rotinaInicial: Rotina?,
+    initialCategory: Category?,
     viewModel: MainViewModel?,
     onNavigateBack: () -> Unit,
-    onSave: (Rotina) -> Unit
+    onSave: (Category) -> Unit
 ) {
     val context = LocalContext.current
 
-    var nome by remember { mutableStateOf(rotinaInicial?.nome ?: "") }
-    var descricao by remember { mutableStateOf(rotinaInicial?.descricao ?: "") }
-    var tag by remember { mutableStateOf(rotinaInicial?.tag ?: "") }
-    var duracao by remember { mutableStateOf(rotinaInicial?.duracaoPadraoMinutos?.toString() ?: "") }
+    var nome by remember { mutableStateOf(initialCategory?.nome ?: "") }
+    var descricao by remember { mutableStateOf(initialCategory?.descricao ?: "") }
+    var tag by remember { mutableStateOf(initialCategory?.tag ?: "") }
+    var duracao by remember { mutableStateOf(initialCategory?.duracaoPadraoMinutos?.toString() ?: "") }
 
     val cores = listOf(
         Color(0xFF3DDC84), Color(0xFF2A9371), Color(0xFF0A1A4A), Color(0xFF42A5F5),
         Color(0xFF7E57C2), Color(0xFFEC407A), Color(0xFFFF7043), Color(0xFF8D6E63)
     )
-    val corInicial = rotinaInicial?.cor?.let { Color(android.graphics.Color.parseColor(it)) }
+    val corInicial = initialCategory?.cor?.let { Color(android.graphics.Color.parseColor(it)) }
     var corSelecionada by remember { mutableStateOf(corInicial ?: cores.first()) }
 
-    val isEditing = rotinaInicial != null
+    val isEditing = initialCategory != null
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditing) "Editar Rotina" else "Nova Rotina") },
+                title = { Text(if (isEditing) "Editar Categoria" else "Nova Categoria") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -128,13 +128,13 @@ fun EditorScreen(
             FloatingActionButton(
                 onClick = {
                     if (nome.isBlank()) {
-                        Toast.makeText(context, "O nome da rotina é obrigatório.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "O nome da categoria é obrigatório.", Toast.LENGTH_SHORT).show()
                         return@FloatingActionButton
                     }
                     val duracaoMinutos = duracao.toIntOrNull() ?: 0
 
-                    val rotinaParaSalvar = Rotina(
-                        id = rotinaInicial?.id ?: java.util.UUID.randomUUID().toString(),
+                    val categoryToSave = Category(
+                        id = initialCategory?.id ?: java.util.UUID.randomUUID().toString(),
                         nome = nome,
                         duracaoPadraoMinutos = duracaoMinutos,
                         cor = String.format("#%06X", (0xFFFFFF and corSelecionada.toArgb())),
@@ -142,13 +142,13 @@ fun EditorScreen(
                         tag = tag.takeIf { it.isNotBlank() }
                     )
 
-                    viewModel?.insertRotina(rotinaParaSalvar)
-                    Toast.makeText(context, "Rotina salva!", Toast.LENGTH_SHORT).show()
-                    onSave(rotinaParaSalvar)
+                    viewModel?.insertCategory(categoryToSave)
+                    Toast.makeText(context, "Categoria salva!", Toast.LENGTH_SHORT).show()
+                    onSave(categoryToSave)
                 },
                 containerColor = MaterialTheme.colorScheme.secondary
             ) {
-                Icon(Icons.Filled.Check, contentDescription = "Salvar Rotina", tint = MaterialTheme.colorScheme.onSecondary)
+                Icon(Icons.Filled.Check, contentDescription = "Salvar Categoria", tint = MaterialTheme.colorScheme.onSecondary)
             }
         }
     ) { paddingValues ->
@@ -160,7 +160,7 @@ fun EditorScreen(
             item {
                 OutlinedTextField(
                     value = nome, onValueChange = { nome = it },
-                    label = { Text("Nome da Rotina") },
+                    label = { Text("Nome da Categoria") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions.Default.copy(
@@ -196,7 +196,7 @@ fun EditorScreen(
             }
             item {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Cor da Rotina", style = MaterialTheme.typography.titleMedium)
+                Text("Cor da Categoria", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 ColorPicker(
                     cores = cores,
@@ -249,7 +249,7 @@ fun ColorPicker(
 fun EditorScreenPreview() {
     MomentusTheme {
         EditorScreen(
-            rotinaInicial = null,
+            initialCategory = null,
             viewModel = null,
             onNavigateBack = {},
             onSave = {}

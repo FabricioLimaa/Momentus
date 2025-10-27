@@ -22,19 +22,19 @@ interface HabitoConcluidoDao {
     suspend fun clear()
 
     @Query("""
-        SELECT r.id as rotinaId, r.nome as rotinaNome, r.cor as rotinaCor, COUNT(thc.itemCronogramaId) as concluidos
+        SELECT c.id as categoryId, c.nome as categoryName, c.cor as categoryColor, COUNT(thc.itemCronogramaId) as concluidos
         FROM tabela_habitos_concluidos thc
         JOIN tabela_itens_cronograma tic ON thc.itemCronogramaId = tic.id
-        JOIN tabela_rotinas r ON tic.rotinaId = r.id
+        JOIN categories c ON tic.categoryId = c.id
         WHERE thc.dataConclusao >= :since
-        GROUP BY r.id, r.nome, r.cor
+        GROUP BY c.id, c.nome, c.cor
     """)
-    fun getConcluidosCountByRotina(since: Long): Flow<List<StatsSummary>>
+    fun getConcluidosCountByCategory(since: Long): Flow<List<StatsSummary>>
 }
 
 data class StatsSummary(
-    val rotinaId: String,
-    val rotinaNome: String,
-    val rotinaCor: String,
+    val categoryId: String,
+    val categoryName: String,
+    val categoryColor: String,
     val concluidos: Int
 )

@@ -3,9 +3,9 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.Meta
-import br.com.fabriciolima.momentus.data.model.Rotina
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.SyncStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,10 +16,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val repository: RotinaRepository
+    private val repository: CategoryRepository
 ) : ViewModel() {
 
-    val rotinasComMetas = repository.todasAsRotinasComMetas.asLiveData()
+    val categoriesWithMetas = repository.allCategoriesWithMetas.asLiveData()
 
     val syncStatus: StateFlow<SyncStatus> = repository.syncStatus.stateIn(
         scope = viewModelScope,
@@ -28,23 +28,23 @@ class MainViewModel @Inject constructor(
     )
 
     /**
-     * Insere ou atualiza uma rotina (categoria) no banco de dados.
+     * Insere ou atualiza uma categoria no banco de dados.
      */
-    fun insertRotina(rotina: Rotina) = viewModelScope.launch {
-        repository.insertRotina(rotina)
+    fun insertCategory(category: Category) = viewModelScope.launch {
+        repository.insertCategory(category)
     }
 
     /**
-     * Deleta uma rotina do banco de dados.
+     * Deleta uma categoria do banco de dados.
      */
-    fun deleteRotina(rotina: Rotina) = viewModelScope.launch {
-        repository.deleteRotina(rotina)
+    fun deleteCategory(category: Category) = viewModelScope.launch {
+        repository.deleteCategory(category)
     }
 
     /**
      * Insere ou atualiza uma meta no banco de dados.
      */
-    fun salvarMeta(meta: Meta) = viewModelScope.launch {
-        repository.salvarMeta(meta)
+    fun saveMeta(meta: Meta) = viewModelScope.launch {
+        repository.saveMeta(meta)
     }
 }

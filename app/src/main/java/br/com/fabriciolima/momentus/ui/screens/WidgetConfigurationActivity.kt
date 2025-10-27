@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.lifecycle.lifecycleScope
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.WidgetConfigurationViewModel
 import br.com.fabriciolima.momentus.widget.EventWidgetStateKeys
@@ -61,8 +61,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
         setContent {
             MomentusTheme {
-                val rotinas by viewModel.rotinas.collectAsState()
-                ConfigurationScreen(rotinas = rotinas, onSave = { selectedIds ->
+                val categories by viewModel.categories.collectAsState()
+                ConfigurationScreen(categories = categories, onSave = { selectedIds ->
                     lifecycleScope.launch {
                         val glanceId = GlanceAppWidgetManager(this@WidgetConfigurationActivity).getGlanceIdBy(appWidgetId)
                         updateAppWidgetState(this@WidgetConfigurationActivity, glanceId) { prefs ->
@@ -82,44 +82,43 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConfigurationScreen(rotinas: List<Rotina>, onSave: (Set<String>) -> Unit) {
-    val selectedRotinas = remember { mutableStateMapOf<String, Boolean>() }
+fun ConfigurationScreen(categories: List<Category>, onSave: (Set<String>) -> Unit) {
+    val selectedCategories = remember { mutableStateMapOf<String, Boolean>() }
 
-    // Inicializa o mapa com todas as rotinas selecionadas por padrão
-    if (rotinas.isNotEmpty() && selectedRotinas.isEmpty()) {
-        rotinas.forEach { rotina ->
-            selectedRotinas[rotina.id] = true
+    // Inicializa o mapa com todas as categorias selecionadas por padrão
+    if (categories.isNotEmpty() && selectedCategories.isEmpty()) {
+        categories.forEach { category ->
+            selectedCategories[category.id] = true
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Configurar Widget") })
-        }
+            TopAppBar(title = { Text("Configurar Widget") }) }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-            Text("Selecione as rotinas para exibir no widget:")
+            Text("Selecione as categorias para exibir no widget:")
             LazyColumn(modifier = Modifier.weight(1f)) {
-                items(rotinas) {
-                    rotina ->
+                items(categories) {
+                    category ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Checkbox(
-                            checked = selectedRotinas[rotina.id] ?: true,
+                            checked = selectedCategories[category.id] ?: true,
                             onCheckedChange = { isChecked ->
-                                selectedRotinas[rotina.id] = isChecked
+                                selectedCategories[category.id] = isChecked
                             }
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text(rotina.nome)
+                        Text(category.nome)
                     }
                 }
             }
             Button(
                 onClick = { 
-                    val selectedIds = selectedRotinas.filter { it.value }.keys
+                    val selectedIds = selectedCategories.filter { it.value }.keys
                     onSave(selectedIds)
                 },
                 modifier = Modifier.fillMaxWidth()

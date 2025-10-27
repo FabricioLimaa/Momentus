@@ -79,8 +79,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.ui.components.ApplyTemplateDialog
@@ -161,7 +161,7 @@ fun TemplatesScreen(
     when (val dialogState = uiState.dialogState) {
         is TemplateDialogState.CreateNew -> {
             CreateTemplateDialog(
-                rotinas = uiState.rotinasMap.values.toList(),
+                categories = uiState.categoriesMap.values.toList(),
                 onDismiss = onDialogDismiss,
                 onConfirm = { id, name, events ->
                     onSaveTemplate(id, name, events) { result ->
@@ -203,7 +203,7 @@ fun TemplatesScreen(
         is TemplateDialogState.Edit -> {
             CreateTemplateDialog(
                 templateToEdit = dialogState.template,
-                rotinas = uiState.rotinasMap.values.toList(),
+                categories = uiState.categoriesMap.values.toList(),
                 onDismiss = onDialogDismiss,
                 onConfirm = { id, name, events ->
                     onSaveTemplate(id, name, events) { result ->
@@ -317,7 +317,7 @@ fun TemplatesScreen(
                     items(uiState.templates) { templateComEventos ->
                         TemplateCard(
                             templateComEventos = templateComEventos,
-                            rotinasMap = uiState.rotinasMap,
+                            categoriesMap = uiState.categoriesMap,
                             isSyncing = uiState.isSyncing,
                             onShareClick = { // Adicionado
                                 val shareableJson = getShareableJson(templateComEventos.template.id)
@@ -381,7 +381,7 @@ fun ImportTemplateDialog(
 @Composable
 fun TemplateCard(
     templateComEventos: TemplateComEventos, 
-    rotinasMap: Map<String, Rotina>,
+    categoriesMap: Map<String, Category>,
     isSyncing: Boolean,
     onShareClick: () -> Unit, // Adicionado
     onEditClick: () -> Unit,
@@ -428,8 +428,8 @@ fun TemplateCard(
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     templateComEventos.eventos.sortedBy { it.horarioInicio }.forEach { evento ->
-                        rotinasMap[evento.rotinaId]?.let { rotina ->
-                            TemplateEventItem(item = evento, rotina = rotina)
+                        categoriesMap[evento.categoryId]?.let { category ->
+                            TemplateEventItem(item = evento, category = category)
                         }
                     }
                 }
@@ -439,15 +439,15 @@ fun TemplateCard(
 }
 
 @Composable
-fun TemplateEventItem(item: ItemCronograma, rotina: Rotina) {
+fun TemplateEventItem(item: ItemCronograma, category: Category) {
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
-    val corDaRotina = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary }
+    val categoryColor = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.size(10.dp).background(corDaRotina, CircleShape))
+        Box(modifier = Modifier.size(10.dp).background(categoryColor, CircleShape))
         Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
             Text(item.titulo, fontWeight = FontWeight.SemiBold)
             if (item.descricao?.isNotBlank() == true) {
@@ -466,25 +466,25 @@ fun TemplateEventItem(item: ItemCronograma, rotina: Rotina) {
 @Composable
 fun CreateTemplateDialog(
     templateToEdit: TemplateComEventos? = null,
-    rotinas: List<Rotina>,
+    categories: List<Category>,
     onDismiss: () -> Unit,
     onConfirm: (id: String?, name: String, events: List<EventFormData>) -> Unit
 ) {
     val isEditMode = templateToEdit != null
     var templateName by remember { mutableStateOf(templateToEdit?.template?.nome ?: "") }
 
-    val defaultCategory = remember { rotinas.find { it.nome.equals("Outros", ignoreCase = true) } }
+    val defaultCategory = remember { categories.find { it.nome.equals("Outros", ignoreCase = true) } }
 
     var eventForms by remember { mutableStateOf(
-        templateToEdit?.eventos?.map { EventFormData.fromItemCronograma(it, rotinas) } 
-            ?: listOf(EventFormData(selectedRotina = defaultCategory))
+        templateToEdit?.eventos?.map { EventFormData.fromItemCronograma(it, categories) } 
+            ?: listOf(EventFormData(selectedCategory = defaultCategory))
     ) }
 
     val isFormValid by remember(templateName, eventForms) {
         derivedStateOf {
             templateName.isNotBlank() && eventForms.isNotEmpty() && eventForms.all {
                 it.titulo.isNotBlank() &&
-                it.selectedRotina != null &&
+                it.selectedCategory != null &&
                 !it.horarioTermino.isBefore(it.horarioInicio) &&
                 it.horarioTermino != it.horarioInicio
             }
@@ -544,7 +544,7 @@ fun CreateTemplateDialog(
                             }
                             EventTemplateForm(
                                 eventData = eventData,
-                                rotinas = rotinas,
+                                categories = categories,
                                 onDataChange = { updatedData ->
                                     eventForms = eventForms.toMutableList().also { it[index] = updatedData }
                                 }
@@ -556,7 +556,7 @@ fun CreateTemplateDialog(
                         }
                         item {
                             TextButton(
-                                onClick = { eventForms = eventForms + EventFormData(selectedRotina = defaultCategory) },
+                                onClick = { eventForms = eventForms + EventFormData(selectedCategory = defaultCategory) },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = "Adicionar Evento ao Template")
@@ -596,7 +596,7 @@ fun CreateTemplateDialog(
 @Composable
 fun EventTemplateForm(
     eventData: EventFormData,
-    rotinas: List<Rotina>,
+    categories: List<Category>,
     onDataChange: (EventFormData) -> Unit
 ) {
     var showDropdown by remember { mutableStateOf(false) }
@@ -700,12 +700,12 @@ fun EventTemplateForm(
             OutlinedTextField(
                 modifier = Modifier.menuAnchor().fillMaxWidth(),
                 readOnly = true,
-                value = eventData.selectedRotina?.nome ?: "",
+                value = eventData.selectedCategory?.nome ?: "",
                 onValueChange = {},
                 label = { Text("Categoria") },
-                isError = eventData.selectedRotina == null,
+                isError = eventData.selectedCategory == null,
                 leadingIcon = {
-                    eventData.selectedRotina?.cor?.let {
+                    eventData.selectedCategory?.cor?.let {
                         val color = try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { Color.Gray }
                         Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                     }
@@ -716,8 +716,8 @@ fun EventTemplateForm(
                 expanded = showDropdown,
                 onDismissRequest = { showDropdown = false },
             ) {
-                rotinas.forEach { rotina ->
-                    val isSelected = rotina == eventData.selectedRotina
+                categories.forEach { category ->
+                    val isSelected = category == eventData.selectedCategory
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -730,14 +730,14 @@ fun EventTemplateForm(
                                         )
                                     }
                                 }
-                                val color = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
+                                val color = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
                                 Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(rotina.nome)
+                                Text(category.nome)
                             }
                         },
                         onClick = {
-                            onDataChange(eventData.copy(selectedRotina = rotina))
+                            onDataChange(eventData.copy(selectedCategory = category))
                             showDropdown = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
@@ -745,12 +745,5 @@ fun EventTemplateForm(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun EventListItem(item: ItemCronograma, rotina: Rotina, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.fillMaxWidth()) {
-        // ... (o restante do código permanece o mesmo)
     }
 }

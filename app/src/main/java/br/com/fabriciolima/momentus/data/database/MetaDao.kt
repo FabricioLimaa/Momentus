@@ -12,8 +12,8 @@ interface MetaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(meta: Meta)
 
-    @Query("SELECT * FROM tabela_metas WHERE rotinaId = :rotinaId")
-    fun getMetaParaRotina(rotinaId: String): Flow<Meta?>
+    @Query("SELECT * FROM tabela_metas WHERE categoryId = :categoryId")
+    fun getMetaForCategory(categoryId: String): Flow<Meta?>
 
     @Query("DELETE FROM tabela_metas")
     suspend fun clear()

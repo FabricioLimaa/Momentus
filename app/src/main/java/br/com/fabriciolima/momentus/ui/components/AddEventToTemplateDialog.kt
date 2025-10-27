@@ -40,7 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.ui.theme.TimePickerDialog
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -48,23 +48,23 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEventToTemplateDialog(
-    rotinas: List<Rotina>,
+    categories: List<Category>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String?, LocalTime, LocalTime, Rotina) -> Unit
+    onConfirm: (String, String?, LocalTime, LocalTime, Category) -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var horarioInicio by remember { mutableStateOf(LocalTime.of(9, 0)) }
     var horarioTermino by remember { mutableStateOf(LocalTime.of(10, 0)) }
-    var selectedRotina by remember { mutableStateOf<Rotina?>(null) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
     var showDropdown by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
 
-    LaunchedEffect(rotinas) {
-        if (selectedRotina == null && rotinas.isNotEmpty()) {
-            selectedRotina = rotinas.firstOrNull()
+    LaunchedEffect(categories) {
+        if (selectedCategory == null && categories.isNotEmpty()) {
+            selectedCategory = categories.firstOrNull()
         }
     }
 
@@ -135,31 +135,31 @@ fun AddEventToTemplateDialog(
 
                 Box {
                     OutlinedTextField(
-                        value = selectedRotina?.nome ?: "Selecione uma categoria",
+                        value = selectedCategory?.nome ?: "Selecione uma categoria",
                         onValueChange = { },
                         readOnly = true,
                         label = { Text("Categoria") },
                         modifier = Modifier.fillMaxWidth().clickable { showDropdown = true },
                         leadingIcon = {
-                            selectedRotina?.cor?.let {
+                            selectedCategory?.cor?.let {
                                 val color = try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { Color.Gray }
                                 Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                             }
                         }
                     )
                      DropdownMenu(expanded = showDropdown, onDismissRequest = { showDropdown = false }) {
-                        rotinas.forEach { rotina ->
+                        categories.forEach { category ->
                             DropdownMenuItem(
                                 text = { 
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        val color = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
+                                        val color = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
                                         Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(rotina.nome)
+                                        Text(category.nome)
                                     }
                                 },
                                 onClick = { 
-                                    selectedRotina = rotina
+                                    selectedCategory = category
                                     showDropdown = false
                                 }
                             )
@@ -173,8 +173,8 @@ fun AddEventToTemplateDialog(
                     TextButton(onClick = onDismiss) { Text("Cancelar") }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(onClick = {
-                        if (selectedRotina != null && titulo.isNotBlank()) {
-                            onConfirm(titulo, descricao, horarioInicio, horarioTermino, selectedRotina!!)
+                        if (selectedCategory != null && titulo.isNotBlank()) {
+                            onConfirm(titulo, descricao, horarioInicio, horarioTermino, selectedCategory!!)
                         }
                     }) { Text("Adicionar") }
                 }

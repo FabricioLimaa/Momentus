@@ -51,8 +51,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.ui.theme.TimePickerDialog
 import java.time.Instant
 import java.time.LocalDate
@@ -67,9 +67,9 @@ private const val TAG = "NewEventDialog"
 fun NewEventDialog(
     eventoParaEditar: ItemCronograma? = null,
     selectedDate: LocalDate,
-    rotinas: List<Rotina>,
+    categories: List<Category>,
     onDismiss: () -> Unit,
-    onConfirm: (ItemCronograma?, String, String?, LocalDate, LocalTime, LocalTime, Rotina, Boolean) -> Unit
+    onConfirm: (ItemCronograma?, String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit
 ) {
     val isEditMode = eventoParaEditar != null
     val focusManager = LocalFocusManager.current
@@ -79,11 +79,11 @@ fun NewEventDialog(
     var dataSelecionada by remember { mutableStateOf(eventoParaEditar?.data?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() } ?: selectedDate) }
     var horarioInicio by remember { mutableStateOf(eventoParaEditar?.horarioInicio ?: LocalTime.now().withMinute(0).withSecond(0)) }
     var horarioTermino by remember { mutableStateOf(eventoParaEditar?.horarioTermino ?: LocalTime.now().withMinute(0).withSecond(0).plusHours(1)) }
-    var selectedRotina by remember { mutableStateOf<Rotina?>(null) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
     var salvarNoGoogle by remember { mutableStateOf(eventoParaEditar?.googleCalendarEventId != null) }
 
     val isTimeInvalid by remember { derivedStateOf { horarioTermino.isBefore(horarioInicio) || horarioTermino == horarioInicio } }
-    val isFormValid by remember { derivedStateOf { titulo.isNotBlank() && selectedRotina != null && !isTimeInvalid } }
+    val isFormValid by remember { derivedStateOf { titulo.isNotBlank() && selectedCategory != null && !isTimeInvalid } }
 
     var showDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -100,12 +100,12 @@ fun NewEventDialog(
         }
     }
 
-    LaunchedEffect(rotinas, eventoParaEditar) {
-        if (rotinas.isNotEmpty()) {
-            selectedRotina = if (isEditMode) {
-                rotinas.find { it.id == eventoParaEditar?.rotinaId }
+    LaunchedEffect(categories, eventoParaEditar) {
+        if (categories.isNotEmpty()) {
+            selectedCategory = if (isEditMode) {
+                categories.find { it.id == eventoParaEditar?.categoryId }
             } else {
-                rotinas.find { it.nome.equals("Outros", ignoreCase = true) } ?: rotinas.firstOrNull()
+                categories.find { it.nome.equals("Outros", ignoreCase = true) } ?: categories.firstOrNull()
             }
         }
     }
@@ -256,12 +256,12 @@ fun NewEventDialog(
                     OutlinedTextField(
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         readOnly = true,
-                        value = selectedRotina?.nome ?: "",
+                        value = selectedCategory?.nome ?: "",
                         onValueChange = {},
                         label = { Text("Categoria") },
-                        isError = selectedRotina == null,
+                        isError = selectedCategory == null,
                         leadingIcon = {
-                            selectedRotina?.cor?.let {
+                            selectedCategory?.cor?.let {
                                 val color = try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { Color.Gray }
                                 Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                             }
@@ -272,8 +272,8 @@ fun NewEventDialog(
                         expanded = showDropdown,
                         onDismissRequest = { showDropdown = false },
                     ) {
-                        rotinas.forEach { rotina ->
-                            val isSelected = rotina == selectedRotina
+                        categories.forEach { category ->
+                            val isSelected = category == selectedCategory
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -286,14 +286,14 @@ fun NewEventDialog(
                                                 )
                                             }
                                         }
-                                        val color = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
+                                        val color = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
                                         Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(rotina.nome)
+                                        Text(category.nome)
                                     }
                                 },
                                 onClick = {
-                                    selectedRotina = rotina
+                                    selectedCategory = category
                                     showDropdown = false
                                 },
                                 contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
@@ -328,7 +328,7 @@ fun NewEventDialog(
                                 dataSelecionada,
                                 horarioInicio,
                                 horarioTermino,
-                                selectedRotina!!,
+                                selectedCategory!!,
                                 salvarNoGoogle
                             )
                         }

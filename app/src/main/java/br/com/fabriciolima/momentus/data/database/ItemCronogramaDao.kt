@@ -40,17 +40,17 @@ interface ItemCronogramaDao {
     @Query("DELETE FROM tabela_itens_cronograma WHERE templateId = :templateId")
     suspend fun deleteByTemplateId(templateId: String)
 
-    @Query("DELETE FROM tabela_itens_cronograma WHERE rotinaId = :rotinaId")
-    suspend fun deleteByRotinaId(rotinaId: String)
+    @Query("DELETE FROM tabela_itens_cronograma WHERE categoryId = :categoryId") // Corrigido
+    suspend fun deleteByCategoryId(categoryId: String) // Corrigido
 
     @Query(
-        "SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, r.nome as nomeRotina, r.cor as corRotina " +
+        "SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, c.nome as nomeRotina, c.cor as corRotina " +
         "FROM tabela_itens_cronograma tic " +
-        "JOIN tabela_rotinas r ON tic.rotinaId = r.id " +
-        "WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) AND tic.rotinaId IN (:allowedRotinaIds) " +
+        "JOIN categories c ON tic.categoryId = c.id " + // Corrigido
+        "WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) AND tic.categoryId IN (:allowedCategoryIds) " +
         "ORDER BY tic.horarioInicio ASC"
     )
-    fun getWidgetEventItems(startOfDayMillis: Long, endOfDayMillis: Long, dayOfWeekName: String, allowedRotinaIds: Set<String>): List<WidgetEventItem>
+    fun getWidgetEventItems(startOfDayMillis: Long, endOfDayMillis: Long, dayOfWeekName: String, allowedCategoryIds: Set<String>): List<WidgetEventItem>
 
     @Query("DELETE FROM tabela_itens_cronograma")
     suspend fun clear()
@@ -58,12 +58,12 @@ interface ItemCronogramaDao {
     @Query("""
         SELECT * 
         FROM tabela_itens_cronograma
-        WHERE rotinaId = :rotinaId AND (
+        WHERE categoryId = :categoryId AND (
             (data IS NOT NULL AND data >= :since) OR 
             (diaDaSemana IS NOT NULL)
         )
     """)
-    fun getSchedulableEventsForRotina(rotinaId: String, since: Long): Flow<List<ItemCronograma>>
+    fun getSchedulableEventsForCategory(categoryId: String, since: Long): Flow<List<ItemCronograma>> // Corrigido
 }
 
 data class WidgetEventItem(

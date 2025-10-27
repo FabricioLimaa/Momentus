@@ -3,11 +3,11 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
-import br.com.fabriciolima.momentus.data.model.RotinaComMeta
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -57,7 +57,7 @@ data class EventsForDate(
 
 data class CalendarUiState(
     val allScheduleItems: List<ItemCronograma> = emptyList(),
-    val rotinasMap: Map<String, Rotina> = emptyMap(),
+    val categoriesMap: Map<String, Category> = emptyMap(),
     val completedHabitIds: Set<String> = emptySet(),
     val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
     val error: String? = null,
@@ -68,7 +68,7 @@ data class CalendarUiState(
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
-    private val repository: RotinaRepository,
+    private val categoryRepository: CategoryRepository,
     private val eventoRepository: EventoRepository,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
@@ -103,21 +103,21 @@ class CalendarViewModel @Inject constructor(
     )
 
     init {
-        repository.startListeningForChanges()
+        categoryRepository.startListeningForChanges()
 
         viewModelScope.launch {
             combine(
                 eventoRepository.todosOsItensDoCronograma,
-                repository.todasAsRotinasComMetas,
-                repository.idsHabitosConcluidos
-            ) { allItems: List<ItemCronograma>, rotinasComMetas: List<RotinaComMeta>, completedIds: List<String> ->
-                val rotinasMap = rotinasComMetas.associateBy({ it.rotina.id }, { it.rotina })
-                Triple(allItems, rotinasMap, completedIds.toSet())
-            }.collect { (allItems, rotinasMap, completedIds) ->
+                categoryRepository.allCategoriesWithMetas,
+                categoryRepository.idsHabitosConcluidos
+            ) { allItems: List<ItemCronograma>, categoriesWithMetas: List<CategoryWithMeta>, completedIds: List<String> ->
+                val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
+                Triple(allItems, categoriesMap, completedIds.toSet())
+            }.collect { (allItems, categoriesMap, completedIds) ->
                 _uiState.update { currentState ->
                     currentState.copy(
                         allScheduleItems = allItems,
-                        rotinasMap = rotinasMap,
+                        categoriesMap = categoriesMap,
                         completedHabitIds = completedIds
                     )
                 }
@@ -127,7 +127,7 @@ class CalendarViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        repository.stopListeningForChanges()
+        categoryRepository.stopListeningForChanges()
     }
 
     fun logout() {
@@ -135,7 +135,7 @@ class CalendarViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 // 1. Interrompe a sincronização em tempo real
-                repository.stopListeningForChanges()
+                categoryRepository.stopListeningForChanges()
 
                 // 2. Desconecta do Google Sign-In
                 googleSignInClient.signOut().await()
@@ -144,7 +144,7 @@ class CalendarViewModel @Inject constructor(
                 auth.signOut()
 
                 // 4. Limpa todos os dados locais
-                repository.clearAllLocalData()
+                categoryRepository.clearAllLocalData()
 
                 // 5. Emite o evento de sucesso do logout
                 _logoutEvent.emit(LogoutEvent.Success)
@@ -157,8 +157,8 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    val todasAsRotinas: StateFlow<List<Rotina>> = repository.todasAsRotinasComMetas.map { rotinasComMetas ->
-        rotinasComMetas.map(RotinaComMeta::rotina)
+    val allCategories: StateFlow<List<Category>> = categoryRepository.allCategoriesWithMetas.map { categoriesWithMetas ->
+        categoriesWithMetas.map(CategoryWithMeta::category)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -204,13 +204,13 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    fun salvarEventoUnico(
+    fun saveSingleEvent(
         titulo: String,
         descricao: String?,
         data: LocalDate,
         horarioInicio: LocalTime,
         horarioTermino: LocalTime,
-        rotina: Rotina,
+        category: Category,
         salvarNoGoogle: Boolean
     ) {
         if (horarioTermino.isBefore(horarioInicio) || horarioTermino == horarioInicio) {
@@ -224,7 +224,7 @@ class CalendarViewModel @Inject constructor(
                 var googleEventId: String? = null
 
                 if (salvarNoGoogle) {
-                    when (val result = repository.salvarEventoNoGoogle(titulo, descricao, data, horarioInicio, horarioTermino, rotina.cor)) {
+                    when (val result = categoryRepository.saveEventToGoogle(titulo, descricao, data, horarioInicio, horarioTermino, category.cor)) {
                         is Result.Success -> {
                             googleEventId = result.data
                             fetchGoogleCalendarEvents()
@@ -242,7 +242,7 @@ class CalendarViewModel @Inject constructor(
                     diaDaSemana = null,
                     horarioInicio = horarioInicio,
                     horarioTermino = horarioTermino,
-                    rotinaId = rotina.id,
+                    categoryId = category.id,
                     templateId = null,
                     googleCalendarEventId = googleEventId
                 )
@@ -256,14 +256,14 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    fun atualizarEvento(
+    fun updateEvent(
         item: ItemCronograma,
         novoTitulo: String,
         novaDescricao: String?,
         novaData: LocalDate,
         novoHorarioInicio: LocalTime,
         novoHorarioTermino: LocalTime,
-        novaRotina: Rotina,
+        novaCategory: Category,
         sincronizarComGoogle: Boolean
     ) {
         if (novoHorarioTermino.isBefore(novoHorarioInicio) || novoHorarioTermino == novoHorarioInicio) {
@@ -280,11 +280,11 @@ class CalendarViewModel @Inject constructor(
                     data = novaData.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
                     horarioInicio = novoHorarioInicio,
                     horarioTermino = novoHorarioTermino,
-                    rotinaId = novaRotina.id
+                    categoryId = novaCategory.id
                 )
 
                 if (sincronizarComGoogle) {
-                    when (val result = repository.atualizarEventoCompleto(itemAtualizado, novaRotina.cor)) {
+                    when (val result = categoryRepository.updateCompleteEvent(itemAtualizado, novaCategory.cor)) {
                         is Result.Success -> fetchGoogleCalendarEvents()
                         is Result.Error -> _uiState.value = _uiState.value.copy(error = result.exception.message ?: "Falha ao sincronizar atualização com o Google Calendar.")
                     }
@@ -300,11 +300,11 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    fun excluirEvento(item: ItemCronograma) {
+    fun deleteEvent(item: ItemCronograma) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                when (val result = repository.excluirEventoCompleto(item)) {
+                when (val result = categoryRepository.deleteCompleteEvent(item)) {
                     is Result.Success -> {
                         fetchGoogleCalendarEvents()
                         _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
@@ -320,21 +320,21 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    fun marcarHabitoComoConcluido(itemCronogramaId: String) {
+    fun markHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
-            repository.marcarHabitoComoConcluido(itemCronogramaId)
+            categoryRepository.markHabitAsCompleted(itemCronogramaId)
         }
     }
 
-    fun desmarcarHabitoComoConcluido(itemCronogramaId: String) {
+    fun unmarkHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
-            repository.desmarcarHabitoComoConcluido(itemCronogramaId)
+            categoryRepository.unmarkHabitAsCompleted(itemCronogramaId)
         }
     }
 
     fun fetchGoogleCalendarEvents() {
         viewModelScope.launch {
-            when (val result = repository.fetchGoogleCalendarEvents()) {
+            when (val result = categoryRepository.fetchGoogleCalendarEvents()) {
                 is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
                 is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
             }

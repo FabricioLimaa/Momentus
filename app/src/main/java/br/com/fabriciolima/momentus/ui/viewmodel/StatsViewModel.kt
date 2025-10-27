@@ -2,7 +2,7 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,11 +17,11 @@ import java.time.format.TextStyle
 import java.util.Locale
 import javax.inject.Inject
 
-data class CompletionRate(val rotinaNome: String, val rotinaCor: String, val percentage: Float)
+data class CompletionRate(val categoryName: String, val categoryColor: String, val percentage: Float)
 
 @HiltViewModel
 class StatsViewModel @Inject constructor(
-    private val repository: RotinaRepository
+    private val repository: CategoryRepository
 ) : ViewModel() {
 
     private val thirtyDaysAgo = LocalDate.now().minusDays(30)
@@ -48,17 +48,17 @@ class StatsViewModel @Inject constructor(
             } else {
                 // For each summary, get the flow of its schedulable events
                 val schedulableEventsFlows = summaries.map { summary ->
-                    repository.getSchedulableEventsForRotina(summary.rotinaId, thirtyDaysAgoMillis)
+                    repository.getSchedulableEventsForCategory(summary.categoryId, thirtyDaysAgoMillis)
                 }
 
                 // Combine all these flows to get a list of lists of events
                 combine(schedulableEventsFlows) { allEventsLists ->
                     // Now, for each summary, calculate the total and the completion rate
                     summaries.mapIndexedNotNull { index, summary ->
-                        val eventsForThisRotina = allEventsLists[index]
+                        val eventsForThisCategory = allEventsLists[index]
 
                         // Calculate the total occurrences in the period
-                        val total = eventsForThisRotina.sumOf { event ->
+                        val total = eventsForThisCategory.sumOf { event ->
                             if (event.diaDaSemana != null) {
                                 // For recurring events, get the count from our map
                                 dayOfWeekCountsInPeriod[event.diaDaSemana.uppercase()] ?: 0
@@ -70,8 +70,8 @@ class StatsViewModel @Inject constructor(
 
                         if (total > 0) {
                             CompletionRate(
-                                rotinaNome = summary.rotinaNome,
-                                rotinaCor = summary.rotinaCor,
+                                categoryName = summary.categoryName,
+                                categoryColor = summary.categoryColor,
                                 percentage = summary.concluidos.toFloat() / total
                             )
                         } else {

@@ -33,7 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -60,13 +60,13 @@ class NewEventActivity : ComponentActivity() {
 
         setContent {
             MomentusTheme {
-                val todasAsRotinas by viewModel.todasAsRotinas.collectAsStateWithLifecycle()
+                val allCategories by viewModel.allCategories.collectAsStateWithLifecycle()
 
                 NewEventScreen(
-                    dataInicial = initialDate,
-                    todasAsRotinas = todasAsRotinas,
+                    initialDate = initialDate,
+                    allCategories = allCategories,
                     onSave = { titulo, desc, data, inicio, fim, categoria, salvarNoGoogle ->
-                        viewModel.salvarEventoUnico(titulo, desc, data, inicio, fim, categoria, salvarNoGoogle)
+                        viewModel.saveSingleEvent(titulo, desc, data, inicio, fim, categoria, salvarNoGoogle)
                         Toast.makeText(this, "Evento criado!", Toast.LENGTH_SHORT).show()
                         setResult(RESULT_OK)
                         finish()
@@ -81,17 +81,17 @@ class NewEventActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewEventScreen(
-    dataInicial: LocalDate,
-    todasAsRotinas: List<Rotina>,
-    onSave: (titulo: String, desc: String, data: LocalDate, inicio: LocalTime, fim: LocalTime, categoria: Rotina, salvarNoGoogle: Boolean) -> Unit,
+    initialDate: LocalDate,
+    allCategories: List<Category>,
+    onSave: (titulo: String, desc: String, data: LocalDate, inicio: LocalTime, fim: LocalTime, categoria: Category, salvarNoGoogle: Boolean) -> Unit,
     onClose: () -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
-    var data by remember { mutableStateOf(dataInicial) }
+    var data by remember { mutableStateOf(initialDate) }
     var horarioInicio by remember { mutableStateOf(LocalTime.now().withMinute(0).withSecond(0)) }
     var horarioTermino by remember { mutableStateOf(horarioInicio.plusHours(1)) }
-    var rotinaSelecionada by remember { mutableStateOf(todasAsRotinas.firstOrNull()) }
+    var selectedCategory by remember { mutableStateOf(allCategories.firstOrNull()) }
     var salvarNoGoogle by remember { mutableStateOf(false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -108,13 +108,13 @@ fun NewEventScreen(
         }
     }
     
-    LaunchedEffect(todasAsRotinas) {
-        if(rotinaSelecionada == null) {
-            rotinaSelecionada = todasAsRotinas.firstOrNull()
+    LaunchedEffect(allCategories) {
+        if(selectedCategory == null) {
+            selectedCategory = allCategories.firstOrNull()
         }
     }
 
-    val isSaveEnabled = titulo.isNotBlank() && rotinaSelecionada != null
+    val isSaveEnabled = titulo.isNotBlank() && selectedCategory != null
 
     Scaffold(
         topBar = {
@@ -129,7 +129,7 @@ fun NewEventScreen(
                     Button(
                         onClick = {
                             if (horarioTermino.isAfter(horarioInicio)) {
-                                onSave(titulo, descricao, data, horarioInicio, horarioTermino, rotinaSelecionada!!, salvarNoGoogle)
+                                onSave(titulo, descricao, data, horarioInicio, horarioTermino, selectedCategory!!, salvarNoGoogle)
                             } else {
                                 Toast.makeText(context, "O horário de término deve ser posterior ao de início.", Toast.LENGTH_SHORT).show()
                             }
@@ -174,9 +174,9 @@ fun NewEventScreen(
             }
 
             CategorySelector(
-                rotinas = todasAsRotinas,
-                selecionada = rotinaSelecionada,
-                onSelected = { rotinaSelecionada = it }
+                categories = allCategories,
+                selected = selectedCategory,
+                onSelected = { selectedCategory = it }
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -242,9 +242,9 @@ fun NewEventScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategorySelector(
-    rotinas: List<Rotina>,
-    selecionada: Rotina?,
-    onSelected: (Rotina) -> Unit
+    categories: List<Category>,
+    selected: Category?,
+    onSelected: (Category) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -253,7 +253,7 @@ fun CategorySelector(
         onExpandedChange = { expanded = !expanded }
     ) {
         OutlinedTextField(
-            value = selecionada?.nome ?: "Selecione a Categoria",
+            value = selected?.nome ?: "Selecione a Categoria",
             onValueChange = {},
             readOnly = true,
             label = { Text("Categoria") },
@@ -264,18 +264,18 @@ fun CategorySelector(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            rotinas.forEach { rotina ->
+            categories.forEach { category ->
                 DropdownMenuItem(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val cor = try { Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { Color.Gray }
+                            val cor = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
                             Box(modifier = Modifier.size(12.dp).background(cor, CircleShape))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(rotina.nome)
+                            Text(category.nome)
                         }
                     },
                     onClick = {
-                        onSelected(rotina)
+                        onSelected(category)
                         expanded = false
                     }
                 )

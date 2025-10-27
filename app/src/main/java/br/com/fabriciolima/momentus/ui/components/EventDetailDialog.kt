@@ -29,20 +29,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun EventDetailDialog(
     event: ItemCronograma,
-    rotina: Rotina,
+    category: Category,
     onDismiss: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     val eventColor = try {
-        Color(android.graphics.Color.parseColor(rotina.cor))
+        Color(android.graphics.Color.parseColor(category.cor))
     } catch (e: Exception) {
         MaterialTheme.colorScheme.secondary
     }
@@ -68,7 +68,7 @@ fun EventDetailDialog(
                             .clip(CircleShape)
                     ){}
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text(rotina.nome, style = MaterialTheme.typography.bodyLarge)
+                    Text(category.nome, style = MaterialTheme.typography.bodyLarge)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("${event.horarioInicio.format(timeFormatter)} - ${event.horarioTermino.format(timeFormatter)}", style = MaterialTheme.typography.bodyMedium)

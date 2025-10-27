@@ -3,10 +3,10 @@ package br.com.fabriciolima.momentus.di
 import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
-import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
+import br.com.fabriciolima.momentus.data.database.CategoryDao
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
@@ -66,8 +66,8 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideRotinaRepository(
-        rotinaDao: RotinaDao,
+    fun provideCategoryRepository(
+        CategoryDao: CategoryDao,
         metaDao: MetaDao,
         habitoConcluidoDao: HabitoConcluidoDao,
         itemCronogramaDao: ItemCronogramaDao, // Adicionado o parâmetro que faltava
@@ -75,9 +75,9 @@ object RepositoryModule {
         eventoRepository: EventoRepository,
         googleCalendarSource: GoogleCalendarSource,
         @IoDispatcher dispatcher: CoroutineDispatcher
-    ): RotinaRepository {
-        return RotinaRepository(
-            rotinaDao,
+    ): CategoryRepository {
+        return CategoryRepository(
+            CategoryDao,
             metaDao,
             habitoConcluidoDao,
             itemCronogramaDao, // Passado o parâmetro na ordem correta

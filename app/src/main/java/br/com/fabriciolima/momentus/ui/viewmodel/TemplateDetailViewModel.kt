@@ -2,13 +2,13 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
-import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.model.SharedTemplate
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,12 +24,12 @@ import javax.inject.Inject
 
 data class TemplateDetailUiState(
     val template: TemplateComEventos? = null,
-    val rotinasMap: Map<String, Rotina> = emptyMap()
+    val categoriesMap: Map<String, Category> = emptyMap()
 )
 
 @HiltViewModel
 class TemplateDetailViewModel @Inject constructor(
-    private val repository: RotinaRepository,
+    private val categoryRepository: CategoryRepository,
     private val templateRepository: TemplateRepository,
     private val eventoRepository: EventoRepository
 ) : ViewModel() {
@@ -39,11 +39,11 @@ class TemplateDetailViewModel @Inject constructor(
     val uiState: StateFlow<TemplateDetailUiState> = combine(
         _templateId,
         templateRepository.todosOsTemplatesComEventos,
-        repository.todasAsRotinasComMetas
-    ) { id: String?, templates: List<TemplateComEventos>, rotinas: List<RotinaComMeta> ->
+        categoryRepository.allCategoriesWithMetas
+    ) { id: String?, templates: List<TemplateComEventos>, categories: List<CategoryWithMeta> ->
         val template = templates.firstOrNull { it.template.id == id }
-        val rotinasMap = rotinas.associateBy({ it.rotina.id }, { it.rotina })
-        TemplateDetailUiState(template, rotinasMap)
+        val categoriesMap = categories.associateBy({ it.category.id }, { it.category })
+        TemplateDetailUiState(template, categoriesMap)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -66,7 +66,7 @@ class TemplateDetailViewModel @Inject constructor(
         return Json.encodeToString(shareableData)
     }
 
-    fun addEventToTemplate(titulo: String, descricao: String?, horarioInicio: LocalTime, horarioTermino: LocalTime, rotina: Rotina) {
+    fun addEventToTemplate(titulo: String, descricao: String?, horarioInicio: LocalTime, horarioTermino: LocalTime, category: Category) {
         val templateId = _templateId.value ?: return
         viewModelScope.launch {
             val novoEvento = ItemCronograma(
@@ -76,7 +76,7 @@ class TemplateDetailViewModel @Inject constructor(
                 diaDaSemana = null,
                 horarioInicio = horarioInicio,
                 horarioTermino = horarioTermino,
-                rotinaId = rotina.id,
+                categoryId = category.id,
                 templateId = templateId
             )
             eventoRepository.insertItemCronograma(novoEvento)

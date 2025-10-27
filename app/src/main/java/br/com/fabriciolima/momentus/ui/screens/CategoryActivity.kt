@@ -49,7 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.ui.components.EditCategoryDialog
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CategoryDialogState
@@ -75,8 +75,8 @@ class CategoryActivity : ComponentActivity() {
                     onShowEditDialog = viewModel::onShowEditDialog,
                     onShowConfirmDeleteDialog = viewModel::onShowConfirmDeleteDialog,
                     onDialogDismiss = viewModel::onDialogDismiss,
-                    onUpsertCategory = viewModel::upsertRotina,
-                    onDeleteCategory = viewModel::deleteRotina,
+                    onUpsertCategory = viewModel::upsertCategory,
+                    onDeleteCategory = viewModel::deleteCategory,
                     onErrorShown = viewModel::onErrorShown // Passando a nova função
                 )
             }
@@ -90,11 +90,11 @@ fun CategoryScreen(
     uiState: CategoryUiState,
     onNavigateUp: () -> Unit,
     onShowCreateDialog: () -> Unit,
-    onShowEditDialog: (Rotina) -> Unit,
-    onShowConfirmDeleteDialog: (Rotina) -> Unit,
+    onShowEditDialog: (Category) -> Unit,
+    onShowConfirmDeleteDialog: (Category) -> Unit,
     onDialogDismiss: () -> Unit,
     onUpsertCategory: (String?, String, String) -> Unit,
-    onDeleteCategory: (Rotina) -> Unit,
+    onDeleteCategory: (Category) -> Unit,
     onErrorShown: () -> Unit // Nova função para resetar o erro
 ) {
 
@@ -190,7 +190,7 @@ fun CategoryScreen(
 
 @Composable
 fun CategoryListItem(
-    category: Rotina,
+    category: Category,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {

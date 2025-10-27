@@ -2,12 +2,12 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateEvent
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +23,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CreateTemplateViewModel @Inject constructor(
-    private val repository: RotinaRepository,
+    private val categoryRepository: CategoryRepository,
     private val templateRepository: TemplateRepository,
     private val eventoRepository: EventoRepository
 ) : ViewModel() {
@@ -34,8 +34,8 @@ class CreateTemplateViewModel @Inject constructor(
     private val _templateName = MutableStateFlow("")
     val templateName: StateFlow<String> = _templateName.asStateFlow()
 
-    val todasAsRotinas: StateFlow<List<Rotina>> = repository.todasAsRotinasComMetas.map { list ->
-        list.map { it.rotina }
+    val allCategories: StateFlow<List<Category>> = categoryRepository.allCategoriesWithMetas.map { list ->
+        list.map { it.category }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -74,7 +74,7 @@ class CreateTemplateViewModel @Inject constructor(
                         diaDaSemana = null,
                         horarioInicio = LocalTime.parse(eventUI.horarioInicio),
                         horarioTermino = LocalTime.parse(eventUI.horarioTermino),
-                        rotinaId = eventUI.categoria.id,
+                        categoryId = eventUI.categoria.id,
                         templateId = newTemplate.id
                     )
                     eventoRepository.insertItemCronograma(eventDB)

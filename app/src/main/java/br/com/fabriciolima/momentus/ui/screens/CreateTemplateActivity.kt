@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,17 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.fabriciolima.momentus.R
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.TemplateEvent
 import br.com.fabriciolima.momentus.ui.components.AddTemplateEventDialog
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CreateTemplateViewModel
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.AndroidEntryPoint
+import java.time.LocalTime
 import java.util.UUID
 
 @AndroidEntryPoint
@@ -61,13 +61,13 @@ class CreateTemplateActivity : ComponentActivity() {
             MomentusTheme {
                 val templateName by viewModel.templateName.collectAsStateWithLifecycle()
                 val events by viewModel.events.collectAsStateWithLifecycle()
-                val allRoutines by viewModel.todasAsRotinas.collectAsStateWithLifecycle()
+                val allCategories by viewModel.allCategories.collectAsStateWithLifecycle()
 
                 CreateTemplateScreen(
                     templateName = templateName,
                     onTemplateNameChange = { viewModel.onTemplateNameChange(it) },
                     events = events,
-                    allRoutines = allRoutines,
+                    allCategories = allCategories,
                     onAddEvent = { viewModel.addEvent(it) },
                     onRemoveEvent = { viewModel.removeEvent(it) },
                     onNavigateBack = { finish() },
@@ -96,7 +96,7 @@ fun CreateTemplateScreen(
     templateName: String,
     onTemplateNameChange: (String) -> Unit,
     events: List<TemplateEvent>,
-    allRoutines: List<Rotina>,
+    allCategories: List<Category>,
     onAddEvent: (TemplateEvent) -> Unit,
     onRemoveEvent: (TemplateEvent) -> Unit,
     onNavigateBack: () -> Unit,
@@ -106,13 +106,13 @@ fun CreateTemplateScreen(
 
     if (showAddEventDialog) {
         AddTemplateEventDialog(
-            rotinas = allRoutines,
+            categories = allCategories,
             onDismiss = { showAddEventDialog = false },
             onConfirm = { titulo, desc, dia, inicio, fim, categoria ->
                 val newEvent = TemplateEvent(
                     id = UUID.randomUUID(),
                     titulo = titulo,
-                    descricao = desc,
+                    descricao = desc ?: "",
                     horarioInicio = inicio.toString(),
                     horarioTermino = fim.toString(),
                     categoria = categoria
@@ -169,6 +169,15 @@ fun CreateTemplateScreen(
                         IconButton(onClick = { onRemoveEvent(event) }) {
                             Icon(Icons.Default.Delete, contentDescription = "Remover Evento")
                         }
+                    }
+                }
+            }
+
+            if (events.isNotEmpty()) {
+                 item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = onSaveTemplate, modifier = Modifier.fillMaxWidth()) {
+                        Text("Salvar Template")
                     }
                 }
             }

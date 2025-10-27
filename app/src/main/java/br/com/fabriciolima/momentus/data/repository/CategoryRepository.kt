@@ -1,16 +1,16 @@
 package br.com.fabriciolima.momentus.data.repository
 
 import android.util.Log
+import br.com.fabriciolima.momentus.data.database.CategoryDao
 import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
-import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.StatsSummary
+import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.HabitoConcluido
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Meta
-import br.com.fabriciolima.momentus.data.model.Rotina
-import br.com.fabriciolima.momentus.data.model.RotinaComMeta
 import br.com.fabriciolima.momentus.data.model.StatsResult
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import br.com.fabriciolima.momentus.di.IoDispatcher
@@ -33,13 +33,13 @@ import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val TAG = "RotinaRepository"
+private const val TAG = "CategoryRepository"
 
 enum class SyncStatus { OFFLINE, SYNCING, CONNECTED }
 
 @Singleton
-open class RotinaRepository @Inject constructor(
-    private val rotinaDao: RotinaDao,
+open class CategoryRepository @Inject constructor(
+    private val categoryDao: CategoryDao,
     private val metaDao: MetaDao,
     private val habitoConcluidoDao: HabitoConcluidoDao,
     private val itemCronogramaDao: ItemCronogramaDao, // Adicionado
@@ -51,7 +51,7 @@ open class RotinaRepository @Inject constructor(
 
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
-    private var rotinasListener: ListenerRegistration? = null
+    private var categoriesListener: ListenerRegistration? = null
 
     private val _syncStatus = MutableStateFlow(SyncStatus.OFFLINE)
     val syncStatus = _syncStatus.asStateFlow()
@@ -59,31 +59,31 @@ open class RotinaRepository @Inject constructor(
     private val _syncMessage = MutableStateFlow("Preparando...")
     val syncMessage = _syncMessage.asStateFlow()
 
-    open val todasAsRotinasComMetas: Flow<List<RotinaComMeta>> = rotinaDao.getRotinasComMetas()
+    open val allCategoriesWithMetas: Flow<List<CategoryWithMeta>> = categoryDao.getCategoriesWithMetas()
     val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao.getIdsConcluidos()
-    open val stats: Flow<List<StatsResult>> = rotinaDao.getStats()
+    open val stats: Flow<List<StatsResult>> = categoryDao.getStats()
 
     private val userId: String?
         get() = auth.currentUser?.uid
 
     fun startListeningForChanges() {
         val userId = this.userId ?: return
-        if (rotinasListener != null) return // Evita múltiplos listeners
+        if (categoriesListener != null) return // Evita múltiplos listeners
 
         _syncStatus.value = SyncStatus.SYNCING
 
-        val rotinasCollection = firestore.collection("users").document(userId).collection("rotinas")
-        rotinasListener = rotinasCollection.addSnapshotListener { snapshots, e ->
+        val categoriesCollection = firestore.collection("users").document(userId).collection("categories")
+        categoriesListener = categoriesCollection.addSnapshotListener { snapshots, e ->
             if (e != null) {
-                Log.w(TAG, "Erro ao escutar por mudanças nas rotinas.", e)
+                Log.w(TAG, "Erro ao escutar por mudanças nas categorias.", e)
                 _syncStatus.value = SyncStatus.OFFLINE
                 return@addSnapshotListener
             }
             _syncStatus.value = SyncStatus.CONNECTED
-            snapshots?.toObjects<Rotina>()?.let {
+            snapshots?.toObjects<Category>()?.let {
                 CoroutineScope(dispatcher).launch {
-                    rotinaDao.insertAll(it)
-                    Log.d(TAG, "${it.size} rotinas sincronizadas em tempo real.")
+                    categoryDao.insertAll(it)
+                    Log.d(TAG, "${it.size} categorias sincronizadas em tempo real.")
                 }
             }
         }
@@ -93,8 +93,8 @@ open class RotinaRepository @Inject constructor(
     }
 
     fun stopListeningForChanges() {
-        rotinasListener?.remove()
-        rotinasListener = null
+        categoriesListener?.remove()
+        categoriesListener = null
         templateRepository.stopListeningForChanges()
         eventoRepository.stopListeningForChanges()
         _syncStatus.value = SyncStatus.OFFLINE
@@ -104,9 +104,9 @@ open class RotinaRepository @Inject constructor(
         _syncStatus.value = SyncStatus.SYNCING
         try {
             _syncMessage.value = "Verificando dados iniciais..."
-            ensureDefaultRotinaExists()
-            _syncMessage.value = "Sincronizando rotinas..."
-            syncRotinas()
+            ensureDefaultCategoryExists()
+            _syncMessage.value = "Sincronizando categorias..."
+            syncCategories()
             _syncMessage.value = "Sincronizando templates..."
             templateRepository.syncTemplates()
             _syncMessage.value = "Sincronizando eventos..."
@@ -120,24 +120,28 @@ open class RotinaRepository @Inject constructor(
         }
     }
 
-    private suspend fun ensureDefaultRotinaExists() {
-        val defaultRotina = Rotina(
+    private suspend fun ensureDefaultCategoryExists() {
+        val defaultCategory = Category(
             id = "default-outros",
             nome = "Outros",
             cor = "#808080"
         )
-        insertRotina(defaultRotina, isDefault = true)
+
+        val existing = categoryDao.getById(defaultCategory.id)
+        if (existing == null) {
+            insertCategory(defaultCategory)
+        }
     }
 
-    private suspend fun syncRotinas() = withContext(dispatcher) {
+    private suspend fun syncCategories() = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
         try {
-            val collectionRef = firestore.collection("users").document(currentUserId).collection("rotinas")
-            val localRotinasMap = rotinaDao.getAllSync().associateBy { it.id }
-            val cloudRotinasMap = collectionRef.get().await().toObjects<Rotina>().associateBy { it.id }
+            val collectionRef = firestore.collection("users").document(currentUserId).collection("categories")
+            val localCategoriesMap = categoryDao.getAllSync().associateBy { it.id }
+            val cloudCategoriesMap = collectionRef.get().await().toObjects<Category>().associateBy { it.id }
 
-            val itemsToUpload = localRotinasMap.filter { (id, local) ->
-                val cloudItem = cloudRotinasMap[id]
+            val itemsToUpload = localCategoriesMap.filter { (id, local) ->
+                val cloudItem = cloudCategoriesMap[id]
                 when {
                     cloudItem == null -> true
                     local.lastUpdated == null -> false
@@ -146,8 +150,8 @@ open class RotinaRepository @Inject constructor(
                 }
             }.values
 
-            val itemsToDownload = cloudRotinasMap.filter { (id, cloud) ->
-                val localItem = localRotinasMap[id]
+            val itemsToDownload = cloudCategoriesMap.filter { (id, cloud) ->
+                val localItem = localCategoriesMap[id]
                 when {
                     localItem == null -> true
                     cloud.lastUpdated == null -> false
@@ -160,98 +164,89 @@ open class RotinaRepository @Inject constructor(
                 val batch = firestore.batch()
                 itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
                 batch.commit().await()
-                Log.d(TAG, "${itemsToUpload.size} rotinas locais enviadas para a nuvem.")
+                Log.d(TAG, "${itemsToUpload.size} categorias locais enviadas para a nuvem.")
             }
 
             if (itemsToDownload.isNotEmpty()) {
-                rotinaDao.insertAll(itemsToDownload.toList())
-                Log.d(TAG, "${itemsToDownload.size} rotinas da nuvem sincronizadas para o banco local.")
+                categoryDao.insertAll(itemsToDownload.toList())
+                Log.d(TAG, "${itemsToDownload.size} categorias da nuvem sincronizadas para o banco local.")
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Erro ao sincronizar rotinas.", e)
+            Log.e(TAG, "Erro ao sincronizar categorias.", e)
             throw e
         }
     }
 
     suspend fun clearAllLocalData() = withContext(dispatcher) {
         Log.w(TAG, "Limpando todos os dados locais do banco de dados.")
-        rotinaDao.clear()
+        categoryDao.clear()
         templateRepository.clear()
         eventoRepository.clear()
         metaDao.clear()
         habitoConcluidoDao.clear()
     }
 
-    fun getTodasAsRotinasSync(): List<Rotina> {
-        return rotinaDao.getAllSync()
+    fun getAllCategoriesSync(): List<Category> {
+        return categoryDao.getAllSync()
     }
 
-    fun getTodasAsRotinas(): Flow<List<Rotina>> {
-        return rotinaDao.getAll()
+    fun getAllCategories(): Flow<List<Category>> {
+        return categoryDao.getAll()
     }
 
     fun getStatsSummary(since: Long): Flow<List<StatsSummary>> {
-        return habitoConcluidoDao.getConcluidosCountByRotina(since)
+        return habitoConcluidoDao.getConcluidosCountByCategory(since)
     }
 
-    fun getSchedulableEventsForRotina(rotinaId: String, since: Long): Flow<List<ItemCronograma>> {
-        return itemCronogramaDao.getSchedulableEventsForRotina(rotinaId, since)
+    fun getSchedulableEventsForCategory(categoryId: String, since: Long): Flow<List<ItemCronograma>> {
+        return itemCronogramaDao.getSchedulableEventsForCategory(categoryId, since)
     }
 
-    open suspend fun insertRotina(rotina: Rotina, isDefault: Boolean = false) = withContext(dispatcher) {
+    open suspend fun insertCategory(category: Category) = withContext(dispatcher) {
         val currentUserId = userId ?: run {
-            Log.w(TAG, "Tentativa de inserir rotina sem usuário logado.")
+            Log.w(TAG, "Tentativa de inserir categoria sem usuário logado.")
             return@withContext
         }
 
-        val rotinasCollection = firestore.collection("users").document(currentUserId).collection("rotinas")
+        val categoriesCollection = firestore.collection("users").document(currentUserId).collection("categories")
 
-        if (!isDefault) {
-            val querySnapshot = rotinasCollection.whereEqualTo("nome", rotina.nome).get().await()
-            val exists = querySnapshot.documents.any { it.getString("nome").equals(rotina.nome, ignoreCase = true) }
-            if (exists) {
-                Log.w(TAG, "Bloqueio de inserção: Rotina com nome '${rotina.nome}' já existe.")
-                return@withContext
-            }
-        }
-
-        Log.d(TAG, "Inserindo/Atualizando rotina: ID=${rotina.id}, Nome=${rotina.nome}")
-        rotinaDao.insert(rotina)
-        rotinasCollection.document(rotina.id).set(rotina)
-            .addOnSuccessListener { Log.d(TAG, "Rotina ${rotina.id} salva com sucesso no Firestore.") }
-            .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar rotina ${rotina.id} no Firestore.", e) }
+        Log.d(TAG, "Inserindo/Atualizando categoria: ID=${category.id}, Nome=${category.nome}")
+        categoryDao.insert(category)
+        categoriesCollection.document(category.id).set(category)
+            .addOnSuccessListener { Log.d(TAG, "Categoria ${category.id} salva com sucesso no Firestore.") }
+            .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar categoria ${category.id} no Firestore.", e) }
     }
 
-    open suspend fun deleteRotina(rotina: Rotina) {
-        Log.d(TAG, "Deletando rotina: ID=${rotina.id}, Nome=${rotina.nome}")
-        rotinaDao.delete(rotina)
+    open suspend fun deleteCategory(category: Category) {
+        Log.d(TAG, "Deletando categoria: ID=${category.id}, Nome=${category.nome}")
+        categoryDao.delete(category)
         userId?.let {
-            firestore.collection("users").document(it).collection("rotinas").document(rotina.id)
+            firestore.collection("users").document(it).collection("categories").document(category.id)
                 .delete()
-                .addOnSuccessListener { Log.d(TAG, "Rotina ${rotina.id} deletada com sucesso do Firestore.") }
-                .addOnFailureListener { e -> Log.w(TAG, "Erro ao deletar rotina ${rotina.id} do Firestore.", e) }
+                .addOnSuccessListener { Log.d(TAG, "Categoria ${category.id} deletada com sucesso do Firestore.") }
+                .addOnFailureListener { e -> Log.w(TAG, "Erro ao deletar categoria ${category.id} do Firestore.", e) }
         }
     }
 
-    fun getMetaParaRotina(rotinaId: String): Flow<Meta?> {
-        return metaDao.getMetaParaRotina(rotinaId)
+    fun getMetaForCategory(categoryId: String): Flow<Meta?> {
+        return metaDao.getMetaForCategory(categoryId)
     }
 
-    suspend fun salvarMeta(meta: Meta) {
+    suspend fun saveMeta(meta: Meta) {
         metaDao.insertOrUpdate(meta)
     }
 
-    suspend fun marcarHabitoComoConcluido(itemCronogramaId: String) {
+    suspend fun markHabitAsCompleted(itemCronogramaId: String) {
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
         habitoConcluidoDao.insert(habito)
     }
 
-    suspend fun desmarcarHabitoComoConcluido(itemCronogramaId: String) {
+    suspend fun unmarkHabitAsCompleted(itemCronogramaId: String) {
         habitoConcluidoDao.delete(itemCronogramaId)
     }
 
-    suspend fun salvarEventoNoGoogle(
+    suspend fun saveEventToGoogle(
         titulo: String,
         descricao: String?,
         data: LocalDate,
@@ -260,7 +255,7 @@ open class RotinaRepository @Inject constructor(
         cor: String?
     ): Result<String?> = googleCalendarSource.saveEvent(titulo, descricao, data, horarioInicio, horarioTermino, cor)
 
-    suspend fun atualizarEventoCompleto(item: ItemCronograma, cor: String?): Result<String?> = withContext(dispatcher) {
+    suspend fun updateCompleteEvent(item: ItemCronograma, cor: String?): Result<String?> = withContext(dispatcher) {
         try {
             val result = googleCalendarSource.updateEvent(item, cor)
             if (result is Result.Success) {
@@ -272,7 +267,7 @@ open class RotinaRepository @Inject constructor(
         }
     }
 
-    suspend fun excluirEventoCompleto(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
+    suspend fun deleteCompleteEvent(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
         try {
             item.googleCalendarEventId?.let { googleCalendarSource.deleteEvent(it) }
             eventoRepository.excluirEventoCompleto(item)

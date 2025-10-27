@@ -2,7 +2,7 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.domain.usecase.DeleteCategoryUseCase
 import br.com.fabriciolima.momentus.domain.usecase.GetCategoriesUseCase
 import br.com.fabriciolima.momentus.domain.usecase.UpsertCategoryUseCase
@@ -19,19 +19,19 @@ import javax.inject.Inject
 sealed interface CategoryDialogState {
     object Hidden : CategoryDialogState
     object CreateNew : CategoryDialogState
-    data class Edit(val category: Rotina) : CategoryDialogState
-    data class ConfirmDelete(val category: Rotina) : CategoryDialogState
+    data class Edit(val category: Category) : CategoryDialogState
+    data class ConfirmDelete(val category: Category) : CategoryDialogState
 }
 
 data class CategoryUiState(
-    val categories: List<Rotina> = emptyList(),
+    val categories: List<Category> = emptyList(),
     val dialogState: CategoryDialogState = CategoryDialogState.Hidden,
     val error: String? = null // Adicionado para mensagens de erro
 )
 
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
-    private val getCategoriesUseCase: GetCategoriesUseCase,
+    getCategoriesUseCase: GetCategoriesUseCase,
     private val upsertCategoryUseCase: UpsertCategoryUseCase,
     private val deleteCategoryUseCase: DeleteCategoryUseCase
 ) : ViewModel() {
@@ -39,7 +39,7 @@ class CategoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CategoryUiState())
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
-    private val allRotinas: StateFlow<List<Rotina>> = getCategoriesUseCase()
+    private val allCategories: StateFlow<List<Category>> = getCategoriesUseCase()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -48,8 +48,8 @@ class CategoryViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            allRotinas.collect { rotinas ->
-                _uiState.update { it.copy(categories = rotinas) }
+            allCategories.collect { categories ->
+                _uiState.update { it.copy(categories = categories) }
             }
         }
     }
@@ -58,11 +58,11 @@ class CategoryViewModel @Inject constructor(
         _uiState.update { it.copy(dialogState = CategoryDialogState.CreateNew) }
     }
 
-    fun onShowEditDialog(category: Rotina) {
+    fun onShowEditDialog(category: Category) {
         _uiState.update { it.copy(dialogState = CategoryDialogState.Edit(category)) }
     }
 
-    fun onShowConfirmDeleteDialog(category: Rotina) {
+    fun onShowConfirmDeleteDialog(category: Category) {
         _uiState.update { it.copy(dialogState = CategoryDialogState.ConfirmDelete(category)) }
     }
 
@@ -70,7 +70,7 @@ class CategoryViewModel @Inject constructor(
         _uiState.update { it.copy(dialogState = CategoryDialogState.Hidden) }
     }
 
-    fun upsertRotina(id: String?, nome: String, cor: String) {
+    fun upsertCategory(id: String?, nome: String, cor: String) {
         viewModelScope.launch {
             try {
                 upsertCategoryUseCase(id, nome, cor)
@@ -81,9 +81,9 @@ class CategoryViewModel @Inject constructor(
         }
     }
 
-    fun deleteRotina(rotina: Rotina) {
+    fun deleteCategory(category: Category) {
         viewModelScope.launch {
-            deleteCategoryUseCase(rotina)
+            deleteCategoryUseCase(category)
             onDialogDismiss()
         }
     }

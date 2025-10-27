@@ -7,7 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,12 +23,12 @@ val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
 class SplashViewModel @Inject constructor(
     private val auth: FirebaseAuth,
     private val userRepository: UserRepository,
-    private val rotinaRepository: RotinaRepository, // Adicionado
+    private val categoryRepository: CategoryRepository, // Corrigido
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     // Expondo a mensagem de sincronização para a UI
-    val syncMessage = rotinaRepository.syncMessage
+    val syncMessage = categoryRepository.syncMessage
 
     enum class UserStatus {
         NOT_LOGGED_IN,
@@ -50,7 +50,7 @@ class SplashViewModel @Inject constructor(
         return if (auth.currentUser == null) {
             UserStatus.NOT_LOGGED_IN
         } else {
-            rotinaRepository.syncAllDataToLocal() // Inicia a sincronização
+            categoryRepository.syncAllDataToLocal() // Inicia a sincronização
             if (userRepository.hasAcceptedTerms()) {
                 UserStatus.LOGGED_IN
             } else {

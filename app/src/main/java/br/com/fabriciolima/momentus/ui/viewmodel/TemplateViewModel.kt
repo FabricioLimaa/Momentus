@@ -4,13 +4,13 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.SharedTemplate
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.ui.components.EventFormData
 import br.com.fabriciolima.momentus.util.Result
@@ -42,7 +42,7 @@ sealed interface TemplateDialogState {
 
 data class TemplateUiState(
     val templates: List<TemplateComEventos> = emptyList(),
-    val rotinasMap: Map<String, Rotina> = emptyMap(),
+    val categoriesMap: Map<String, Category> = emptyMap(),
     val dialogState: TemplateDialogState = TemplateDialogState.Hidden,
     val isLoading: Boolean = false,
     val isSyncing: Boolean = true,
@@ -52,7 +52,7 @@ data class TemplateUiState(
 @HiltViewModel
 class TemplateViewModel @Inject constructor(
     private val templateRepository: TemplateRepository,
-    private val rotinaRepository: RotinaRepository,
+    private val categoryRepository: CategoryRepository,
     private val eventoRepository: EventoRepository,
     private val application: Application
 ) : ViewModel() {
@@ -65,15 +65,15 @@ class TemplateViewModel @Inject constructor(
             _uiState.update { it.copy(isSyncing = true) }
             combine(
                 templateRepository.todosOsTemplatesComEventos,
-                rotinaRepository.getTodasAsRotinas()
-            ) { templates, rotinas ->
-                val rotinasMap = rotinas.associateBy { it.id }
-                templates to rotinasMap
-            }.collect { (templates, rotinasMap) ->
+                categoryRepository.getAllCategories()
+            ) { templates, categories ->
+                val categoriesMap = categories.associateBy { it.id }
+                templates to categoriesMap
+            }.collect { (templates, categoriesMap) ->
                 _uiState.update {
                     it.copy(
                         templates = templates,
-                        rotinasMap = rotinasMap,
+                        categoriesMap = categoriesMap,
                         isSyncing = false
                     )
                 }
@@ -167,7 +167,7 @@ class TemplateViewModel @Inject constructor(
                         descricao = it.descricao,
                         horarioInicio = it.horarioInicio,
                         horarioTermino = it.horarioTermino,
-                        rotinaId = it.selectedRotina!!.id,
+                        categoryId = it.selectedCategory!!.id,
                         templateId = id
                     )
                 }
@@ -225,15 +225,15 @@ class TemplateViewModel @Inject constructor(
                     
                     if(saveToGoogle) {
                         novosEventos.forEach { evento ->
-                            val rotina = rotinaRepository.getTodasAsRotinas().first().find { it.id == evento.rotinaId }
-                            if (rotina != null) {
-                                rotinaRepository.salvarEventoNoGoogle(
+                            val category = categoryRepository.getAllCategories().first().find { it.id == evento.categoryId }
+                            if (category != null) {
+                                categoryRepository.saveEventToGoogle(
                                     titulo = evento.titulo,
                                     descricao = evento.descricao,
                                     data = LocalDate.ofEpochDay(evento.data!! / (24 * 60 * 60 * 1000)),
                                     horarioInicio = evento.horarioInicio,
                                     horarioTermino = evento.horarioTermino,
-                                    cor = rotina.cor
+                                    cor = category.cor
                                 )
                             }
                         }

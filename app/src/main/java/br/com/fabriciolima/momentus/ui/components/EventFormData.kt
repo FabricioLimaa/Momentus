@@ -1,7 +1,7 @@
 package br.com.fabriciolima.momentus.ui.components
 
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
 import java.time.LocalTime
 
 data class EventFormData(
@@ -9,16 +9,16 @@ data class EventFormData(
     val descricao: String = "",
     val horarioInicio: LocalTime = LocalTime.now().withSecond(0).withNano(0),
     val horarioTermino: LocalTime = LocalTime.now().withSecond(0).withNano(0).plusHours(1),
-    val selectedRotina: Rotina? = null
+    val selectedCategory: Category? = null
 ) {
     companion object {
-        fun fromItemCronograma(item: ItemCronograma, rotinas: List<Rotina>): EventFormData {
+        fun fromItemCronograma(item: ItemCronograma, categories: List<Category>): EventFormData {
             return EventFormData(
                 titulo = item.titulo,
                 descricao = item.descricao ?: "",
                 horarioInicio = item.horarioInicio,
                 horarioTermino = item.horarioTermino,
-                selectedRotina = rotinas.find { it.id == item.rotinaId }
+                selectedCategory = categories.find { it.id == item.categoryId }
             )
         }
     }

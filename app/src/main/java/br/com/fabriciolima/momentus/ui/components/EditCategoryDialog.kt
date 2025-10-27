@@ -40,7 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.ui.theme.googleCalendarColors
 
 fun Color.toHexString(): String {
@@ -50,7 +50,7 @@ fun Color.toHexString(): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditCategoryDialog(
-    category: Rotina?,
+    category: Category?,
     onDismiss: () -> Unit,
     onConfirm: (id: String?, name: String, color: String) -> Unit
 ) {

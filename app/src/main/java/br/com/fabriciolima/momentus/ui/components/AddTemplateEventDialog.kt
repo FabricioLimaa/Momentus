@@ -1,13 +1,33 @@
 package br.com.fabriciolima.momentus.ui.components
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -15,9 +35,9 @@ import java.time.format.DateTimeParseException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTemplateEventDialog(
-    rotinas: List<Rotina>,
+    categories: List<Category>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, LocalTime, LocalTime, Rotina) -> Unit
+    onConfirm: (String, String, String, LocalTime, LocalTime, Category) -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
@@ -28,8 +48,8 @@ fun AddTemplateEventDialog(
     var dayOfWeekExpanded by remember { mutableStateOf(false) }
     var selectedDayOfWeek by remember { mutableStateOf(daysOfWeek.first()) }
 
-    var rotinaExpanded by remember { mutableStateOf(false) }
-    var selectedRotina by remember { mutableStateOf(rotinas.firstOrNull()) }
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf(categories.firstOrNull()) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
@@ -59,12 +79,12 @@ fun AddTemplateEventDialog(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (rotinas.isNotEmpty()) {
-                    ExposedDropdownMenuBox(expanded = rotinaExpanded, onExpandedChange = { rotinaExpanded = !rotinaExpanded }) {
-                        OutlinedTextField(value = selectedRotina?.nome ?: "Selecione", onValueChange = {}, readOnly = true, label = { Text("Categoria") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = rotinaExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth())
-                        ExposedDropdownMenu(expanded = rotinaExpanded, onDismissRequest = { rotinaExpanded = false }) {
-                            rotinas.forEach { rotina ->
-                                DropdownMenuItem(text = { Text(rotina.nome) }, onClick = { selectedRotina = rotina; rotinaExpanded = false })
+                if (categories.isNotEmpty()) {
+                    ExposedDropdownMenuBox(expanded = categoryExpanded, onExpandedChange = { categoryExpanded = !categoryExpanded }) {
+                        OutlinedTextField(value = selectedCategory?.nome ?: "Selecione", onValueChange = {}, readOnly = true, label = { Text("Categoria") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) }, modifier = Modifier.menuAnchor().fillMaxWidth())
+                        ExposedDropdownMenu(expanded = categoryExpanded, onDismissRequest = { categoryExpanded = false }) {
+                            categories.forEach { category ->
+                                DropdownMenuItem(text = { Text(category.nome) }, onClick = { selectedCategory = category; categoryExpanded = false })
                             }
                         }
                     }
@@ -80,14 +100,14 @@ fun AddTemplateEventDialog(
                             try {
                                 val inicio = LocalTime.parse(horarioInicioStr)
                                 val fim = LocalTime.parse(horarioTerminoStr)
-                                if (selectedRotina != null && titulo.isNotBlank()) {
-                                    onConfirm(titulo, descricao, selectedDayOfWeek, inicio, fim, selectedRotina!!)
+                                if (selectedCategory != null && titulo.isNotBlank()) {
+                                    onConfirm(titulo, descricao, selectedDayOfWeek, inicio, fim, selectedCategory!!)
                                 }
                             } catch (e: DateTimeParseException) {
                                 // Opcional: Mostrar um Toast ou erro para o usuário sobre o formato da hora
                             }
                         },
-                        enabled = selectedRotina != null && titulo.isNotBlank()
+                        enabled = selectedCategory != null && titulo.isNotBlank()
                     ) { Text("Adicionar") }
                 }
             }

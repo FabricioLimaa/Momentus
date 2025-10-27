@@ -44,8 +44,8 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import br.com.fabriciolima.momentus.R
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.ui.screens.LoginActivity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -83,7 +83,7 @@ const val OPEN_NEW_EVENT_DIALOG_KEY = "br.com.fabriciolima.momentus.OPEN_NEW_EVE
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface WidgetUpdateEntryPoint {
-    fun rotinaRepository(): RotinaRepository
+    fun categoryRepository(): CategoryRepository
     fun eventoRepository(): EventoRepository
 }
 

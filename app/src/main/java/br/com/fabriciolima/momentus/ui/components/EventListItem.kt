@@ -27,8 +27,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
 import java.time.format.DateTimeFormatter
 
 /**
@@ -37,11 +37,11 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun EventListItem(
     item: ItemCronograma, 
-    rotina: Rotina, 
+    category: Category, 
     modifier: Modifier = Modifier
 ) {
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
-    val corDaRotina = Color(android.graphics.Color.parseColor(rotina.cor))
+    val categoryColor = Color(android.graphics.Color.parseColor(category.cor))
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -56,7 +56,7 @@ fun EventListItem(
                 modifier = Modifier
                     .padding(top = 4.dp)
                     .size(12.dp)
-                    .background(corDaRotina, shape = CircleShape)
+                    .background(categoryColor, shape = CircleShape)
             )
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -79,12 +79,12 @@ fun EventListItem(
                     // Tag da Categoria
                     Box(
                         modifier = Modifier
-                            .background(corDaRotina.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                            .background(categoryColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = rotina.nome,
-                            color = corDaRotina,
+                            text = category.nome,
+                            color = categoryColor,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )

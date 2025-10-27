@@ -1,16 +1,33 @@
 package br.com.fabriciolima.momentus.ui.components
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import br.com.fabriciolima.momentus.data.model.Rotina
-import java.time.format.DateTimeFormatter
+import br.com.fabriciolima.momentus.data.model.Category
 
 /**
  * Diálogo genérico para adicionar um novo evento.
@@ -19,16 +36,16 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEventDialog(
-    rotinas: List<Rotina>,
+    categories: List<Category>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String?, String, String, Rotina) -> Unit
+    onConfirm: (String, String?, String, String, Category) -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var horarioInicio by remember { mutableStateOf("09:00") }
     var horarioTermino by remember { mutableStateOf("10:00") }
     var expanded by remember { mutableStateOf(false) }
-    var selectedRotina by remember { mutableStateOf(rotinas.firstOrNull()) }
+    var selectedCategory by remember { mutableStateOf(categories.firstOrNull()) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
@@ -49,7 +66,7 @@ fun AddEventDialog(
 
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                     OutlinedTextField(
-                        value = selectedRotina?.nome ?: "Selecione",
+                        value = selectedCategory?.nome ?: "Selecione",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Categoria") },
@@ -57,11 +74,11 @@ fun AddEventDialog(
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        rotinas.forEach { rotina ->
+                        categories.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(rotina.nome) },
+                                text = { Text(category.nome) },
                                 onClick = { 
-                                    selectedRotina = rotina
+                                    selectedCategory = category
                                     expanded = false 
                                 }
                             )
@@ -74,8 +91,8 @@ fun AddEventDialog(
                     TextButton(onClick = onDismiss) { Text("Cancelar") }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(onClick = {
-                        if (selectedRotina != null) {
-                            onConfirm(titulo, descricao, horarioInicio, horarioTermino, selectedRotina!!)
+                        if (selectedCategory != null) {
+                            onConfirm(titulo, descricao, horarioInicio, horarioTermino, selectedCategory!!)
                             onDismiss()
                         }
                     }) { Text("Adicionar") }

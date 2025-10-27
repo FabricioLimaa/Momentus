@@ -3,21 +3,21 @@ package br.com.fabriciolima.momentus.data.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.HabitoConcluido
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Meta
-import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.data.model.Template
 
 @Database(
-    entities = [Rotina::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class],
-    version = 5, // ATUALIZADO
+    entities = [Category::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class],
+    version = 6, // ATUALIZADO
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
-    abstract fun rotinaDao(): RotinaDao
+    abstract fun categoryDao(): CategoryDao
 
     abstract fun itemCronogramaDao(): ItemCronogramaDao
 

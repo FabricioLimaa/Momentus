@@ -155,7 +155,7 @@ open class EventoRepository @Inject constructor(
         itemCronogramaDao.updateAll(items)
         userId?.let { userId ->
             val batch = firestore.batch()
-            items.forEach {
+            items.forEach { 
                 val docRef = firestore.collection("users").document(userId).collection("eventos").document(it.id)
                 batch.set(docRef, it)
             }
@@ -198,19 +198,19 @@ open class EventoRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteEventsByRotinaId(rotinaId: String) {
-        Log.d(TAG, "Deletando eventos por rotinaId: $rotinaId")
-        itemCronogramaDao.deleteByRotinaId(rotinaId)
+    suspend fun deleteEventsByCategoryId(categoryId: String) {
+        Log.d(TAG, "Deletando eventos por categoryId: $categoryId")
+        itemCronogramaDao.deleteByCategoryId(categoryId)
     }
 
-    fun getWidgetEvents(data: LocalDate, allowedRotinaIds: Set<String>): List<WidgetEventItem> {
-        if (allowedRotinaIds.isEmpty()) return emptyList()
+    fun getWidgetEvents(data: LocalDate, allowedCategoryIds: Set<String>): List<WidgetEventItem> {
+        if (allowedCategoryIds.isEmpty()) return emptyList()
 
         val startOfDayMillis = data.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
         val endOfDayMillis = data.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() - 1
         val dayOfWeekName = data.dayOfWeek.name.substring(0, 3)
 
-        return itemCronogramaDao.getWidgetEventItems(startOfDayMillis, endOfDayMillis, dayOfWeekName, allowedRotinaIds)
+        return itemCronogramaDao.getWidgetEventItems(startOfDayMillis, endOfDayMillis, dayOfWeekName, allowedCategoryIds)
     }
     suspend fun clear() = withContext(dispatcher){
         Log.d(TAG, "Limpando todos os eventos do banco de dados local.")

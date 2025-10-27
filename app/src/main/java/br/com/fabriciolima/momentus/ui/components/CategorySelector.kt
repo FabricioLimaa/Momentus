@@ -22,14 +22,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import br.com.fabriciolima.momentus.data.model.Rotina
+import br.com.fabriciolima.momentus.data.model.Category
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategorySelector(
-    rotinas: List<Rotina>,
-    selecionada: Rotina?,
-    onSelected: (Rotina) -> Unit
+    categories: List<Category>,
+    selected: Category?,
+    onSelected: (Category) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -38,7 +38,7 @@ fun CategorySelector(
         onExpandedChange = { expanded = !expanded }
     ) {
         OutlinedTextField(
-            value = selecionada?.nome ?: "Selecione a Categoria",
+            value = selected?.nome ?: "Selecione a Categoria",
             onValueChange = {},
             readOnly = true,
             label = { Text("Categoria") },
@@ -49,18 +49,18 @@ fun CategorySelector(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            rotinas.forEach { rotina ->
+            categories.forEach { category ->
                 DropdownMenuItem(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val cor = try { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(rotina.cor)) } catch (e: Exception) { androidx.compose.ui.graphics.Color.Gray }
+                            val cor = try { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { androidx.compose.ui.graphics.Color.Gray }
                             Box(modifier = Modifier.size(12.dp).background(cor, CircleShape))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(rotina.nome)
+                            Text(category.nome)
                         }
                     },
                     onClick = {
-                        onSelected(rotina)
+                        onSelected(category)
                         expanded = false
                     }
                 )

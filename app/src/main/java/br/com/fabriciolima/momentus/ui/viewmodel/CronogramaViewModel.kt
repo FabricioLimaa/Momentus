@@ -4,11 +4,11 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Rotina
-import br.com.fabriciolima.momentus.data.model.RotinaComMeta
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -16,37 +16,37 @@ import javax.inject.Inject
 
 data class CronogramaUiState(
     val itens: List<ItemCronograma> = emptyList(),
-    val rotinas: List<Rotina> = emptyList(),
+    val categories: List<Category> = emptyList(),
     val habitosConcluidos: Set<String> = emptySet()
 )
 
 @HiltViewModel
 class CronogramaViewModel @Inject constructor(
-    private val repository: RotinaRepository,
+    private val categoryRepository: CategoryRepository,
     private val eventoRepository: EventoRepository
 ) : ViewModel() {
 
     val uiState: LiveData<CronogramaUiState> = combine(
         eventoRepository.todosOsItensDoCronograma,
-        repository.todasAsRotinasComMetas,
-        repository.idsHabitosConcluidos
-    ) { itens: List<ItemCronograma>, rotinasComMetas: List<RotinaComMeta>, habitos: List<String> ->
+        categoryRepository.allCategoriesWithMetas,
+        categoryRepository.idsHabitosConcluidos
+    ) { itens: List<ItemCronograma>, categoriesWithMetas: List<CategoryWithMeta>, habitos: List<String> ->
         CronogramaUiState(
             itens = itens.sortedBy { it.ordem }, // Garante a ordem correta
-            rotinas = rotinasComMetas.map { it.rotina },
+            categories = categoriesWithMetas.map { it.category },
             habitosConcluidos = habitos.toSet()
         )
     }.asLiveData()
 
     fun marcarHabitoComoConcluido(itemCronogramaId: String) {
         viewModelScope.launch {
-            repository.marcarHabitoComoConcluido(itemCronogramaId)
+            categoryRepository.markHabitAsCompleted(itemCronogramaId)
         }
     }
 
     fun desmarcarHabitoComoConcluido(itemCronogramaId: String) {
         viewModelScope.launch {
-            repository.desmarcarHabitoComoConcluido(itemCronogramaId)
+            categoryRepository.unmarkHabitAsCompleted(itemCronogramaId)
         }
     }
 

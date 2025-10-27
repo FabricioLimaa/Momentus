@@ -58,10 +58,10 @@ fun TemplateDetailScreen(templateId: String, viewModel: TemplateDetailViewModel,
 
     AnimatedVisibility(visible = showDialog, enter = fadeIn(), exit = fadeOut()) {
         AddEventToTemplateDialog(
-            rotinas = uiState.rotinasMap.values.toList(),
+            categories = uiState.categoriesMap.values.toList(),
             onDismiss = { showDialog = false },
-            onConfirm = { titulo, descricao, inicio, fim, rotina ->
-                viewModel.addEventToTemplate(titulo, descricao, inicio, fim, rotina)
+            onConfirm = { titulo, descricao, inicio, fim, category ->
+                viewModel.addEventToTemplate(titulo, descricao, inicio, fim, category)
                 showDialog = false
             }
         )
@@ -121,8 +121,8 @@ fun TemplateDetailScreen(templateId: String, viewModel: TemplateDetailViewModel,
                                     .detectReorderAfterLongPress(state)
                                     .padding(end = 8.dp)
                             )
-                            uiState.rotinasMap[item.rotinaId]?.let {
-                                EventListItem(item = item, rotina = it)
+                            uiState.categoriesMap[item.categoryId]?.let {
+                                EventListItem(item = item, category = it)
                             }
                         }
                     }

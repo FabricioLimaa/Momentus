@@ -8,8 +8,8 @@ import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import br.com.fabriciolima.momentus.data.database.WidgetEventItem
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -43,19 +43,19 @@ object WidgetUpdater {
 
         try {
             val entryPoint = EntryPointAccessors.fromApplication(context, WidgetUpdateEntryPoint::class.java)
-            val rotinaRepository = entryPoint.rotinaRepository()
+            val categoryRepository = entryPoint.categoryRepository()
             val eventoRepository = entryPoint.eventoRepository()
 
-            val allRotinas = withContext(Dispatchers.IO) { rotinaRepository.getTodasAsRotinasSync() }
-            val allRotinaIds = allRotinas.map { it.id }.toSet()
-            Log.d(TAG, "Total de rotinas encontradas: ${allRotinaIds.size}")
+            val allCategories = withContext(Dispatchers.IO) { categoryRepository.getAllCategoriesSync() }
+            val allCategoryIds = allCategories.map { it.id }.toSet()
+            Log.d(TAG, "Total de categorias encontradas: ${allCategoryIds.size}")
 
             val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
-            val allowedRotinaIds = prefs[EventWidgetStateKeys.configuredRotinasKey] ?: allRotinaIds
-            Log.d(TAG, "Rotinas permitidas para este widget: ${allowedRotinaIds.size}")
+            val allowedCategoryIds = prefs[EventWidgetStateKeys.configuredRotinasKey] ?: allCategoryIds
+            Log.d(TAG, "Categorias permitidas para este widget: ${allowedCategoryIds.size}")
 
             val widgetItems = withContext(Dispatchers.IO) {
-                eventoRepository.getWidgetEvents(LocalDate.now(), allowedRotinaIds.ifEmpty { allRotinaIds })
+                eventoRepository.getWidgetEvents(LocalDate.now(), allowedCategoryIds.ifEmpty { allCategoryIds })
             }
             Log.d(TAG, "Itens encontrados no repositório para o widget: ${widgetItems.size}")
 
@@ -68,7 +68,7 @@ object WidgetUpdater {
                     this[EventWidgetStateKeys.eventsKey] = eventsJson
                     this[EventWidgetStateKeys.loadingKey] = false
                     if (this[EventWidgetStateKeys.configuredRotinasKey] == null) {
-                        this[EventWidgetStateKeys.configuredRotinasKey] = allRotinaIds
+                        this[EventWidgetStateKeys.configuredRotinasKey] = allCategoryIds
                     }
                 }.toPreferences()
             }

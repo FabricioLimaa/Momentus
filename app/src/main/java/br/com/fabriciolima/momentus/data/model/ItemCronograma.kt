@@ -18,7 +18,7 @@ import java.util.Date
 @Serializable
 @Entity(
     tableName = "tabela_itens_cronograma",
-    indices = [Index(value = ["rotinaId"]), Index(value = ["templateId"])]
+    indices = [Index(value = ["categoryId"]), Index(value = ["templateId"])] // Corrigido
 )
 data class ItemCronograma(
     @PrimaryKey
@@ -41,7 +41,7 @@ data class ItemCronograma(
     @ColumnInfo(defaultValue = "0")
     val ordem: Int = 0,
 
-    val rotinaId: String = "",
+    val categoryId: String = "", // Corrigido
     val templateId: String? = null,
 
     val googleCalendarEventId: String? = null,

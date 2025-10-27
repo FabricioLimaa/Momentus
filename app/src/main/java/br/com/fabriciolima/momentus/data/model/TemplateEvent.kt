@@ -12,5 +12,5 @@ data class TemplateEvent(
     val descricao: String?,
     val horarioInicio: String,
     val horarioTermino: String,
-    val categoria: Rotina
+    val categoria: Category
 )
