@@ -40,7 +40,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
-        versionName = "0.9.61-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionName = "0.9.7-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -105,34 +105,23 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation(libs.androidx.hilt.navigation.compose)
 
     // Glance for App Widgets
-    implementation("androidx.glance:glance:1.1.1")
-    // For AppWidgets support
-    implementation ("androidx.glance:glance-appwidget:1.1.1")
-    // For interop APIs with Material 2
-    implementation ("androidx.glance:glance-material:1.1.1")
-    // For interop APIs with Material 3
-    implementation ("androidx.glance:glance-material3:1.1.1")
+    implementation(libs.androidx.glance)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material)
+    implementation(libs.androidx.glance.material3)
 
-    implementation("androidx.datastore:datastore-preferences:1.1.7")
+    // DataStore
+    implementation(libs.androidx.datastore)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore.preferences.rxjava2)
+    implementation(libs.androidx.datastore.preferences.rxjava3)
+    implementation(libs.androidx.datastore.rxjava2)
+    implementation(libs.androidx.datastore.rxjava3)
 
-    // optional - RxJava2 support
-    implementation("androidx.datastore:datastore-preferences-rxjava2:1.1.7")
-
-    // optional - RxJava3 support
-    implementation("androidx.datastore:datastore-preferences-rxjava3:1.1.7")
-
-    implementation("androidx.datastore:datastore:1.1.7")
-
-    // optional - RxJava2 support
-    implementation("androidx.datastore:datastore-rxjava2:1.1.7")
-
-    // optional - RxJava3 support
-    implementation("androidx.datastore:datastore-rxjava3:1.1.7")
-
-    implementation("androidx.graphics:graphics-shapes:1.0.1")
+    implementation(libs.androidx.graphics.shapes)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
@@ -152,16 +141,16 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    
+
     // Kotlinx Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation(libs.kotlinx.serialization.json)
 
     //Firebase
     implementation(platform(libs.firebaseBom))
     implementation(libs.firebaseAnalytics)
+    implementation(libs.firebaseAuth)
+    implementation(libs.firebaseFirestore)
     implementation(libs.playServicesAuth)
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
 
     implementation(libs.googleApiClientAndroid) {
         exclude(group = "org.apache.httpcomponents")
@@ -169,19 +158,20 @@ dependencies {
     implementation(libs.googleApiServicesCalendar) {
         exclude(group = "org.apache.httpcomponents")
     }
-    
+
     implementation(libs.kizitonwoseCalendarCompose)
 
+    // WorkManager
+    implementation(libs.androidx.work.manager)
+
+    // Accompanist
+    implementation(libs.accompanist.pager)
+    implementation(libs.accompanist.pager.indicators)
+
+    // Testing
     testImplementation(libs.junit)
     testImplementation(libs.androidx.core.testing)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
-    // WorkManager
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-
-    // Accompanist Pager
-    implementation("com.google.accompanist:accompanist-pager:0.28.0")
-    implementation("com.google.accompanist:accompanist-pager-indicators:0.28.0")
 }
