@@ -3,6 +3,8 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.domain.error.AppError
+import br.com.fabriciolima.momentus.domain.exception.DuplicateCategoryNameException
 import br.com.fabriciolima.momentus.domain.usecase.DeleteCategoryUseCase
 import br.com.fabriciolima.momentus.domain.usecase.GetCategoriesUseCase
 import br.com.fabriciolima.momentus.domain.usecase.UpsertCategoryUseCase
@@ -26,7 +28,7 @@ sealed interface CategoryDialogState {
 data class CategoryUiState(
     val categories: List<Category> = emptyList(),
     val dialogState: CategoryDialogState = CategoryDialogState.Hidden,
-    val error: String? = null // Adicionado para mensagens de erro
+    val error: AppError? = null // Alterado para AppError
 )
 
 @HiltViewModel
@@ -75,8 +77,10 @@ class CategoryViewModel @Inject constructor(
             try {
                 upsertCategoryUseCase(id, nome, cor)
                 onDialogDismiss()
+            } catch (e: DuplicateCategoryNameException) {
+                _uiState.update { it.copy(error = AppError.DuplicateCategoryNameError()) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+                _uiState.update { it.copy(error = AppError.UnknownError(e.message)) }
             }
         }
     }
