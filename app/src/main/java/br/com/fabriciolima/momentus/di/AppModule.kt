@@ -2,15 +2,12 @@ package br.com.fabriciolima.momentus.di
 
 import android.content.Context
 import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
 import br.com.fabriciolima.momentus.data.database.AppDatabase
 import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
 import br.com.fabriciolima.momentus.data.database.RotinaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
-import br.com.fabriciolima.momentus.data.model.Rotina
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -21,11 +18,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.util.UUID
-import javax.inject.Provider
 import javax.inject.Singleton
 
 @Module
@@ -50,8 +42,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppDatabase(
-        @ApplicationContext context: Context,
-        rotinaDaoProvider: Provider<RotinaDao>
+        @ApplicationContext context: Context
     ): AppDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -59,24 +50,6 @@ object AppModule {
             "momentus_database"
         )
         .fallbackToDestructiveMigration()
-        .addCallback(object : RoomDatabase.Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
-                CoroutineScope(Dispatchers.IO).launch {
-                    val rotinaDao = rotinaDaoProvider.get()
-                    val id = UUID.randomUUID().toString()
-                    val defaultCategory = Rotina(
-                        id = id,
-                        nome = "Outros",
-                        descricao = "Categoria para eventos diversos.",
-                        duracaoPadraoMinutos = 60,
-                        cor = "#808080",
-                        tag = null
-                    )
-                    rotinaDao.insert(defaultCategory)
-                }
-            }
-        })
         .build()
     }
 
