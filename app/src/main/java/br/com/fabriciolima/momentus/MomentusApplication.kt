@@ -1,6 +1,10 @@
 package br.com.fabriciolima.momentus
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -31,6 +35,7 @@ class MomentusApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         setupWidgetUpdateWorker()
+        createNotificationChannel()
     }
 
     private fun setupWidgetUpdateWorker() {
@@ -43,5 +48,19 @@ class MomentusApplication : Application(), Configuration.Provider {
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Lembretes de Rotina"
+            val descriptionText = "Notificações para lembrar sobre suas rotinas agendadas"
+            val importance = NotificationManager.IMPORTANCE_HIGH // CORRIGIDO PARA HIGH
+            val channel = NotificationChannel("LEMBRETE_ROTINA_CHANNEL", name, importance).apply {
+                description = descriptionText
+            }
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
     }
 }

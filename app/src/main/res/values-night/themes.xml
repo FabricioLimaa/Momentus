@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Tema base da aplicação para o modo noturno. -->
-    <style name="Base.Theme.Momentus" parent="Theme.Material3.DayNight.NoActionBar">
+<resources>
+
+    <style name="Theme.Momentus" parent="Theme.Material3.Dark.NoActionBar">
         <!-- As customizações de cores primárias, etc., agora são feitas em Compose -->
     </style>
 
-    <style name="Theme.Momentus" parent="Base.Theme.Momentus" />
+    <!-- Tema para Activities que devem parecer um diálogo -->
+    <style name="Theme.Momentus.Dialog" parent="Theme.Momentus">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+    
 </resources>

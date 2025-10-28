@@ -9,6 +9,7 @@ import br.com.fabriciolima.momentus.data.model.TemplateEvent
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
+import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +26,8 @@ import javax.inject.Inject
 class CreateTemplateViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val templateRepository: TemplateRepository,
-    private val eventoRepository: EventoRepository
+    private val eventoRepository: EventoRepository,
+    private val alarmScheduler: AlarmScheduler // Adicionado
 ) : ViewModel() {
 
     private val _events = MutableStateFlow<List<TemplateEvent>>(emptyList())
@@ -71,13 +73,14 @@ class CreateTemplateViewModel @Inject constructor(
                         titulo = eventUI.titulo,
                         descricao = eventUI.descricao,
                         data = null,
-                        diaDaSemana = null,
+                        diaDaSemana = null, // Lógica de dia da semana precisa ser adicionada aqui
                         horarioInicio = LocalTime.parse(eventUI.horarioInicio),
                         horarioTermino = LocalTime.parse(eventUI.horarioTermino),
                         categoryId = eventUI.categoria.id,
                         templateId = newTemplate.id
                     )
                     eventoRepository.insertItemCronograma(eventDB)
+                    alarmScheduler.schedule(eventDB) // Adicionado
                 }
                 _templateName.value = ""
                 _events.value = emptyList()

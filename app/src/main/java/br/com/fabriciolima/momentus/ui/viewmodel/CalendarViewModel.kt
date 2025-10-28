@@ -8,6 +8,7 @@ import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -70,6 +71,7 @@ data class CalendarUiState(
 class CalendarViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val eventoRepository: EventoRepository,
+    private val alarmScheduler: AlarmScheduler,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
     private val application: Application
@@ -247,6 +249,7 @@ class CalendarViewModel @Inject constructor(
                     googleCalendarEventId = googleEventId
                 )
                 eventoRepository.insertItemCronograma(novoItem)
+                alarmScheduler.schedule(novoItem)
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden)
                 WidgetUpdater.requestUpdate(application)
@@ -291,6 +294,8 @@ class CalendarViewModel @Inject constructor(
                 } else {
                     eventoRepository.insertItemCronograma(itemAtualizado)
                 }
+                
+                alarmScheduler.schedule(itemAtualizado)
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)
                 WidgetUpdater.requestUpdate(application)
@@ -304,6 +309,7 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                alarmScheduler.cancel(item)
                 when (val result = categoryRepository.deleteCompleteEvent(item)) {
                     is Result.Success -> {
                         fetchGoogleCalendarEvents()

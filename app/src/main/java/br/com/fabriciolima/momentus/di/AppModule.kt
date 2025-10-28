@@ -8,6 +8,7 @@ import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
+import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -76,5 +77,11 @@ object AppModule {
     @Provides
     fun provideHabitoConcluidoDao(appDatabase: AppDatabase): HabitoConcluidoDao {
         return appDatabase.habitoConcluidoDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAlarmScheduler(@ApplicationContext context: Context): AlarmScheduler {
+        return AlarmScheduler(context)
     }
 }

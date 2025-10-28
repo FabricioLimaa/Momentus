@@ -1,9 +1,14 @@
 package br.com.fabriciolima.momentus.ui.screens
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -77,6 +82,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
@@ -119,6 +125,30 @@ class CalendarActivity : ComponentActivity() {
 
         setContent {
             MomentusTheme {
+                // Lógica para permissão de notificação
+                val context = LocalContext.current
+                val launcher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { isGranted: Boolean ->
+                    if (isGranted) {
+                        // Permissão concedida
+                    } else {
+                        // Permissão negada. Você pode querer mostrar um Snackbar ou diálogo explicando por que a permissão é importante
+                    }
+                }
+
+                LaunchedEffect(key1 = true) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
+                }
+
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
                 val allCategories by viewModel.allCategories.collectAsStateWithLifecycle()
