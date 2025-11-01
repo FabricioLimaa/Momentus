@@ -3,12 +3,14 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.data.model.Achievement
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
@@ -64,6 +66,7 @@ data class CalendarUiState(
     val completedHabitIds: Set<String> = emptySet(),
     val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
     val userData: UserData? = null,
+    val newlyUnlockedAchievement: Achievement? = null, // Adicionado
     val error: String? = null,
     val successMessage: String? = null,
     val dialogState: DialogState = DialogState.Hidden,
@@ -75,6 +78,7 @@ class CalendarViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val eventoRepository: EventoRepository,
     private val userRepository: UserRepository,
+    private val gamificationRepository: GamificationRepository, // Adicionado
     private val alarmScheduler: AlarmScheduler,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
@@ -110,28 +114,49 @@ class CalendarViewModel @Inject constructor(
 
     init {
         categoryRepository.startListeningForChanges()
+        listenToDataChanges()
+        listenForNewAchievements()
+    }
 
+    private fun listenToDataChanges() {
         viewModelScope.launch {
             combine(
                 eventoRepository.todosOsItensDoCronograma,
                 categoryRepository.allCategoriesWithMetas,
                 categoryRepository.idsHabitosConcluidos,
-                userRepository.userData // Adicionado
+                userRepository.userData
             ) { allItems, categoriesWithMetas, completedIds, userData ->
                 val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
-                Triple(Triple(allItems, categoriesMap, completedIds.toSet()), userData, completedIds)
-            }.collect { (data, userData, completedIds) ->
-                val (allItems, categoriesMap) = data
+                // Usar um objeto wrapper ou uma forma mais segura de combinar os tipos
+                object {
+                    val allItems = allItems
+                    val categoriesMap = categoriesMap
+                    val completedIds = completedIds.toSet()
+                    val userData = userData
+                }
+            }.collect { combinedData ->
                 _uiState.update { currentState ->
                     currentState.copy(
-                        allScheduleItems = allItems as List<ItemCronograma>,
-                        categoriesMap = categoriesMap as Map<String, Category>,
-                        completedHabitIds = completedIds.toSet(),
-                        userData = userData as UserData?
+                        allScheduleItems = combinedData.allItems,
+                        categoriesMap = combinedData.categoriesMap,
+                        completedHabitIds = combinedData.completedIds,
+                        userData = combinedData.userData
                     )
                 }
             }
         }
+    }
+
+    private fun listenForNewAchievements() {
+        viewModelScope.launch {
+            gamificationRepository.newlyUnlockedAchievement.collect { achievement ->
+                _uiState.update { it.copy(newlyUnlockedAchievement = achievement) }
+            }
+        }
+    }
+
+    fun onAchievementDialogDismissed() {
+        _uiState.update { it.copy(newlyUnlockedAchievement = null) }
     }
 
     override fun onCleared() {

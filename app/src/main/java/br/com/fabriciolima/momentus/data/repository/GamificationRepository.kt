@@ -2,13 +2,17 @@ package br.com.fabriciolima.momentus.data.repository
 
 import android.util.Log
 import br.com.fabriciolima.momentus.data.database.UnlockedAchievementDao
+import br.com.fabriciolima.momentus.data.model.Achievement
 import br.com.fabriciolima.momentus.data.model.UnlockedAchievement
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.domain.AchievementsList
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.toObjects
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -24,6 +28,9 @@ class GamificationRepository @Inject constructor(
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
 
+    private val _newlyUnlockedAchievement = MutableSharedFlow<Achievement>()
+    val newlyUnlockedAchievement = _newlyUnlockedAchievement.asSharedFlow()
+
     private val userId: String?
         get() = auth.currentUser?.uid
 
@@ -35,11 +42,9 @@ class GamificationRepository @Inject constructor(
 
         val unlocked = UnlockedAchievement(achievementId, System.currentTimeMillis())
         
-        // Salva localmente
         unlockedAchievementDao.insert(unlocked)
         Log.d(TAG, "[LOCAL] Conquista '$achievementId' salva no Room.")
 
-        // Salva na nuvem
         val userDocRef = firestore.collection("users").document(currentUserId)
         firestore.collection("users").document(currentUserId).collection("unlocked_achievements")
             .document(achievementId)
@@ -47,10 +52,14 @@ class GamificationRepository @Inject constructor(
             .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Conquista '$achievementId' salva no Firestore.") }
             .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar conquista no Firestore.", e) }
 
-        // Atualiza a pontuação total do usuário
         userDocRef.update("points", FieldValue.increment(points.toLong()))
             .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Pontuação do usuário atualizada com +$points pontos.") }
             .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao atualizar a pontuação do usuário.", e) }
+
+        // Emite a conquista recém-desbloqueada para os ouvintes
+        AchievementsList.allAchievements.find { it.id == achievementId }?.let {
+            _newlyUnlockedAchievement.emit(it)
+        }
     }
 
     suspend fun syncUnlockedAchievements() = withContext(dispatcher) {

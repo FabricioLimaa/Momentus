@@ -86,6 +86,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.fabriciolima.momentus.data.model.Achievement
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.UserData
@@ -203,7 +204,8 @@ class CalendarActivity : ComponentActivity() {
                         onMarkAsCompleted = viewModel::markHabitAsCompleted,
                         onUnmarkAsCompleted = viewModel::unmarkHabitAsCompleted,
                         onErrorShown = viewModel::onErrorShown,
-                        onSuccessMessageShown = viewModel::onSuccessMessageShown
+                        onSuccessMessageShown = viewModel::onSuccessMessageShown,
+                        onAchievementDialogDismissed = viewModel::onAchievementDialogDismissed // Adicionado
                     )
                 }
             }
@@ -255,6 +257,28 @@ fun UserAvatar(account: GoogleSignInAccount?, modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun AchievementUnlockedDialog(achievement: Achievement, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(48.dp)) },
+        title = { Text("Conquista Desbloqueada!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Text(achievement.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(achievement.description, style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("+${achievement.points} pontos", fontWeight = FontWeight.Bold, fontSize = 18.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Continuar")
+            }
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -279,9 +303,17 @@ fun CalendarScreen(
     onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit,
     onErrorShown: () -> Unit,
-    onSuccessMessageShown: () -> Unit
+    onSuccessMessageShown: () -> Unit,
+    onAchievementDialogDismissed: () -> Unit // Adicionado
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+
+    uiState.newlyUnlockedAchievement?.let { achievement ->
+        AchievementUnlockedDialog(
+            achievement = achievement,
+            onDismiss = onAchievementDialogDismissed
+        )
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
