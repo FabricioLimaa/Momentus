@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
@@ -87,6 +88,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
+import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.ui.components.EventDetailDialog
 import br.com.fabriciolima.momentus.ui.components.EventListItem
 import br.com.fabriciolima.momentus.ui.components.NewEventDialog
@@ -173,6 +175,7 @@ class CalendarActivity : ComponentActivity() {
                     drawerState = drawerState,
                     drawerContent = {
                         AppDrawerContent(
+                            userData = uiState.userData,
                             account = account,
                             onNavigate = { scope.launch { drawerState.close() } },
                             onLogout = { viewModel.logout() }
@@ -427,7 +430,7 @@ fun CalendarScreen(
 }
 
 @Composable
-fun AppDrawerContent(account: GoogleSignInAccount?, onNavigate: () -> Unit, onLogout: () -> Unit) {
+fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavigate: () -> Unit, onLogout: () -> Unit) {
     val context = LocalContext.current
     ModalDrawerSheet {
         Column(
@@ -516,11 +519,22 @@ fun AppDrawerContent(account: GoogleSignInAccount?, onNavigate: () -> Unit, onLo
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(verticalArrangement = Arrangement.Center) {
                         Text(text = account?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = account?.email ?: "", 
-                            style = MaterialTheme.typography.bodySmall, 
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = account?.email ?: "", 
+                                style = MaterialTheme.typography.bodySmall, 
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(Icons.Default.Star, contentDescription = "Pontos", modifier = Modifier.size(14.dp), tint = Color(0xFFD4AF37))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${userData?.points ?: 0} pts",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))

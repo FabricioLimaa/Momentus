@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
+import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
@@ -61,6 +63,7 @@ data class CalendarUiState(
     val categoriesMap: Map<String, Category> = emptyMap(),
     val completedHabitIds: Set<String> = emptySet(),
     val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
+    val userData: UserData? = null,
     val error: String? = null,
     val successMessage: String? = null,
     val dialogState: DialogState = DialogState.Hidden,
@@ -71,6 +74,7 @@ data class CalendarUiState(
 class CalendarViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val eventoRepository: EventoRepository,
+    private val userRepository: UserRepository,
     private val alarmScheduler: AlarmScheduler,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
@@ -111,16 +115,19 @@ class CalendarViewModel @Inject constructor(
             combine(
                 eventoRepository.todosOsItensDoCronograma,
                 categoryRepository.allCategoriesWithMetas,
-                categoryRepository.idsHabitosConcluidos
-            ) { allItems: List<ItemCronograma>, categoriesWithMetas: List<CategoryWithMeta>, completedIds: List<String> ->
+                categoryRepository.idsHabitosConcluidos,
+                userRepository.userData // Adicionado
+            ) { allItems, categoriesWithMetas, completedIds, userData ->
                 val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
-                Triple(allItems, categoriesMap, completedIds.toSet())
-            }.collect { (allItems, categoriesMap, completedIds) ->
+                Triple(Triple(allItems, categoriesMap, completedIds.toSet()), userData, completedIds)
+            }.collect { (data, userData, completedIds) ->
+                val (allItems, categoriesMap) = data
                 _uiState.update { currentState ->
                     currentState.copy(
-                        allScheduleItems = allItems,
-                        categoriesMap = categoriesMap,
-                        completedHabitIds = completedIds
+                        allScheduleItems = allItems as List<ItemCronograma>,
+                        categoriesMap = categoriesMap as Map<String, Category>,
+                        completedHabitIds = completedIds.toSet(),
+                        userData = userData as UserData?
                     )
                 }
             }
@@ -136,19 +143,10 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                // 1. Interrompe a sincronização em tempo real
                 categoryRepository.stopListeningForChanges()
-
-                // 2. Desconecta do Google Sign-In
                 googleSignInClient.signOut().await()
-
-                // 3. Desconecta do Firebase Auth
                 auth.signOut()
-
-                // 4. Limpa todos os dados locais
                 categoryRepository.clearAllLocalData()
-
-                // 5. Emite o evento de sucesso do logout
                 _logoutEvent.emit(LogoutEvent.Success)
 
             } catch (e: Exception) {

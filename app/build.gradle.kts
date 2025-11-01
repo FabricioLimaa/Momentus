@@ -40,7 +40,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
-        versionName = "0.9.73-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionName = "0.9.74-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
