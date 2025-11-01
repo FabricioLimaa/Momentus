@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -75,11 +77,10 @@ fun StatsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                val title = when (uiState.filter) {
-                    StatsFilter.WEEK -> "Últimos 7 dias"
-                    StatsFilter.MONTH -> "Últimos 30 dias"
-                    StatsFilter.YEAR -> "Último ano"
-                }
+                StreakCard(streakCount = uiState.streakCount)
+            }
+
+            item {
                 Text(
                     text = "Filtro de Período",
                     style = MaterialTheme.typography.titleLarge,
@@ -128,6 +129,45 @@ fun StatsScreen(
                 item {
                     Text("Nenhuma taxa de conclusão para este período.")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun StreakCard(streakCount: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocalFireDepartment,
+                contentDescription = "Ícone de Sequência",
+                tint = Color(0xFFFFA500), // Laranja
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = "Sequência Atual",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "$streakCount dias",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                 Text(
+                    text = "Dias seguidos com pelo menos um hábito concluído.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -238,4 +278,3 @@ fun BarChart(data: List<BarChartData>) {
         }
     }
 }
-

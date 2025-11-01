@@ -18,6 +18,9 @@ interface HabitoConcluidoDao {
     @Query("SELECT itemCronogramaId FROM tabela_habitos_concluidos")
     fun getIdsConcluidos(): Flow<List<String>>
 
+    @Query("SELECT dataConclusao FROM tabela_habitos_concluidos ORDER BY dataConclusao ASC")
+    fun getAllCompletionDates(): Flow<List<Long>>
+
     @Query("DELETE FROM tabela_habitos_concluidos")
     suspend fun clear()
 

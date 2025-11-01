@@ -195,6 +195,10 @@ open class CategoryRepository @Inject constructor(
         return categoryDao.getAll()
     }
 
+    fun getAllCompletionDates(): Flow<List<Long>> {
+        return habitoConcluidoDao.getAllCompletionDates()
+    }
+
     fun getStatsSummary(since: Long): Flow<List<StatsSummary>> {
         return habitoConcluidoDao.getConcluidosCountByCategory(since)
     }
