@@ -12,7 +12,7 @@ import br.com.fabriciolima.momentus.data.model.UnlockedAchievement
 
 @Database(
     entities = [Category::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class, UnlockedAchievement::class],
-    version = 7,
+    version = 8, // <--- Versão incrementada
     exportSchema = false
 )
 @TypeConverters(Converters::class)

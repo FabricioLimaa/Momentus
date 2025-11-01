@@ -1,5 +1,6 @@
 package br.com.fabriciolima.momentus.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,10 +15,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Egg
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,14 +38,18 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +57,25 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.ui.viewmodel.AchievementUiInfo
 import br.com.fabriciolima.momentus.ui.viewmodel.AchievementsViewModel
 import br.com.fabriciolima.momentus.ui.viewmodel.AchievementsUiState
+import java.text.SimpleDateFormat
+import java.util.Locale
+
+@Composable
+fun getIconForAchievement(achievementId: String): ImageVector {
+    return when (achievementId) {
+        "first_habit" -> Icons.Default.CheckCircle
+        "ten_habits" -> Icons.Default.DoneAll
+        "fifty_habits" -> Icons.Default.WorkspacePremium
+        "hundred_habits" -> Icons.Default.MilitaryTech
+        "streak_3" -> Icons.Default.LocalFireDepartment
+        "streak_7" -> Icons.Default.FitnessCenter
+        "streak_30" -> Icons.Default.School
+        "early_bird" -> Icons.Default.Egg
+        "night_owl" -> Icons.Default.Hotel
+        "morning_person" -> Icons.Default.Coffee
+        else -> Icons.Default.EmojiEvents
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +84,13 @@ fun AchievementsScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    uiState.selectedAchievement?.let {
+        AchievementDetailDialog(
+            info = it,
+            onDismiss = { viewModel.onDialogDismiss() }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -79,10 +120,45 @@ fun AchievementsScreen(
             }
 
             items(uiState.achievements) { achievementInfo ->
-                AchievementCard(info = achievementInfo)
+                AchievementCard(
+                    info = achievementInfo,
+                    onClick = { viewModel.onAchievementClicked(achievementInfo) } // Tornando clicável
+                )
             }
         }
     }
+}
+
+@Composable
+fun AchievementDetailDialog(info: AchievementUiInfo, onDismiss: () -> Unit) {
+    val icon = if (info.isUnlocked) getIconForAchievement(info.achievement.id) else Icons.Default.Lock
+    val titleColor = if (info.isUnlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val alpha = if (info.isUnlocked) 1f else 0.6f
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale.getDefault()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(48.dp).alpha(alpha), tint = titleColor) },
+        title = { Text(info.achievement.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = titleColor) },
+        text = {
+            Column(modifier = Modifier.alpha(alpha)) {
+                Text(info.achievement.description, style = MaterialTheme.typography.bodyLarge)
+                if (info.isUnlocked) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("+${info.achievement.points} pontos", fontWeight = FontWeight.Bold, fontSize = 18.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    info.unlockedDate?.let {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Conquistado em: ${dateFormatter.format(it)}", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Fechar")
+            }
+        }
+    )
 }
 
 @Composable
@@ -156,15 +232,16 @@ private fun ProgressSummary(unlocked: Int, total: Int) {
 }
 
 @Composable
-private fun AchievementCard(info: AchievementUiInfo) {
+private fun AchievementCard(info: AchievementUiInfo, onClick: () -> Unit) {
     val cardAlpha = if (info.isUnlocked) 1f else 0.6f
-    val icon = if (info.isUnlocked) Icons.Default.EmojiEvents else Icons.Default.Lock
-    val iconColor = if (info.isUnlocked) Color(0xFFD4AF37) else MaterialTheme.colorScheme.onSurface
+    val icon = if (info.isUnlocked) getIconForAchievement(info.achievement.id) else Icons.Default.Lock
+    val iconColor = if (info.isUnlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(cardAlpha),
+            .alpha(cardAlpha)
+            .clickable(onClick = onClick), // Tornando clicável
         elevation = CardDefaults.cardElevation(defaultElevation = if (info.isUnlocked) 4.dp else 1.dp)
     ) {
         Row(

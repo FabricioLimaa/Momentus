@@ -19,6 +19,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.api.client.util.DateTime
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +27,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -95,6 +98,8 @@ class CalendarViewModel @Inject constructor(
     private val _logoutEvent = MutableSharedFlow<LogoutEvent>()
     val logoutEvent = _logoutEvent.asSharedFlow()
 
+    private var dataCollectionJob: Job? = null
+
     val eventsForSelectedDate: StateFlow<EventsForDate> = combine(
         _uiState,
         _selectedDate
@@ -114,41 +119,30 @@ class CalendarViewModel @Inject constructor(
     )
 
     init {
-        categoryRepository.startListeningForChanges()
-        listenToDataChanges()
+        startDataCollection()
         listenForNewAchievements()
     }
 
-    private fun listenToDataChanges() {
-        viewModelScope.launch {
-            combine(
-                eventoRepository.todosOsItensDoCronograma,
-                categoryRepository.allCategoriesWithMetas,
-                categoryRepository.idsHabitosConcluidos,
-                userRepository.userData,
-                categoryRepository.currentStreak // Adicionado
-            ) { allItems, categoriesWithMetas, completedIds, userData, streak -> // Adicionado
-                val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
-                // Usar um objeto wrapper ou uma forma mais segura de combinar os tipos
-                object {
-                    val allItems = allItems
-                    val categoriesMap = categoriesMap
-                    val completedIds = completedIds.toSet()
-                    val userData = userData
-                    val streak = streak // Adicionado
-                }
-            }.collect { combinedData ->
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        allScheduleItems = combinedData.allItems,
-                        categoriesMap = combinedData.categoriesMap,
-                        completedHabitIds = combinedData.completedIds,
-                        userData = combinedData.userData,
-                        streak = combinedData.streak // Adicionado
-                    )
-                }
+    private fun startDataCollection() {
+        dataCollectionJob?.cancel()
+        dataCollectionJob = combine(
+            eventoRepository.todosOsItensDoCronograma,
+            categoryRepository.allCategoriesWithMetas,
+            categoryRepository.idsHabitosConcluidos,
+            userRepository.userData,
+            categoryRepository.currentStreak
+        ) { allItems, categoriesWithMetas, completedIds, userData, streak ->
+            val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
+            _uiState.update { currentState ->
+                currentState.copy(
+                    allScheduleItems = allItems,
+                    categoriesMap = categoriesMap,
+                    completedHabitIds = completedIds.toSet(),
+                    userData = userData,
+                    streak = streak
+                )
             }
-        }
+        }.launchIn(viewModelScope)
     }
 
     private fun listenForNewAchievements() {
@@ -165,6 +159,7 @@ class CalendarViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        dataCollectionJob?.cancel()
         categoryRepository.stopListeningForChanges()
     }
 
@@ -172,10 +167,18 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                // 1. Cancelar a coleta de dados e parar os listeners do Firestore
+                dataCollectionJob?.cancel()
                 categoryRepository.stopListeningForChanges()
+
+                // 2. Fazer o logout do Google e do Firebase
                 googleSignInClient.signOut().await()
                 auth.signOut()
+
+                // 3. Limpar os dados locais APÓS o logout bem-sucedido
                 categoryRepository.clearAllLocalData()
+
+                // 4. Emitir o evento de sucesso para navegar para a tela de login
                 _logoutEvent.emit(LogoutEvent.Success)
 
             } catch (e: Exception) {

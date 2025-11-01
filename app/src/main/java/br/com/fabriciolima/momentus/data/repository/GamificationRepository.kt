@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,16 +41,19 @@ class GamificationRepository @Inject constructor(
         val currentUserId = userId ?: return@withContext
         Log.d(TAG, "[SYNC] Desbloqueando conquista '$achievementId' para o usuário.")
 
-        val unlocked = UnlockedAchievement(achievementId, System.currentTimeMillis())
+        val unlocked = UnlockedAchievement(achievementId, Date())
         
+        // Log para o Room
+        Log.d(TAG, "[LOCAL] Salvando no Room: ID=${unlocked.achievementId}, Data=${unlocked.dateUnlocked}")
         unlockedAchievementDao.insert(unlocked)
-        Log.d(TAG, "[LOCAL] Conquista '$achievementId' salva no Room.")
 
         val userDocRef = firestore.collection("users").document(currentUserId)
-        firestore.collection("users").document(currentUserId).collection("unlocked_achievements")
-            .document(achievementId)
-            .set(unlocked)
-            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Conquista '$achievementId' salva no Firestore.") }
+        val achievementDocRef = userDocRef.collection("unlocked_achievements").document(achievementId)
+        
+        // Log para o Firestore
+        Log.d(TAG, "[FIREBASE] Salvando no Firestore: ID=${unlocked.achievementId}, Data=${unlocked.dateUnlocked}")
+        achievementDocRef.set(unlocked)
+            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Conquista '$achievementId' salva com sucesso no Firestore.") }
             .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar conquista no Firestore.", e) }
 
         userDocRef.update("points", FieldValue.increment(points.toLong()))
