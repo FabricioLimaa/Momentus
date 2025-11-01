@@ -11,7 +11,7 @@ import br.com.fabriciolima.momentus.data.model.Template
 
 @Database(
     entities = [Category::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class],
-    version = 6, // ATUALIZADO
+    version = 6, // REVERTIDO
     exportSchema = false
 )
 @TypeConverters(Converters::class)

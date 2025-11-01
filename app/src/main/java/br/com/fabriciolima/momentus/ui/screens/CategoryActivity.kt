@@ -79,7 +79,7 @@ class CategoryActivity : ComponentActivity() {
                     onDialogDismiss = viewModel::onDialogDismiss,
                     onUpsertCategory = viewModel::upsertCategory,
                     onDeleteCategory = viewModel::deleteCategory,
-                    onErrorShown = viewModel::onErrorShown // Passando a nova função
+                    onErrorShown = viewModel::onErrorShown
                 )
             }
         }
@@ -95,9 +95,9 @@ fun CategoryScreen(
     onShowEditDialog: (Category) -> Unit,
     onShowConfirmDeleteDialog: (Category) -> Unit,
     onDialogDismiss: () -> Unit,
-    onUpsertCategory: (String?, String, String) -> Unit,
+    onUpsertCategory: (String?, String, String) -> Unit, // Revertido para 3 parâmetros
     onDeleteCategory: (Category) -> Unit,
-    onErrorShown: () -> Unit // Nova função para resetar o erro
+    onErrorShown: () -> Unit
 ) {
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -119,14 +119,14 @@ fun CategoryScreen(
             EditCategoryDialog(
                 category = null,
                 onDismiss = onDialogDismiss,
-                onConfirm = { _, name, color -> onUpsertCategory(null, name, color) }
+                onConfirm = { id, name, color -> onUpsertCategory(id, name, color) } // Revertido
             )
         }
         is CategoryDialogState.Edit -> {
             EditCategoryDialog(
                 category = dialogState.category,
                 onDismiss = onDialogDismiss,
-                onConfirm = { id, name, color -> onUpsertCategory(id, name, color) }
+                onConfirm = { id, name, color -> onUpsertCategory(id, name, color) } // Revertido
             )
         }
         is CategoryDialogState.ConfirmDelete -> {

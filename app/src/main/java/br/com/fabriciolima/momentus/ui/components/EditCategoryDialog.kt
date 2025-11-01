@@ -3,20 +3,13 @@ package br.com.fabriciolima.momentus.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -28,11 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,16 +45,18 @@ fun EditCategoryDialog(
 ) {
     var name by remember { mutableStateOf(category?.nome ?: "") }
 
-    // Tenta encontrar a cor no mapa do Google. Se não encontrar, usa a primeira cor como padrão.
     val initialColor = category?.cor?.let { colorString ->
         googleCalendarColors.entries.find { it.value.toHexString() == colorString }?.value
     } ?: googleCalendarColors.values.first()
-
     var selectedColor by remember { mutableStateOf(initialColor) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 Text(if (category == null) "Nova Categoria" else "Editar Categoria", style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -77,10 +68,10 @@ fun EditCategoryDialog(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Cor (Padrão Google Agenda)", style = MaterialTheme.typography.titleMedium)
+                Text("Cor", style = MaterialTheme.typography.titleMedium)
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(6),
-                    modifier = Modifier.padding(vertical = 8.dp),
+                    modifier = Modifier.padding(vertical = 8.dp).height(100.dp), // Altura fixa para evitar rolagem infinita
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -99,6 +90,8 @@ fun EditCategoryDialog(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

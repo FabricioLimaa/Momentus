@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,23 +26,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import java.time.format.DateTimeFormatter
 
-/**
- * Componente reutilizável para exibir um item de evento em uma lista, seguindo o design das imagens.
- */
 @Composable
 fun EventListItem(
-    item: ItemCronograma, 
-    category: Category, 
-    modifier: Modifier = Modifier
+    item: ItemCronograma,
+    category: Category,
+    modifier: Modifier = Modifier,
+    isChecked: Boolean = false,
+    onCheckedChange: ((Boolean) -> Unit)? = null // Parâmetro opcional
 ) {
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     val categoryColor = Color(android.graphics.Color.parseColor(category.cor))
+    val textDecoration = if (isChecked && onCheckedChange != null) TextDecoration.LineThrough else TextDecoration.None
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -51,18 +53,26 @@ fun EventListItem(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Ponto colorido no início
-            Box(
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .size(12.dp)
-                    .background(categoryColor, shape = CircleShape)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
+            // Só mostra o Checkbox se uma ação for fornecida
+            if (onCheckedChange != null) {
+                Checkbox(
+                    checked = isChecked,
+                    onCheckedChange = onCheckedChange,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            } else {
+                // Ponto colorido no início
+                Box(
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .size(12.dp)
+                        .background(categoryColor, shape = CircleShape)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+            }
 
             // Coluna principal de conteúdo
             Column(modifier = Modifier.weight(1f)) {
-
                 // --- LINHA DO TÍTULO E TAG ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -74,7 +84,8 @@ fun EventListItem(
                         text = item.titulo,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f, fill = false) // Impede que o título empurre a tag
+                        textDecoration = textDecoration,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                     // Tag da Categoria
                     Box(
@@ -104,6 +115,7 @@ fun EventListItem(
                     Text(
                         text = "${item.horarioInicio.format(formatter)} - ${item.horarioTermino.format(formatter)}",
                         style = MaterialTheme.typography.bodyMedium,
+                        textDecoration = textDecoration,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -111,7 +123,11 @@ fun EventListItem(
                 // --- DESCRIÇÃO ---
                 if (item.descricao?.isNotBlank() == true) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = item.descricao, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = item.descricao,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textDecoration = textDecoration
+                    )
                 }
             }
         }

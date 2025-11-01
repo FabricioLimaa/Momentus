@@ -21,11 +21,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -74,7 +75,6 @@ class EditorRotinaComposeActivity : ComponentActivity() {
     }
 }
 
-// Função auxiliar para compatibilidade com versões antigas do Android
 fun <T : Serializable?> getSerializable(intent: Intent, key: String, clazz: Class<T>): T? {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         intent.getSerializableExtra(key, clazz)
@@ -82,7 +82,6 @@ fun <T : Serializable?> getSerializable(intent: Intent, key: String, clazz: Clas
         intent.getSerializableExtra(key) as? T
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,58 +151,52 @@ fun EditorScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
-                OutlinedTextField(
-                    value = nome, onValueChange = { nome = it },
-                    label = { Text("Nome da Categoria") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Next
-                    )
+            OutlinedTextField(
+                value = nome, onValueChange = { nome = it },
+                label = { Text("Nome da Categoria") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next
                 )
-            }
-            item {
-                OutlinedTextField(
-                    value = descricao, onValueChange = { descricao = it },
-                    label = { Text("Descrição (opcional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions.Default.copy(capitalization = KeyboardCapitalization.Sentences)
-                )
-            }
-            item {
-                OutlinedTextField(
-                    value = tag, onValueChange = { tag = it },
-                    label = { Text("Tag (ex: estudo, trabalho)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
-                )
-            }
-            item {
-                OutlinedTextField(
-                    value = duracao, onValueChange = { duracao = it },
-                    label = { Text("Duração padrão (em minutos)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done)
-                )
-            }
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Cor da Categoria", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                ColorPicker(
-                    cores = cores,
-                    corSelecionada = corSelecionada,
-                    onColorSelected = { corSelecionada = it }
-                )
-            }
+            )
+            OutlinedTextField(
+                value = descricao, onValueChange = { descricao = it },
+                label = { Text("Descrição (opcional)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions.Default.copy(capitalization = KeyboardCapitalization.Sentences)
+            )
+            OutlinedTextField(
+                value = tag, onValueChange = { tag = it },
+                label = { Text("Tag (ex: estudo, trabalho)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+            )
+            OutlinedTextField(
+                value = duracao, onValueChange = { duracao = it },
+                label = { Text("Duração padrão (em minutos)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done)
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Cor da Categoria", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            ColorPicker(
+                cores = cores,
+                corSelecionada = corSelecionada,
+                onColorSelected = { corSelecionada = it }
+            )
         }
     }
 }

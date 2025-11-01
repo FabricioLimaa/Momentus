@@ -122,7 +122,11 @@ fun TemplateDetailScreen(templateId: String, viewModel: TemplateDetailViewModel,
                                     .padding(end = 8.dp)
                             )
                             uiState.categoriesMap[item.categoryId]?.let {
-                                EventListItem(item = item, category = it)
+                                EventListItem(
+                                    item = item, 
+                                    category = it,
+                                    onCheckedChange = null // Passando null para não mostrar o checkbox
+                                )
                             }
                         }
                     }

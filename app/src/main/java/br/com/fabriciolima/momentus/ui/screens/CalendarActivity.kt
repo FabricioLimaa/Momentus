@@ -200,6 +200,8 @@ class CalendarActivity : ComponentActivity() {
                         onEditEventClicked = viewModel::onEditEventClicked,
                         onConfirmDeleteClicked = viewModel::onConfirmDeleteClicked,
                         onDeleteEvent = viewModel::deleteEvent,
+                        onMarkAsCompleted = viewModel::markHabitAsCompleted,
+                        onUnmarkAsCompleted = viewModel::unmarkHabitAsCompleted,
                         onErrorShown = viewModel::onErrorShown,
                         onSuccessMessageShown = viewModel::onSuccessMessageShown
                     )
@@ -274,6 +276,8 @@ fun CalendarScreen(
     onEditEventClicked: (ItemCronograma) -> Unit,
     onConfirmDeleteClicked: (ItemCronograma) -> Unit,
     onDeleteEvent: (ItemCronograma) -> Unit,
+    onMarkAsCompleted: (String) -> Unit,
+    onUnmarkAsCompleted: (String) -> Unit,
     onErrorShown: () -> Unit,
     onSuccessMessageShown: () -> Unit
 ) {
@@ -404,7 +408,10 @@ fun CalendarScreen(
                     uiState = uiState,
                     selectedDate = selectedDate,
                     eventsForDate = eventsForSelectedDate,
-                    onEventClick = onShowDetailClicked
+                    onEventClick = onShowDetailClicked,
+                    onAddNewEventClicked = onAddNewEventClicked,
+                    onMarkAsCompleted = onMarkAsCompleted,
+                    onUnmarkAsCompleted = onUnmarkAsCompleted
                 )
             }
         }
@@ -674,7 +681,10 @@ fun EventsForDay(
     uiState: CalendarUiState,
     selectedDate: LocalDate,
     eventsForDate: EventsForDate,
-    onEventClick: (ItemCronograma) -> Unit
+    onEventClick: (ItemCronograma) -> Unit,
+    onAddNewEventClicked: () -> Unit,
+    onMarkAsCompleted: (String) -> Unit, 
+    onUnmarkAsCompleted: (String) -> Unit
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("pt", "BR"))
     val formattedDate = selectedDate.format(dateFormatter)
@@ -693,9 +703,19 @@ fun EventsForDay(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Icon(Icons.Outlined.EventBusy, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Nenhum evento", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Icon(
+                    imageVector = Icons.Outlined.EventBusy, 
+                    contentDescription = null, 
+                    modifier = Modifier.size(80.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Dia livre!", 
+                    style = MaterialTheme.typography.headlineSmall, 
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Você não tem nenhum evento para este dia. Que tal adicionar um?",
                     style = MaterialTheme.typography.bodyLarge,
@@ -703,13 +723,32 @@ fun EventsForDay(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp)
                 )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = onAddNewEventClicked) {
+                    Icon(Icons.Default.Add, contentDescription = "Adicionar Novo Evento")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Adicionar Evento")
+                }
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(eventsForDate.localEvents) {
                     val category = uiState.categoriesMap[it.categoryId]
                     if (category != null) {
-                        EventListItem(item = it, category = category, modifier = Modifier.clickable { onEventClick(it) })
+                        val isChecked = uiState.completedHabitIds.contains(it.id)
+                        EventListItem(
+                            item = it, 
+                            category = category, 
+                            isChecked = isChecked,
+                            onCheckedChange = { newCheckedState ->
+                                if (newCheckedState) {
+                                    onMarkAsCompleted(it.id)
+                                } else {
+                                    onUnmarkAsCompleted(it.id)
+                                }
+                            },
+                            modifier = Modifier.clickable { onEventClick(it) }
+                        )
                     }
                 }
 

@@ -9,6 +9,10 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.ui.screens.ReminderActivity
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -20,19 +24,38 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("AlarmReceiver", "Alarme recebido!")
 
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
         val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
         val message = intent.getStringExtra(EXTRA_MESSAGE) ?: "Sua rotina está prestes a começar"
 
         Log.d("AlarmReceiver", "Dados recebidos: eventId='$eventId', message='$message'")
 
         if (eventId == null) {
-            Log.e("AlarmReceiver", "Erro: eventId é nulo. A notificação não pode ser criada.")
+            Log.e("AlarmReceiver", "Erro: eventId é nulo. Notificação cancelada.")
             return
         }
 
-        // Intent para abrir a ReminderActivity em tela cheia
+        val hiltEntryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            NotificationActionEntryPoint::class.java
+        )
+        val categoryRepository = hiltEntryPoint.categoryRepository()
+
+        // VERIFICA SE O HÁBITO JÁ FOI CONCLUÍDO
+        MainScope().launch {
+            val completedHabits = categoryRepository.idsHabitosConcluidos.first()
+            if (completedHabits.contains(eventId)) {
+                Log.d("AlarmReceiver", "Evento $eventId já concluído. Notificação suprimida.")
+                return@launch
+            }
+
+            // Se não foi concluído, continua para exibir a notificação
+            showNotification(context, eventId, message)
+        }
+    }
+
+    private fun showNotification(context: Context, eventId: String, message: String) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
         val fullScreenIntent = Intent(context, ReminderActivity::class.java).apply {
             putExtra(EXTRA_EVENT_ID, eventId)
             putExtra(EXTRA_MESSAGE, message)
@@ -45,39 +68,36 @@ class AlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Ação para "Concluir"
         val completeIntent = Intent(context, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_MARK_AS_COMPLETED
             putExtra(EXTRA_EVENT_ID, eventId)
         }
         val completePendingIntent = PendingIntent.getBroadcast(
             context,
-            "${eventId}_complete".hashCode(), // Request code único
+            "${eventId}_complete".hashCode(),
             completeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Ação para "Adiar"
         val snoozeIntent = Intent(context, NotificationActionReceiver::class.java).apply {
             action = NotificationActionReceiver.ACTION_SNOOZE
             putExtra(EXTRA_EVENT_ID, eventId)
         }
         val snoozePendingIntent = PendingIntent.getBroadcast(
             context,
-            "${eventId}_snooze".hashCode(), // Request code único
+            "${eventId}_snooze".hashCode(),
             snoozeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Construção da notificação
         val notification = NotificationCompat.Builder(context, "LEMBRETE_ROTINA_CHANNEL")
             .setSmallIcon(R.drawable.ic_stat_name)
             .setContentTitle("Lembrete de Rotina")
             .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_HIGH) 
-            .setFullScreenIntent(fullScreenPendingIntent, true) 
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
             .addAction(R.drawable.ic_check_circle_outline, "Concluir", completePendingIntent)
-            .addAction(R.drawable.ic_time, "Adiar 15 min", snoozePendingIntent) // Adicionado botão Adiar
+            .addAction(R.drawable.ic_time, "Adiar 15 min", snoozePendingIntent)
             .setAutoCancel(true)
             .build()
 

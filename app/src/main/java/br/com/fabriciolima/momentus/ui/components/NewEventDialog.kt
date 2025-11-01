@@ -286,9 +286,6 @@ fun NewEventDialog(
                                                 )
                                             }
                                         }
-                                        val color = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
-                                        Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
-                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(category.nome)
                                     }
                                 },

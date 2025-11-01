@@ -171,14 +171,14 @@ fun RoutinesScreen(
                     items(categoriesWithMetas, key = { it.category.id }) { categoryWithMeta ->
                         CategoryListItem(
                             item = categoryWithMeta,
-                            onEdit = { item ->
+                            onEdit = { itemToEdit ->
                                 val intent = Intent(context, EditorRotinaComposeActivity::class.java).apply {
-                                    putExtra("CATEGORY_TO_EDIT", item.category)
+                                    putExtra("CATEGORY_TO_EDIT", itemToEdit.category)
                                 }
                                 editorLauncher.launch(intent)
                             },
-                            onDelete = { item ->
-                                viewModel.deleteCategory(item.category)
+                            onDelete = { itemToDelete ->
+                                viewModel.deleteCategory(itemToDelete.category)
                             }
                         )
                     }

@@ -28,7 +28,7 @@ sealed interface CategoryDialogState {
 data class CategoryUiState(
     val categories: List<Category> = emptyList(),
     val dialogState: CategoryDialogState = CategoryDialogState.Hidden,
-    val error: AppError? = null // Alterado para AppError
+    val error: AppError? = null
 )
 
 @HiltViewModel
