@@ -13,9 +13,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TemplateDao {
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(vararg templates: Template)
+    suspend fun insert(template: Template)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(templates: List<Template>)
@@ -24,7 +23,13 @@ interface TemplateDao {
     suspend fun update(template: Template)
 
     @Delete
-    suspend fun delete(vararg templates: Template)
+    suspend fun delete(template: Template)
+
+    @Query("SELECT * FROM tabela_templates")
+    fun getAllSync(): List<Template>
+
+    @Query("SELECT COUNT(*) FROM tabela_templates")
+    fun getCountSync(): Int
 
     @Transaction
     @Query("SELECT * FROM tabela_templates")
@@ -33,9 +38,6 @@ interface TemplateDao {
     @Transaction
     @Query("SELECT * FROM tabela_templates WHERE id = :templateId")
     fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos>
-
-    @Query("SELECT * FROM tabela_templates")
-    fun getAllSync(): List<Template>
 
     @Query("DELETE FROM tabela_templates")
     suspend fun clear()

@@ -52,9 +52,10 @@ object RepositoryModule {
     fun provideTemplateRepository(
         templateDao: TemplateDao,
         eventoRepository: EventoRepository,
+        checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase,
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): TemplateRepository {
-        return TemplateRepository(templateDao, eventoRepository, dispatcher)
+        return TemplateRepository(templateDao, eventoRepository, checkAndUnlockAchievementsUseCase, dispatcher)
     }
 
     @Provides

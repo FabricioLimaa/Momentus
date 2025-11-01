@@ -6,6 +6,7 @@ import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.domain.usecase.CheckAndUnlockAchievementsUseCase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -25,6 +26,7 @@ private const val TAG = "TemplateRepository"
 open class TemplateRepository @Inject constructor(
     private val templateDao: TemplateDao,
     private val eventoRepository: EventoRepository,
+    private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase, // Adicionado
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
@@ -121,9 +123,13 @@ open class TemplateRepository @Inject constructor(
         return templateDao.getTemplateComEventos(templateId)
     }
 
-    suspend fun insertTemplate(template: Template) {
+    suspend fun insertTemplate(template: Template) = withContext(dispatcher) {
         Log.d(TAG, "Inserindo/Atualizando template: ID=${template.id}, Nome=${template.nome}")
         templateDao.insert(template)
+
+        // Verifica a conquista de criação de template
+        checkTemplateAchievements()
+
         userId?.let {
             firestore.collection("users").document(it).collection("templates").document(template.id)
                 .set(template)
@@ -132,11 +138,20 @@ open class TemplateRepository @Inject constructor(
         }
     }
 
+    private suspend fun checkTemplateAchievements() {
+        val totalTemplates = templateDao.getCountSync()
+        Log.d(TAG, "[TEMPLATE] Acionando verificação de conquistas com contagem total: $totalTemplates")
+        checkAndUnlockAchievementsUseCase(totalTemplates = totalTemplates)
+    }
+
     suspend fun saveTemplateWithEvents(template: Template, eventos: List<ItemCronograma>) = withContext(dispatcher) {
         Log.d(TAG, "Salvando template com eventos (transacional): ID=${template.id}")
         templateDao.update(template)
         eventoRepository.deleteEventsByTemplateId(template.id)
         eventoRepository.insertAll(eventos)
+
+        // Verifica a conquista de criação de template
+        checkTemplateAchievements()
     }
 
     suspend fun deleteTemplate(template: Template) {
