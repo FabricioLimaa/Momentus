@@ -367,8 +367,22 @@ fun CalendarScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { /* TODO: Abrir perfil do usuário */ }) {
-                            UserAvatar(account = account, modifier = Modifier.size(32.dp))
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Pontos",
+                                tint = Color(0xFFD4AF37)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = (uiState.userData?.points ?: 0).toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 )
@@ -519,22 +533,11 @@ fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavig
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(verticalArrangement = Arrangement.Center) {
                         Text(text = account?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = account?.email ?: "", 
-                                style = MaterialTheme.typography.bodySmall, 
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(Icons.Default.Star, contentDescription = "Pontos", modifier = Modifier.size(14.dp), tint = Color(0xFFD4AF37))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${userData?.points ?: 0} pts",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = account?.email ?: "", 
+                            style = MaterialTheme.typography.bodySmall, 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
