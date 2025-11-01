@@ -1,10 +1,12 @@
 package br.com.fabriciolima.momentus.data.model
 
+import androidx.annotation.Keep
 import com.google.firebase.firestore.PropertyName
 
 /**
  * Representa os dados do perfil de um usuário armazenados no Firestore.
  */
+@Keep
 data class UserData(
     @get:PropertyName("display_name")
     @set:PropertyName("display_name")

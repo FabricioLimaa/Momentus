@@ -3,6 +3,7 @@ package br.com.fabriciolima.momentus.data.model
 import androidx.annotation.Keep
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.google.firebase.firestore.IgnoreExtraProperties
 import com.google.firebase.firestore.ServerTimestamp
 import java.io.Serializable
 import java.util.Date
@@ -13,6 +14,7 @@ import java.util.Date
  * para a deserialização do Firestore.
  */
 @Keep
+@IgnoreExtraProperties
 @Entity(tableName = "categories")
 data class Category(
     @PrimaryKey
