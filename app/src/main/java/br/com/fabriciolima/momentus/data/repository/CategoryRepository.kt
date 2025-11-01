@@ -111,12 +111,34 @@ open class CategoryRepository @Inject constructor(
             templateRepository.syncTemplates()
             _syncMessage.value = "Sincronizando eventos..."
             eventoRepository.syncEventos()
+            _syncMessage.value = "Sincronizando hábitos concluídos..."
+            syncCompletedHabits()
             _syncMessage.value = "Sincronização concluída!"
             _syncStatus.value = SyncStatus.CONNECTED
         } catch (e: Exception) {
             Log.e(TAG, "Erro durante a sincronização geral.", e)
             _syncMessage.value = "Falha na sincronização."
             _syncStatus.value = SyncStatus.OFFLINE
+        }
+    }
+
+    private suspend fun syncCompletedHabits() = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
+        Log.d(TAG, "[SYNC] Iniciando sincronização de hábitos concluídos.")
+        try {
+            val collectionRef = firestore.collection("users").document(currentUserId).collection("completed_habits")
+            val cloudHabits = collectionRef.get().await().toObjects<HabitoConcluido>()
+            
+            if (cloudHabits.isNotEmpty()) {
+                habitoConcluidoDao.clear() // Limpa os hábitos locais para evitar duplicatas
+                cloudHabits.forEach { habitoConcluidoDao.insert(it) }
+                Log.d(TAG, "[SYNC] ${cloudHabits.size} hábitos concluídos foram baixados da nuvem para o Room.")
+            } else {
+                Log.d(TAG, "[SYNC] Nenhum hábito concluído encontrado na nuvem para sincronizar.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "[SYNC] Erro ao sincronizar hábitos concluídos.", e)
+            throw e
         }
     }
 
@@ -241,13 +263,47 @@ open class CategoryRepository @Inject constructor(
         metaDao.insertOrUpdate(meta)
     }
 
-    suspend fun markHabitAsCompleted(itemCronogramaId: String) {
+    suspend fun markHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
+        Log.d(TAG, "[SYNC] Iniciando marcação de hábito como concluído para o id: $itemCronogramaId")
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
+        
+        // 1. Salva no banco de dados local (Room)
         habitoConcluidoDao.insert(habito)
+        Log.d(TAG, "[LOCAL] Hábito $itemCronogramaId salvo no Room.")
+
+        // 2. Salva na nuvem (Firestore)
+        val currentUserId = userId
+        if (currentUserId == null) {
+            Log.w(TAG, "[FIREBASE] Usuário não logado. A conclusão do hábito $itemCronogramaId não será salva na nuvem.")
+            return@withContext
+        }
+
+        firestore.collection("users").document(currentUserId).collection("completed_habits")
+            .document(itemCronogramaId)
+            .set(habito)
+            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Hábito $itemCronogramaId salvo com sucesso no Firestore.") }
+            .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar hábito $itemCronogramaId no Firestore.", e) }
     }
 
-    suspend fun unmarkHabitAsCompleted(itemCronogramaId: String) {
+    suspend fun unmarkHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
+        Log.d(TAG, "[SYNC] Iniciando desmarcação de hábito como concluído para o id: $itemCronogramaId")
+
+        // 1. Remove do banco de dados local (Room)
         habitoConcluidoDao.delete(itemCronogramaId)
+        Log.d(TAG, "[LOCAL] Hábito $itemCronogramaId removido do Room.")
+
+        // 2. Remove da nuvem (Firestore)
+        val currentUserId = userId
+        if (currentUserId == null) {
+            Log.w(TAG, "[FIREBASE] Usuário não logado. A conclusão do hábito $itemCronogramaId não será removida da nuvem.")
+            return@withContext
+        }
+
+        firestore.collection("users").document(currentUserId).collection("completed_habits")
+            .document(itemCronogramaId)
+            .delete()
+            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Hábito $itemCronogramaId removido com sucesso do Firestore.") }
+            .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao remover hábito $itemCronogramaId do Firestore.", e) }
     }
 
     suspend fun saveEventToGoogle(
