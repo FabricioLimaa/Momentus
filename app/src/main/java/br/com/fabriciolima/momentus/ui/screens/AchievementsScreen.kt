@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.ui.viewmodel.AchievementUiInfo
 import br.com.fabriciolima.momentus.ui.viewmodel.AchievementsViewModel
+import br.com.fabriciolima.momentus.ui.viewmodel.AchievementsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +54,7 @@ fun AchievementsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Conquistas e Sequência") },
+                title = { Text("Conquistas e Progresso") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -69,7 +71,7 @@ fun AchievementsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                StreakCard(streakCount = uiState.streakCount)
+                StreakAndPointsCard(uiState = uiState)
             }
             item {
                 ProgressSummary(unlocked = uiState.unlockedCount, total = uiState.totalCount)
@@ -84,43 +86,54 @@ fun AchievementsScreen(
 }
 
 @Composable
-fun StreakCard(streakCount: Int) {
+fun StreakAndPointsCard(uiState: AchievementsUiState) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.LocalFireDepartment,
-                contentDescription = "Ícone de Sequência",
-                tint = Color(0xFFFFA500), // Laranja
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
+            // Coluna da Sequência
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.LocalFireDepartment,
+                    contentDescription = "Ícone de Sequência",
+                    tint = getStreakColor(streakCount = uiState.streakCount),
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Sequência Atual",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "${uiState.streakCount} dias",
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = "$streakCount dias",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary
+                Text(text = "Sequência", style = MaterialTheme.typography.bodyMedium)
+            }
+
+            // Coluna dos Pontos
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = "Ícone de Pontos",
+                    tint = Color(0xFFD4AF37), // Dourado
+                    modifier = Modifier.size(40.dp)
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Dias seguidos com pelo menos um hábito concluído.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = uiState.points.toString(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
                 )
+                Text(text = "Pontos", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
 }
+
 
 @Composable
 private fun ProgressSummary(unlocked: Int, total: Int) {
@@ -128,13 +141,13 @@ private fun ProgressSummary(unlocked: Int, total: Int) {
 
     Column {
         Text(
-            text = "Progresso Total",
+            text = "Conquistas Desbloqueadas",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = "Desbloqueadas", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Progresso", style = MaterialTheme.typography.bodyMedium)
             Text(text = "$unlocked / $total", fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(4.dp))

@@ -206,7 +206,7 @@ class CalendarActivity : ComponentActivity() {
                         onUnmarkAsCompleted = viewModel::unmarkHabitAsCompleted,
                         onErrorShown = viewModel::onErrorShown,
                         onSuccessMessageShown = viewModel::onSuccessMessageShown,
-                        onAchievementDialogDismissed = viewModel::onAchievementDialogDismissed // Adicionado
+                        onAchievementDialogDismissed = viewModel::onAchievementDialogDismissed
                     )
                 }
             }
@@ -281,6 +281,16 @@ fun AchievementUnlockedDialog(achievement: Achievement, onDismiss: () -> Unit) {
     )
 }
 
+@Composable
+fun getStreakColor(streakCount: Int): Color {
+    return when {
+        streakCount >= 30 -> Color(0xFF6A1B9A) // Roxo
+        streakCount >= 7 -> Color(0xFFD32F2F) // Vermelho
+        streakCount > 3 -> Color(0xFFFFA000) // Laranja
+        else -> Color.Gray
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
@@ -305,9 +315,10 @@ fun CalendarScreen(
     onUnmarkAsCompleted: (String) -> Unit,
     onErrorShown: () -> Unit,
     onSuccessMessageShown: () -> Unit,
-    onAchievementDialogDismissed: () -> Unit // Adicionado
+    onAchievementDialogDismissed: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     uiState.newlyUnlockedAchievement?.let { achievement ->
         AchievementUnlockedDialog(
@@ -401,13 +412,17 @@ fun CalendarScreen(
                     },
                     actions = {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp),
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { context.startActivity(Intent(context, AchievementsActivity::class.java)) }
+                                .padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.LocalFireDepartment,
                                 contentDescription = "Sequência",
-                                tint = Color(0xFFE57373)
+                                tint = getStreakColor(uiState.streak)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
