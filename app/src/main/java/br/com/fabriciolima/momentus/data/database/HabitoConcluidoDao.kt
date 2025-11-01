@@ -21,6 +21,12 @@ interface HabitoConcluidoDao {
     @Query("SELECT dataConclusao FROM tabela_habitos_concluidos ORDER BY dataConclusao ASC")
     fun getAllCompletionDates(): Flow<List<Long>>
 
+    @Query("SELECT dataConclusao FROM tabela_habitos_concluidos ORDER BY dataConclusao ASC")
+    fun getAllCompletionDatesSync(): List<Long> // Adicionado
+
+    @Query("SELECT COUNT(*) FROM tabela_habitos_concluidos")
+    fun getCountSync(): Int
+
     @Query("DELETE FROM tabela_habitos_concluidos")
     suspend fun clear()
 

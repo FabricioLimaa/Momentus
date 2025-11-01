@@ -16,6 +16,9 @@ interface UnlockedAchievementDao {
     @Query("SELECT * FROM unlocked_achievements")
     fun getAll(): Flow<List<UnlockedAchievement>>
 
+    @Query("SELECT achievementId FROM unlocked_achievements")
+    fun getAllIdsSync(): List<String> // Adicionado para verificação síncrona
+
     @Query("SELECT COUNT(*) FROM unlocked_achievements")
     fun getCount(): Flow<Int>
 

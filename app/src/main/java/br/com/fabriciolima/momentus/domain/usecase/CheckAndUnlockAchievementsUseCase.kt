@@ -14,7 +14,8 @@ class CheckAndUnlockAchievementsUseCase @Inject constructor(
 
     suspend operator fun invoke(streakCount: Int, totalCompleted: Int) {
         Log.d(TAG, "Verificando conquistas... Streak: $streakCount, Total Concluído: $totalCompleted")
-        val unlockedAchievements = gamificationRepository.unlockedAchievements.first().map { it.achievementId }.toSet()
+        val unlockedAchievements = gamificationRepository.getUnlockedAchievementIdsSync().toSet()
+        Log.d(TAG, "Conquistas já desbloqueadas: $unlockedAchievements")
 
         AchievementsList.allAchievements.forEach { achievement ->
             if (achievement.id !in unlockedAchievements) {
@@ -27,11 +28,10 @@ class CheckAndUnlockAchievementsUseCase @Inject constructor(
                     "STREAK_3" -> if (streakCount >= 3) shouldUnlock = true
                     "STREAK_7" -> if (streakCount >= 7) shouldUnlock = true
                     "STREAK_30" -> if (streakCount >= 30) shouldUnlock = true
-                    // Adicionar a verificação para FIRST_TEMPLATE quando a criação de templates for verificada
                 }
 
                 if (shouldUnlock) {
-                    Log.i(TAG, "NOVA CONQUISTA DESBLOQUEADA: ${achievement.name}")
+                    Log.i(TAG, "NOVA CONQUISTA DESBLOQUEADA: ${achievement.name} (ID: ${achievement.id})")
                     gamificationRepository.unlockAchievement(achievement.id, achievement.points)
                 }
             }
