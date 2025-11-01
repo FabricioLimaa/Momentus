@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
@@ -125,15 +126,12 @@ class CalendarActivity : ComponentActivity() {
 
         setContent {
             MomentusTheme {
-                // Lógica para permissão de notificação
                 val context = LocalContext.current
                 val launcher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestPermission()
                 ) { isGranted: Boolean ->
                     if (isGranted) {
-                        // Permissão concedida
                     } else {
-                        // Permissão negada. Você pode querer mostrar um Snackbar ou diálogo explicando por que a permissão é importante
                     }
                 }
 
@@ -158,7 +156,6 @@ class CalendarActivity : ComponentActivity() {
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
 
-                // Observa o evento de logout do ViewModel
                 LaunchedEffect(Unit) {
                     viewModel.logoutEvent.collectLatest {
                         when (it) {
@@ -178,7 +175,7 @@ class CalendarActivity : ComponentActivity() {
                         AppDrawerContent(
                             account = account,
                             onNavigate = { scope.launch { drawerState.close() } },
-                            onLogout = { viewModel.logout() } // Chama a função centralizada do ViewModel
+                            onLogout = { viewModel.logout() }
                         )
                     }
                 ) {
@@ -484,6 +481,16 @@ fun AppDrawerContent(account: GoogleSignInAccount?, onNavigate: () -> Unit, onLo
                         onNavigate()
                     },
                     icon = { Icon(Icons.Default.Assessment, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                 NavigationDrawerItem(
+                    label = { Text("Conquistas") },
+                    selected = false,
+                    onClick = {
+                        context.startActivity(Intent(context, AchievementsActivity::class.java))
+                        onNavigate()
+                    },
+                    icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }

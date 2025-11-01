@@ -14,6 +14,7 @@ import br.com.fabriciolima.momentus.data.model.Meta
 import br.com.fabriciolima.momentus.data.model.StatsResult
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.domain.usecase.CheckAndUnlockAchievementsUseCase
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.Result
 import com.google.firebase.auth.FirebaseAuth
@@ -25,11 +26,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,9 +46,11 @@ open class CategoryRepository @Inject constructor(
     private val categoryDao: CategoryDao,
     private val metaDao: MetaDao,
     private val habitoConcluidoDao: HabitoConcluidoDao,
-    private val itemCronogramaDao: ItemCronogramaDao, // Adicionado
+    private val itemCronogramaDao: ItemCronogramaDao,
     private val templateRepository: TemplateRepository,
     private val eventoRepository: EventoRepository,
+    private val gamificationRepository: GamificationRepository,
+    private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase, // Adicionado
     private val googleCalendarSource: GoogleCalendarSource,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
@@ -113,6 +119,8 @@ open class CategoryRepository @Inject constructor(
             eventoRepository.syncEventos()
             _syncMessage.value = "Sincronizando hábitos concluídos..."
             syncCompletedHabits()
+            _syncMessage.value = "Sincronizando conquistas..."
+            gamificationRepository.syncUnlockedAchievements()
             _syncMessage.value = "Sincronização concluída!"
             _syncStatus.value = SyncStatus.CONNECTED
         } catch (e: Exception) {
@@ -130,7 +138,7 @@ open class CategoryRepository @Inject constructor(
             val cloudHabits = collectionRef.get().await().toObjects<HabitoConcluido>()
             
             if (cloudHabits.isNotEmpty()) {
-                habitoConcluidoDao.clear() // Limpa os hábitos locais para evitar duplicatas
+                habitoConcluidoDao.clear() 
                 cloudHabits.forEach { habitoConcluidoDao.insert(it) }
                 Log.d(TAG, "[SYNC] ${cloudHabits.size} hábitos concluídos foram baixados da nuvem para o Room.")
             } else {
@@ -267,11 +275,9 @@ open class CategoryRepository @Inject constructor(
         Log.d(TAG, "[SYNC] Iniciando marcação de hábito como concluído para o id: $itemCronogramaId")
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
         
-        // 1. Salva no banco de dados local (Room)
         habitoConcluidoDao.insert(habito)
         Log.d(TAG, "[LOCAL] Hábito $itemCronogramaId salvo no Room.")
 
-        // 2. Salva na nuvem (Firestore)
         val currentUserId = userId
         if (currentUserId == null) {
             Log.w(TAG, "[FIREBASE] Usuário não logado. A conclusão do hábito $itemCronogramaId não será salva na nuvem.")
@@ -283,16 +289,57 @@ open class CategoryRepository @Inject constructor(
             .set(habito)
             .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Hábito $itemCronogramaId salvo com sucesso no Firestore.") }
             .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar hábito $itemCronogramaId no Firestore.", e) }
+
+        // Verifica conquistas
+        checkAchievements()
+    }
+
+    private suspend fun checkAchievements() {
+        val completionDatesMillis = habitoConcluidoDao.getAllCompletionDates().first()
+        val totalCompleted = completionDatesMillis.size
+        val streakCount = calculateStreak(completionDatesMillis)
+
+        checkAndUnlockAchievementsUseCase(streakCount, totalCompleted)
+    }
+
+    private fun calculateStreak(completionDatesMillis: List<Long>): Int {
+        if (completionDatesMillis.isEmpty()) return 0
+
+        val completionDates = completionDatesMillis
+            .map { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+            .distinct()
+            .sortedDescending()
+
+        if (completionDates.isEmpty()) return 0
+
+        var currentStreak = 0
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
+
+        if (completionDates.first() == today || completionDates.first() == yesterday) {
+            currentStreak = 1
+            var lastDate = completionDates.first()
+
+            for (i in 1 until completionDates.size) {
+                val currentDate = completionDates[i]
+                if (lastDate.minusDays(1) == currentDate) {
+                    currentStreak++
+                    lastDate = currentDate
+                } else {
+                    break
+                }
+            }
+        }
+
+        return currentStreak
     }
 
     suspend fun unmarkHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
         Log.d(TAG, "[SYNC] Iniciando desmarcação de hábito como concluído para o id: $itemCronogramaId")
 
-        // 1. Remove do banco de dados local (Room)
         habitoConcluidoDao.delete(itemCronogramaId)
         Log.d(TAG, "[LOCAL] Hábito $itemCronogramaId removido do Room.")
 
-        // 2. Remove da nuvem (Firestore)
         val currentUserId = userId
         if (currentUserId == null) {
             Log.w(TAG, "[FIREBASE] Usuário não logado. A conclusão do hábito $itemCronogramaId não será removida da nuvem.")

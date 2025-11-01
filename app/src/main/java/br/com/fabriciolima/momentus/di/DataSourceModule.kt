@@ -7,10 +7,12 @@ import br.com.fabriciolima.momentus.data.database.TemplateDao
 import br.com.fabriciolima.momentus.data.database.CategoryDao
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
+import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSourceImpl
+import br.com.fabriciolima.momentus.domain.usecase.CheckAndUnlockAchievementsUseCase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Binds
@@ -67,22 +69,26 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideCategoryRepository(
-        CategoryDao: CategoryDao,
+        categoryDao: CategoryDao,
         metaDao: MetaDao,
         habitoConcluidoDao: HabitoConcluidoDao,
-        itemCronogramaDao: ItemCronogramaDao, // Adicionado o parâmetro que faltava
+        itemCronogramaDao: ItemCronogramaDao,
         templateRepository: TemplateRepository,
         eventoRepository: EventoRepository,
+        gamificationRepository: GamificationRepository,
+        checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase,
         googleCalendarSource: GoogleCalendarSource,
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): CategoryRepository {
         return CategoryRepository(
-            CategoryDao,
+            categoryDao,
             metaDao,
             habitoConcluidoDao,
-            itemCronogramaDao, // Passado o parâmetro na ordem correta
+            itemCronogramaDao,
             templateRepository,
             eventoRepository,
+            gamificationRepository,
+            checkAndUnlockAchievementsUseCase,
             googleCalendarSource,
             dispatcher
         )
