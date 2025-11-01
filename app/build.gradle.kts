@@ -40,7 +40,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
-        versionName = "0.9.74-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionName = "0.9.75-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -107,7 +107,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation("androidx.hilt:hilt-work:1.2.0") // Adicionado para integração com WorkManager
-    ksp("androidx.hilt:hilt-compiler:1.2.0") // Adicionado para integração com WorkManager
+    //ksp("androidx.hilt:hilt-compiler:1.2.0") // Adicionado para integração com WorkManager
 
     // Glance for App Widgets
     implementation(libs.androidx.glance)

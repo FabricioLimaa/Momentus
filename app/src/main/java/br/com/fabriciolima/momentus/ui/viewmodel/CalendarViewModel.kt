@@ -66,6 +66,7 @@ data class CalendarUiState(
     val completedHabitIds: Set<String> = emptySet(),
     val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
     val userData: UserData? = null,
+    val streak: Int = 0, // Adicionado
     val newlyUnlockedAchievement: Achievement? = null, // Adicionado
     val error: String? = null,
     val successMessage: String? = null,
@@ -124,8 +125,9 @@ class CalendarViewModel @Inject constructor(
                 eventoRepository.todosOsItensDoCronograma,
                 categoryRepository.allCategoriesWithMetas,
                 categoryRepository.idsHabitosConcluidos,
-                userRepository.userData
-            ) { allItems, categoriesWithMetas, completedIds, userData ->
+                userRepository.userData,
+                categoryRepository.currentStreak // Adicionado
+            ) { allItems, categoriesWithMetas, completedIds, userData, streak -> // Adicionado
                 val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
                 // Usar um objeto wrapper ou uma forma mais segura de combinar os tipos
                 object {
@@ -133,6 +135,7 @@ class CalendarViewModel @Inject constructor(
                     val categoriesMap = categoriesMap
                     val completedIds = completedIds.toSet()
                     val userData = userData
+                    val streak = streak // Adicionado
                 }
             }.collect { combinedData ->
                 _uiState.update { currentState ->
@@ -140,7 +143,8 @@ class CalendarViewModel @Inject constructor(
                         allScheduleItems = combinedData.allItems,
                         categoriesMap = combinedData.categoriesMap,
                         completedHabitIds = combinedData.completedIds,
-                        userData = combinedData.userData
+                        userData = combinedData.userData,
+                        streak = combinedData.streak // Adicionado
                     )
                 }
             }

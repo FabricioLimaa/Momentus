@@ -77,10 +77,6 @@ fun StatsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                StreakCard(streakCount = uiState.streakCount)
-            }
-
-            item {
                 Text(
                     text = "Filtro de Período",
                     style = MaterialTheme.typography.titleLarge,
@@ -129,45 +125,6 @@ fun StatsScreen(
                 item {
                     Text("Nenhuma taxa de conclusão para este período.")
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun StreakCard(streakCount: Int) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.LocalFireDepartment,
-                contentDescription = "Ícone de Sequência",
-                tint = Color(0xFFFFA500), // Laranja
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = "Sequência Atual",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "$streakCount dias",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                 Text(
-                    text = "Dias seguidos com pelo menos um hábito concluído.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }

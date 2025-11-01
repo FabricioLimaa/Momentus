@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -68,6 +69,8 @@ open class CategoryRepository @Inject constructor(
     open val allCategoriesWithMetas: Flow<List<CategoryWithMeta>> = categoryDao.getCategoriesWithMetas()
     val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao.getIdsConcluidos()
     open val stats: Flow<List<StatsResult>> = categoryDao.getStats()
+
+    val currentStreak: Flow<Int> = habitoConcluidoDao.getAllCompletionDates().map { calculateStreak(it) }
 
     private val userId: String?
         get() = auth.currentUser?.uid

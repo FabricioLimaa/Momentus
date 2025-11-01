@@ -3,6 +3,7 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Achievement
+import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.domain.AchievementsList
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,17 +22,20 @@ data class AchievementUiInfo(
 data class AchievementsUiState(
     val achievements: List<AchievementUiInfo> = emptyList(),
     val unlockedCount: Int = 0,
-    val totalCount: Int = 0
+    val totalCount: Int = 0,
+    val streakCount: Int = 0 // Adicionado
 )
 
 @HiltViewModel
 class AchievementsViewModel @Inject constructor(
-    gamificationRepository: GamificationRepository
+    gamificationRepository: GamificationRepository,
+    categoryRepository: CategoryRepository // Adicionado
 ) : ViewModel() {
 
     val uiState: StateFlow<AchievementsUiState> = combine(
-        gamificationRepository.unlockedAchievements
-    ) { (unlockedAchievements) ->
+        gamificationRepository.unlockedAchievements,
+        categoryRepository.currentStreak // Adicionado
+    ) { unlockedAchievements, streak -> // Corrigido
         val unlockedIds = unlockedAchievements.map { it.achievementId }.toSet()
         val allAchievementsInfo = AchievementsList.allAchievements.map { achievement ->
             AchievementUiInfo(
@@ -43,7 +47,8 @@ class AchievementsViewModel @Inject constructor(
         AchievementsUiState(
             achievements = allAchievementsInfo.sortedByDescending { it.isUnlocked },
             unlockedCount = unlockedIds.size,
-            totalCount = AchievementsList.allAchievements.size
+            totalCount = AchievementsList.allAchievements.size,
+            streakCount = streak // Adicionado
         )
     }.stateIn(
         scope = viewModelScope,
