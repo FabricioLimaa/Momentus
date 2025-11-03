@@ -40,7 +40,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
-        versionName = "0.9.76-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionName = "0.9.77-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -133,6 +133,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.material.icons.extended)
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.1") // Adicionado
 
     implementation(libs.composeReorderable)
 

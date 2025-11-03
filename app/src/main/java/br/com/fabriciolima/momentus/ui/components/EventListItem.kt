@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.constraintlayout.compose.ConstraintLayout
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import java.time.format.DateTimeFormatter
@@ -46,7 +47,6 @@ fun EventListItem(
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     val categoryColor = Color(android.graphics.Color.parseColor(category.cor))
     
-    // Determina o alfa e a decoração com base no estado 'isChecked'
     val contentAlpha = if (isChecked && onCheckedChange != null) 0.6f else 1f
     val textDecoration = if (isChecked && onCheckedChange != null) TextDecoration.LineThrough else TextDecoration.None
 
@@ -55,62 +55,50 @@ fun EventListItem(
         elevation = CardDefaults.cardElevation(defaultElevation = if (isChecked) 0.dp else 1.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp).alpha(contentAlpha),
-            verticalAlignment = Alignment.Top
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 16.dp)
+                .alpha(contentAlpha)
         ) {
-            // Só mostra o Checkbox se uma ação for fornecida
+            val (checkbox, contentColumn, categoryTag) = createRefs()
+
             if (onCheckedChange != null) {
                 Checkbox(
                     checked = isChecked,
                     onCheckedChange = onCheckedChange,
                     enabled = isEnabled,
-                    modifier = Modifier.padding(end = 8.dp).size(24.dp)
+                    modifier = Modifier.constrainAs(checkbox) {
+                        start.linkTo(parent.start)
+                        top.linkTo(parent.top)
+                        bottom.linkTo(parent.bottom)
+                    }
                 )
             } else {
-                // Ponto colorido no início
                 Box(
                     modifier = Modifier
-                        .padding(top = 4.dp)
                         .size(12.dp)
                         .background(categoryColor, shape = CircleShape)
+                        .constrainAs(checkbox) {
+                            start.linkTo(parent.start)
+                            top.linkTo(parent.top)
+                            bottom.linkTo(parent.bottom)
+                        }
                 )
-                Spacer(modifier = Modifier.width(16.dp))
             }
 
-            // Coluna principal de conteúdo
-            Column(modifier = Modifier.weight(1f)) {
-                // --- LINHA DO TÍTULO E TAG ---
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Título do Evento
-                    Text(
-                        text = item.titulo,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        textDecoration = textDecoration,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    // Tag da Categoria
-                    Box(
-                        modifier = Modifier
-                            .background(categoryColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = category.nome,
-                            color = categoryColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+            Column(modifier = Modifier.constrainAs(contentColumn) {
+                start.linkTo(checkbox.end, margin = 16.dp)
+                top.linkTo(parent.top)
+            }) {
+                Text(
+                    text = item.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = textDecoration
+                )
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // --- LINHA DO HORÁRIO ---
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Schedule,
@@ -122,20 +110,37 @@ fun EventListItem(
                     Text(
                         text = "${item.horarioInicio.format(formatter)} - ${item.horarioTermino.format(formatter)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        textDecoration = textDecoration, // Riscado aplicado aqui
+                        textDecoration = textDecoration,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                // --- DESCRIÇÃO ---
                 if (item.descricao?.isNotBlank() == true) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = item.descricao,
                         style = MaterialTheme.typography.bodyMedium,
-                        textDecoration = textDecoration // Riscado aplicado aqui
+                        textDecoration = textDecoration
                     )
                 }
+            }
+
+            Box(
+                modifier = Modifier
+                    .constrainAs(categoryTag) {
+                        end.linkTo(parent.end)
+                        top.linkTo(checkbox.top)
+                        bottom.linkTo(checkbox.bottom)
+                    }
+                    .background(categoryColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = category.nome,
+                    color = categoryColor,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
