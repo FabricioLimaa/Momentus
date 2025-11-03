@@ -114,7 +114,8 @@ object WidgetUpdater {
                 timeRange = "${timeFormatter.format(horarioInicio)} - ${timeFormatter.format(horarioTermino)}",
                 categoryName = item.nomeRotina,
                 categoryColor = item.corRotina,
-                isPast = now.isAfter(horarioTermino) // Novo campo
+                isPast = now.isAfter(horarioTermino),
+                isCompleted = item.isCompleted // Adicionado
             )
         }
     }

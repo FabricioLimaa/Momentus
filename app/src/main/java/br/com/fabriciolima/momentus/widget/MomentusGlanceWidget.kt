@@ -1,5 +1,6 @@
 package br.com.fabriciolima.momentus.widget
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
@@ -16,12 +17,13 @@ import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
+import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
-import androidx.glance.appwidget.CircularProgressIndicator
+import androidx.glance.appwidget.CheckBox
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
@@ -42,6 +44,7 @@ import androidx.glance.layout.width
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
@@ -49,13 +52,17 @@ import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.ui.screens.LoginActivity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.glance.color.ColorProvider
+import androidx.glance.layout.fillMaxHeight
 
 // --- DATA E ESTADO DO WIDGET ---
 
@@ -66,7 +73,8 @@ data class WidgetEvent(
     val timeRange: String,
     val categoryName: String,
     val categoryColor: String?,
-    val isPast: Boolean = false // Novo campo
+    val isPast: Boolean = false,
+    val isCompleted: Boolean = false // Adicionado
 )
 
 object EventWidgetStateKeys {
@@ -78,6 +86,8 @@ object EventWidgetStateKeys {
 
 const val EVENT_ID_KEY = "br.com.fabriciolima.momentus.EVENT_ID"
 const val OPEN_NEW_EVENT_DIALOG_KEY = "br.com.fabriciolima.momentus.OPEN_NEW_EVENT"
+private val eventIdParam = ActionParameters.Key<String>("eventId")
+private val isCompletedParam = ActionParameters.Key<Boolean>("isCompleted")
 
 // --- HILT ENTRY POINT ---
 
@@ -85,7 +95,7 @@ const val OPEN_NEW_EVENT_DIALOG_KEY = "br.com.fabriciolima.momentus.OPEN_NEW_EVE
 @InstallIn(SingletonComponent::class)
 interface WidgetUpdateEntryPoint {
     fun categoryRepository(): CategoryRepository
-    fun eventoRepository(): EventoRepository
+    fun eventoRepository(): EventoRepository // Adicionado
 }
 
 
@@ -141,7 +151,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
             when {
                 isLoading -> {
                     Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        androidx.glance.appwidget.CircularProgressIndicator()
                     }
                 }
                 error != null -> {
@@ -159,7 +169,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                         items(count = events.size, itemId = { events[it].id.hashCode().toLong() }) { index ->
                             EventListItem(context, events[index])
                             if (index < events.size - 1) {
-                                Spacer(GlanceModifier.height(20.dp)) // AUMENTADO
+                                Spacer(GlanceModifier.height(12.dp))
                             }
                         }
                     }
@@ -181,7 +191,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
             Text(
                 text = title,
                 style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp, color = primaryTextColor),
-                modifier = GlanceModifier.defaultWeight()
+                modifier = GlanceModifier.fillMaxWidth().defaultWeight()
             )
             Image(
                 provider = ImageProvider(R.drawable.ic_add),
@@ -189,10 +199,8 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 colorFilter = ColorFilter.tint(primaryTextColor),
                 modifier = GlanceModifier.size(36.dp).clickable(
                     actionStartActivity(
-                        Intent(context, LoginActivity::class.java).apply {
-                            putExtra(OPEN_NEW_EVENT_DIALOG_KEY, true)
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        }
+                        ComponentName(context, LoginActivity::class.java),
+                        parameters = actionParametersOf(ActionParameters.Key<String>(OPEN_NEW_EVENT_DIALOG_KEY) to "true")
                     )
                 ).padding(8.dp)
             )
@@ -209,91 +217,57 @@ class MomentusGlanceWidget : GlanceAppWidget() {
 
     @Composable
     private fun EventListItem(context: Context, event: WidgetEvent) {
-        val categoryColor = try {
-            event.categoryColor?.let { Color(android.graphics.Color.parseColor(it)) } ?: Color.Gray
-        } catch (e: Exception) {
-            Color.Gray
-        }
-
-        val itemAlpha = if (event.isPast) 0.5f else 1f
-
-        // CORREÇÃO: Aplicando alfa para Day e Night em todos os ColorProviders
-        val categoryColorProvider = ColorProvider(
-            day = categoryColor.copy(alpha = itemAlpha),
-            night = categoryColor.copy(alpha = itemAlpha)
-        )
-        val categoryColorAlphaProvider = ColorProvider(
-            day = categoryColor.copy(alpha = 0.2f * itemAlpha),
-            night = categoryColor.copy(alpha = 0.2f * itemAlpha)
-        )
-        val primaryTextColorProvider = ColorProvider(
-            day = Color.Black.copy(alpha = itemAlpha),
-            night = Color.White.copy(alpha = itemAlpha)
-        )
-        val secondaryTextColorProvider = ColorProvider(
-            day = Color(0xFF3C3C43).copy(alpha = itemAlpha),
-            night = Color(0xFFEBEBF5).copy(alpha = itemAlpha)
-        )
+        val textAlpha = if (event.isCompleted) 0.6f else 1f
+        val textDecoration = if (event.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+        
+        val itemTextColor = ColorProvider(day = Color.Black.copy(alpha = textAlpha), night = Color.White.copy(alpha = textAlpha))
+        val itemSecondaryTextColor = ColorProvider(day = Color(0xFF3C3C43).copy(alpha = textAlpha), night = Color(0xFFEBEBF5).copy(alpha = textAlpha))
 
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .background(itemBackgroundColor)
                 .cornerRadius(16.dp)
-                .padding(16.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .clickable(
                     actionStartActivity(
-                        Intent(context, LoginActivity::class.java).apply {
-                            putExtra(EVENT_ID_KEY, event.id)
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        }
+                        ComponentName(context, LoginActivity::class.java),
+                        parameters = actionParametersOf(ActionParameters.Key<String>(EVENT_ID_KEY) to event.id)
                     )
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = GlanceModifier.defaultWeight()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = GlanceModifier
-                            .size(8.dp)
-                            .background(categoryColorProvider)
-                            .cornerRadius(4.dp)
-                    ) {}
-                    Spacer(GlanceModifier.width(8.dp))
-                    Text(
-                        text = event.title.ifBlank { "(Sem título)" },
-                        style = TextStyle(color = primaryTextColorProvider, fontWeight = FontWeight.Bold, fontSize = 16.sp),
-                        maxLines = 1
+            CheckBox(
+                checked = event.isCompleted,
+                onCheckedChange = actionRunCallback<ToggleHabitAction>(
+                    parameters = actionParametersOf(
+                        eventIdParam to event.id,
+                        isCompletedParam to event.isCompleted
                     )
-                }
+                )
+            )
+            Spacer(GlanceModifier.width(8.dp))
+            Column(modifier = GlanceModifier.fillMaxWidth()) {
+                Text(
+                    text = event.title.ifBlank { "(Sem título)" },
+                    style = TextStyle(color = itemTextColor, fontWeight = FontWeight.Bold, fontSize = 16.sp, textDecoration = textDecoration),
+                    maxLines = 1
+                )
                 Spacer(GlanceModifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         provider = ImageProvider(R.drawable.ic_time),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(secondaryTextColorProvider),
+                        colorFilter = ColorFilter.tint(itemSecondaryTextColor),
                         modifier = GlanceModifier.size(14.dp)
                     )
                     Spacer(GlanceModifier.width(4.dp))
                     Text(
                         text = event.timeRange,
-                        style = TextStyle(color = secondaryTextColorProvider, fontSize = 14.sp),
+                        style = TextStyle(color = itemSecondaryTextColor, fontSize = 14.sp, textDecoration = textDecoration),
                         maxLines = 1
                     )
                 }
-            }
-            Spacer(GlanceModifier.width(8.dp))
-            Box(
-                modifier = GlanceModifier
-                    .background(categoryColorAlphaProvider)
-                    .cornerRadius(20.dp)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = event.categoryName,
-                    style = TextStyle(color = categoryColorProvider, fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                    maxLines = 1
-                )
             }
         }
     }
@@ -302,5 +276,26 @@ class MomentusGlanceWidget : GlanceAppWidget() {
 class UpdateAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         WidgetUpdater.update(context, glanceId)
+    }
+}
+
+class ToggleHabitAction : ActionCallback {
+    private val scope = MainScope()
+
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val eventId = parameters[eventIdParam] ?: return
+        val isCompleted = parameters[isCompletedParam] ?: return
+
+        val entryPoint = EntryPointAccessors.fromApplication(context, WidgetUpdateEntryPoint::class.java)
+        val categoryRepository = entryPoint.categoryRepository()
+
+        scope.launch {
+            if (isCompleted) {
+                categoryRepository.unmarkHabitAsCompleted(eventId)
+            } else {
+                categoryRepository.markHabitAsCompleted(eventId)
+            }
+            WidgetUpdater.update(context, glanceId)
+        }.join()
     }
 }

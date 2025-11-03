@@ -44,9 +44,11 @@ interface ItemCronogramaDao {
     suspend fun deleteByCategoryId(categoryId: String) // Corrigido
 
     @Query(
-        "SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, c.nome as nomeRotina, c.cor as corRotina " +
+        "SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, c.nome as nomeRotina, c.cor as corRotina, " +
+        "CASE WHEN thc.itemCronogramaId IS NOT NULL THEN 1 ELSE 0 END as isCompleted " +
         "FROM tabela_itens_cronograma tic " +
-        "JOIN categories c ON tic.categoryId = c.id " + // Corrigido
+        "JOIN categories c ON tic.categoryId = c.id " +
+        "LEFT JOIN tabela_habitos_concluidos thc ON tic.id = thc.itemCronogramaId AND date(thc.dataConclusao / 1000, 'unixepoch') = date('now') " +
         "WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) AND tic.categoryId IN (:allowedCategoryIds) " +
         "ORDER BY tic.horarioInicio ASC"
     )
@@ -73,5 +75,6 @@ data class WidgetEventItem(
     val horarioTermino: String,
     val descricao: String?,
     val nomeRotina: String,
-    val corRotina: String
+    val corRotina: String,
+    val isCompleted: Boolean // Adicionado
 )
