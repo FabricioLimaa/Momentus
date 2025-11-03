@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -39,18 +40,23 @@ fun EventListItem(
     category: Category,
     modifier: Modifier = Modifier,
     isChecked: Boolean = false,
+    isEnabled: Boolean = true,
     onCheckedChange: ((Boolean) -> Unit)? = null // Parâmetro opcional
 ) {
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     val categoryColor = Color(android.graphics.Color.parseColor(category.cor))
+    
+    // Determina o alfa e a decoração com base no estado 'isChecked'
+    val contentAlpha = if (isChecked && onCheckedChange != null) 0.6f else 1f
     val textDecoration = if (isChecked && onCheckedChange != null) TextDecoration.LineThrough else TextDecoration.None
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isChecked) 0.dp else 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp).alpha(contentAlpha),
             verticalAlignment = Alignment.Top
         ) {
             // Só mostra o Checkbox se uma ação for fornecida
@@ -58,7 +64,8 @@ fun EventListItem(
                 Checkbox(
                     checked = isChecked,
                     onCheckedChange = onCheckedChange,
-                    modifier = Modifier.padding(end = 8.dp)
+                    enabled = isEnabled,
+                    modifier = Modifier.padding(end = 8.dp).size(24.dp)
                 )
             } else {
                 // Ponto colorido no início
@@ -115,7 +122,7 @@ fun EventListItem(
                     Text(
                         text = "${item.horarioInicio.format(formatter)} - ${item.horarioTermino.format(formatter)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        textDecoration = textDecoration,
+                        textDecoration = textDecoration, // Riscado aplicado aqui
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -126,7 +133,7 @@ fun EventListItem(
                     Text(
                         text = item.descricao,
                         style = MaterialTheme.typography.bodyMedium,
-                        textDecoration = textDecoration
+                        textDecoration = textDecoration // Riscado aplicado aqui
                     )
                 }
             }
