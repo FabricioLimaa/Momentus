@@ -46,6 +46,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
+import androidx.constraintlayout.compose.ConstraintLayout
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
@@ -166,11 +167,9 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 }
                 else -> {
                     LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                        items(count = events.size, itemId = { events[it].id.hashCode().toLong() }) { index ->
-                            EventListItem(context, events[index])
-                            if (index < events.size - 1) {
-                                Spacer(GlanceModifier.height(12.dp))
-                            }
+                        items(items = events, itemId = { it.id.hashCode().toLong() }) { event ->
+                            EventListItem(context, event)
+                            Spacer(GlanceModifier.height(60.dp))
                         }
                     }
                 }
@@ -191,7 +190,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
             Text(
                 text = title,
                 style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp, color = primaryTextColor),
-                modifier = GlanceModifier.fillMaxWidth().defaultWeight()
+                modifier = GlanceModifier.defaultWeight()
             )
             Image(
                 provider = ImageProvider(R.drawable.ic_add),
@@ -219,9 +218,23 @@ class MomentusGlanceWidget : GlanceAppWidget() {
     private fun EventListItem(context: Context, event: WidgetEvent) {
         val textAlpha = if (event.isCompleted) 0.6f else 1f
         val textDecoration = if (event.isCompleted) TextDecoration.LineThrough else TextDecoration.None
-        
+
         val itemTextColor = ColorProvider(day = Color.Black.copy(alpha = textAlpha), night = Color.White.copy(alpha = textAlpha))
         val itemSecondaryTextColor = ColorProvider(day = Color(0xFF3C3C43).copy(alpha = textAlpha), night = Color(0xFFEBEBF5).copy(alpha = textAlpha))
+
+        val categoryColor = try {
+            event.categoryColor?.let { Color(android.graphics.Color.parseColor(it)) } ?: Color.Gray
+        } catch (e: Exception) {
+            Color.Gray
+        }
+        val categoryColorProvider = ColorProvider(
+            day = categoryColor.copy(alpha = textAlpha),
+            night = categoryColor.copy(alpha = textAlpha)
+        )
+        val categoryColorAlphaProvider = ColorProvider(
+            day = categoryColor.copy(alpha = 0.2f * textAlpha),
+            night = categoryColor.copy(alpha = 0.2f * textAlpha)
+        )
 
         Row(
             modifier = GlanceModifier
@@ -247,7 +260,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 )
             )
             Spacer(GlanceModifier.width(8.dp))
-            Column(modifier = GlanceModifier.fillMaxWidth()) {
+            Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
                     text = event.title.ifBlank { "(Sem título)" },
                     style = TextStyle(color = itemTextColor, fontWeight = FontWeight.Bold, fontSize = 16.sp, textDecoration = textDecoration),
@@ -268,6 +281,19 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                         maxLines = 1
                     )
                 }
+            }
+            Spacer(GlanceModifier.width(8.dp))
+            Box(
+                modifier = GlanceModifier
+                    .background(categoryColorAlphaProvider)
+                    .cornerRadius(20.dp)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = event.categoryName,
+                    style = TextStyle(color = categoryColorProvider, fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                    maxLines = 1
+                )
             }
         }
     }
