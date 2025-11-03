@@ -52,8 +52,8 @@ fun EventListItem(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isChecked) 0.dp else 1.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isChecked) 1.dp else 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         ConstraintLayout(
             modifier = Modifier
