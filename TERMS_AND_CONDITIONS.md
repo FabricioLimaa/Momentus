@@ -2,7 +2,7 @@
 
 **TERMOS E CONDIÇÕES DE USO**
 
-Última atualização: 22 de Outubro de 2025
+Última atualização: 03 de Novembro de 2025
 
 Estes Termos e Condições de Uso ("Termos") regem o seu acesso e uso do aplicativo Momentus ("Aplicativo"), desenvolvido por Fabricio Lima ("Autor"). Ao acessar ou usar o Aplicativo, você concorda em cumprir estes Termos.
 
@@ -53,7 +53,7 @@ O Autor reserva-se o direito de modificar estes Termos a qualquer momento. Se fi
 
 **TERMS AND CONDITIONS OF USE**
 
-Last updated: October 22, 2025
+Last updated: November 03, 2025
 
 These Terms and Conditions of Use ("Terms") govern your access to and use of the Momentus application ("App"), developed by Fabricio Lima ("Author"). By accessing or using the App, you agree to be bound by these Terms.
 

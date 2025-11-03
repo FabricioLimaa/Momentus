@@ -1,10 +1,10 @@
 # Momentus 🚀
 
-[![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](https://github.com/FabricioLimaa/Momentus/blob/main/LICENSE.txt)
 [![Kotlin Version](https://img.shields.io/badge/Kotlin-1.9.0-blue.svg)](https://kotlinlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)]()
 
-**Transforme sua rotina ideal em eventos concretos na sua Agenda Google. Agende seus blocos de tempo uma vez e gere seu calendário para semanas ou meses com um único clique.**
+**Um aplicativo Android moderno de produtividade para gerenciar seus hábitos, rotinas e eventos diários com um widget interativo e sistema de gamificação para manter você motivado.**
 
 <br/>
 
@@ -13,8 +13,6 @@
 ## 📋 Índice
 
 - [Sobre o Projeto](#-sobre-o-projeto)
-  - [O Problema](#o-problema)
-  - [A Solução](#a-solução)
 - [✨ Funcionalidades Principais](#-funcionalidades-principais)
 - [📸 Telas](#-telas)
 - [🛠️ Tecnologias e Arquitetura](#️-tecnologias-e-arquitetura)
@@ -28,34 +26,23 @@
 
 ## 🎯 Sobre o Projeto
 
-O Momentus nasceu para otimizar a gestão de tempo e produtividade, automatizando a criação de uma agenda de rotinas.
-
-### O Problema
-
-Muitas pessoas seguem rotinas diárias ou semanais (estudo, trabalho, exercícios, etc.), mas perdem um tempo precioso adicionando manualmente esses eventos repetitivos em suas agendas digitais, como o Google Calendar.
-
-### A Solução
-
-O **Momentus** resolve isso de forma elegante. Ele funciona como uma ponte inteligente entre sua rotina ideal e sua agenda real:
-
-1.  **Defina sua Rotina:** Crie "blocos de tempo" para suas atividades recorrentes.
-2.  **Monte sua Semana Perfeita:** Organize visualmente esses blocos em um cronograma semanal.
-3.  **Exporte com um Clique:** O app gera todos os eventos na sua Agenda Google para o período que você desejar, evitando duplicatas.
+O **Momentus** foi projetado para ser um companheiro de produtividade inteligente. Em vez de apenas listar tarefas, ele ajuda a construir e manter rotinas consistentes, oferecendo feedback instantâneo e motivação através de um sistema de conquistas e pontos. O foco principal é a interação rápida por meio de um widget na tela inicial, permitindo que o usuário gerencie seu dia sem precisar abrir o aplicativo constantemente.
 
 ---
 
 ## ✨ Funcionalidades Principais
 
-- **🎨 Gerenciador de Rotinas:** Crie, edite e delete blocos de rotina, personalizando nome, duração e cor.
-- **🗓️ Cronograma Visual:** Organize suas rotinas em uma interface intuitiva com abas para cada dia da semana.
-- **🔐 Integração Segura com Google:** Faça login com sua Conta Google via OAuth 2.0 para dar permissão ao app de gerenciar *apenas* sua agenda.
-- **🤖 Geração Automática de Eventos:** Selecione um período de datas e deixe o app popular sua agenda primária do Google.
-- **✔️ Prevenção de Duplicatas:** O app verifica sua agenda de forma inteligente e não cria eventos que já existem com o mesmo nome e horário.
-- **⭐ Experiência de Usuário Aprimorada:**
-  - Feedback visual com indicadores de carregamento.
-  - Gestos de deslizar para deletar com opção de "Desfazer".
-  - Interface limpa com "estados vazios" amigáveis.
-  - Seletor de cores para fácil personalização.
+- **✅ Gestão de Eventos e Hábitos:** Crie, edite e organize seus eventos diários com títulos, descrições, horários e categorias personalizadas.
+- **🎨 Sistema de Categorias:** Atribua cores e nomes às suas categorias para uma organização visual clara e intuitiva.
+- **🔄 Templates de Rotina:** Crie modelos de rotinas (ex: "Rotina Matinal", "Foco no Trabalho") e adicione eventos a eles para agilizar o planejamento.
+- **📱 Widget Interativo (Glance):** 
+    - Visualize os eventos do dia diretamente na sua tela inicial.
+    - Marque hábitos como concluídos com um único toque.
+    - Adicione novos eventos e atualize a lista instantaneamente.
+- **🏆 Gamificação e Progresso:**
+    - **Sistema de Pontos e Conquistas:** Ganhe pontos e desbloqueie conquistas ao completar hábitos e manter a consistência.
+    - **Sequência (Streak):** Acompanhe sua sequência de dias consecutivos de atividades para se manter engajado.
+- **🔐 Autenticação Segura:** Login com Conta Google para proteger os dados do usuário.
 
 ---
 
@@ -78,23 +65,22 @@ O **Momentus** resolve isso de forma elegante. Ele funciona como uma ponte intel
 
 ## 🛠️ Tecnologias e Arquitetura
 
-Este projeto foi construído utilizando tecnologias modernas e seguindo as boas práticas de desenvolvimento Android.
+Este projeto foi construído utilizando tecnologias modernas e seguindo as boas práticas de desenvolvimento Android recomendadas pelo Google.
 
 - **Linguagem:** **[Kotlin](https://kotlinlang.org/)** (100% Kotlin-first)
-- **Arquitetura:** **MVVM (Model-View-ViewModel)**
+- **Arquitetura:** **MVVM (Model-View-ViewModel)** com **Repository Pattern**.
   - Separação clara de responsabilidades, facilitando a manutenção e testes.
-- **UI:** **Jetpack Compose** com **Material Design 3**
-  - A interface é construída de forma declarativa, resultando em um código mais conciso e poderoso.
+- **UI:** **Jetpack Compose** com **Material Design 3** para as telas do app e **Glance API** para o widget.
 - **Componentes Principais:**
-  - `ViewModel` e `StateFlow`: Para gerenciamento de estado reativo e ciclo de vida consciente, utilizando o poder das Coroutines.
-  - `Hilt`: Para injeção de dependência, simplificando o gerenciamento de dependências e melhorando a testabilidade.
-  - `Room Persistence Library`: Para o banco de dados local (SQLite) e persistência de dados offline.
-  - `Coroutines`: Para gerenciamento de operações assíncronas em toda a aplicação.
-  - `Glance`: Para criação de widgets da tela inicial modernos e reativos.
+  - `ViewModel` e `StateFlow`: Para gerenciamento de estado reativo e ciclo de vida consciente.
+  - `Hilt`: Para injeção de dependência em todo o app, incluindo componentes complexos como Widgets.
+  - `Room`: Para persistência de dados em um banco de dados local (SQLite).
+  - `DataStore`: Para salvar dados simples e preferências (como o estado do widget).
+  - `Coroutines` & `Flow`: Para gerenciamento de operações assíncronas.
+  - `WorkManager`: Para agendar tarefas em segundo plano confiáveis, como a atualização periódica do widget.
 - **APIs e Integração:**
   - **Firebase Authentication**: Para autenticação segura e simplificada com o Google.
-  - **Cloud Firestore**: Para armazenamento de dados na nuvem e sincronização em tempo real entre dispositivos.
-  - **Google Calendar API**: Para manipulação de eventos na agenda do usuário.
+  - **Cloud Firestore** (Potencial): A estrutura está pronta para a integração com o Firestore para sincronização de dados na nuvem.
 
 ---
 
@@ -118,10 +104,10 @@ Para executar uma cópia local deste projeto, siga estes passos.
     - Navegue até a pasta que você acabou de clonar e selecione-a.
     - Aguarde o Gradle sincronizar o projeto.
 
-3.  **Configure as Credenciais da API do Google:**
-    - Siga os passos do [Google Cloud Console](https://console.cloud.google.com/apis/credentials) para criar um **ID do cliente OAuth 2.0** do tipo **Android**.
-    - **Importante:** Você precisará adicionar a sua chave **SHA-1 de debug** (e de release, se for gerar um APK assinado) nas configurações da credencial para que o login com o Google funcione.
-      - Para obter sua SHA-1 de debug, você pode executar o comando `./gradlew signingReport` no terminal do Android Studio.
+3.  **Configure o Firebase:**
+    - Conecte o projeto a um projeto Firebase no console.
+    - Habilite o **Google** como um provedor de autenticação no Firebase Authentication.
+    - Baixe o arquivo `google-services.json` do seu projeto Firebase e coloque-o na pasta `app/` do projeto Android.
 
 4.  **Rode o Aplicativo:**
     - Clique no botão de **Play (▶)** para instalar e rodar o app em um emulador ou dispositivo físico.
