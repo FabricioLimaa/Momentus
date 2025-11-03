@@ -1,5 +1,6 @@
 package br.com.fabriciolima.momentus.data.repository
 
+import android.content.Context
 import android.util.Log
 import br.com.fabriciolima.momentus.data.database.TemplateDao
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
@@ -7,10 +8,12 @@ import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.di.IoDispatcher
 import br.com.fabriciolima.momentus.domain.usecase.CheckAndUnlockAchievementsUseCase
+import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.toObjects
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -24,9 +27,10 @@ private const val TAG = "TemplateRepository"
 
 @Singleton
 open class TemplateRepository @Inject constructor(
+    @ApplicationContext private val context: Context, // Adicionado
     private val templateDao: TemplateDao,
     private val eventoRepository: EventoRepository,
-    private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase, // Adicionado
+    private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase, 
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
@@ -127,13 +131,15 @@ open class TemplateRepository @Inject constructor(
         Log.d(TAG, "Inserindo/Atualizando template: ID=${template.id}, Nome=${template.nome}")
         templateDao.insert(template)
 
-        // Verifica a conquista de criação de template
         checkTemplateAchievements()
 
         userId?.let {
             firestore.collection("users").document(it).collection("templates").document(template.id)
                 .set(template)
-                .addOnSuccessListener { Log.d(TAG, "Template ${template.id} salvo com sucesso no Firestore.") }
+                .addOnSuccessListener { 
+                    Log.d(TAG, "Template ${template.id} salvo com sucesso no Firestore.")
+                    WidgetUpdater.requestUpdate(context)
+                }
                 .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar template ${template.id} no Firestore.", e) }
         }
     }
@@ -150,13 +156,14 @@ open class TemplateRepository @Inject constructor(
         eventoRepository.deleteEventsByTemplateId(template.id)
         eventoRepository.insertAll(eventos)
 
-        // Verifica a conquista de criação de template
         checkTemplateAchievements()
+        WidgetUpdater.requestUpdate(context)
     }
 
     suspend fun deleteTemplate(template: Template) {
         Log.d(TAG, "Deletando template: ID=${template.id}, Nome=${template.nome}")
         templateDao.delete(template)
+        WidgetUpdater.requestUpdate(context)
         userId?.let {
             firestore.collection("users").document(it).collection("templates").document(template.id)
                 .delete()

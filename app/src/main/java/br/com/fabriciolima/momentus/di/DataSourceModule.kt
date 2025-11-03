@@ -1,5 +1,6 @@
 package br.com.fabriciolima.momentus.di
 
+import android.content.Context
 import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
@@ -19,6 +20,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
@@ -50,12 +52,13 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideTemplateRepository(
+        @ApplicationContext context: Context, // Adicionado
         templateDao: TemplateDao,
         eventoRepository: EventoRepository,
         checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase,
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): TemplateRepository {
-        return TemplateRepository(templateDao, eventoRepository, checkAndUnlockAchievementsUseCase, dispatcher)
+        return TemplateRepository(context, templateDao, eventoRepository, checkAndUnlockAchievementsUseCase, dispatcher)
     }
 
     @Provides

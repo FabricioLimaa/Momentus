@@ -167,18 +167,11 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                // 1. Cancelar a coleta de dados e parar os listeners do Firestore
                 dataCollectionJob?.cancel()
                 categoryRepository.stopListeningForChanges()
-
-                // 2. Fazer o logout do Google e do Firebase
                 googleSignInClient.signOut().await()
                 auth.signOut()
-
-                // 3. Limpar os dados locais APÓS o logout bem-sucedido
                 categoryRepository.clearAllLocalData()
-
-                // 4. Emitir o evento de sucesso para navegar para a tela de login
                 _logoutEvent.emit(LogoutEvent.Success)
 
             } catch (e: Exception) {
@@ -359,12 +352,14 @@ class CalendarViewModel @Inject constructor(
     fun markHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
             categoryRepository.markHabitAsCompleted(itemCronogramaId)
+            WidgetUpdater.requestUpdate(application)
         }
     }
 
     fun unmarkHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
             categoryRepository.unmarkHabitAsCompleted(itemCronogramaId)
+            WidgetUpdater.requestUpdate(application)
         }
     }
 
