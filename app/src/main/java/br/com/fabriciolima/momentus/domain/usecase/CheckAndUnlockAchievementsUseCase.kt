@@ -13,9 +13,9 @@ class CheckAndUnlockAchievementsUseCase @Inject constructor(
 ) {
 
     suspend operator fun invoke(streakCount: Int = 0, totalCompleted: Int = 0, totalTemplates: Int = 0) {
-        Log.d(TAG, "Verificando conquistas... Streak: $streakCount, Total Hábitos: $totalCompleted, Total Templates: $totalTemplates")
+        Log.d(TAG, "[ACHIEVEMENT_FLOW] 5. Verificando conquistas com os dados: Streak: $streakCount, Total Hábitos: $totalCompleted, Total Templates: $totalTemplates")
         val unlockedAchievements = gamificationRepository.getUnlockedAchievementIdsSync().toSet()
-        Log.d(TAG, "Conquistas já desbloqueadas: $unlockedAchievements")
+        Log.d(TAG, "[ACHIEVEMENT_FLOW] 5a. Conquistas já desbloqueadas no DB: $unlockedAchievements")
 
         AchievementsList.allAchievements.forEach { achievement ->
             if (achievement.id !in unlockedAchievements) {
@@ -37,7 +37,7 @@ class CheckAndUnlockAchievementsUseCase @Inject constructor(
                 }
 
                 if (shouldUnlock) {
-                    Log.i(TAG, "NOVA CONQUISTA DESBLOQUEADA: ${achievement.name} (ID: ${achievement.id})")
+                    Log.i(TAG, "[ACHIEVEMENT_FLOW] 5b. CONDIÇÃO ATINGIDA! Desbloqueando: ${achievement.name} (ID: ${achievement.id})")
                     gamificationRepository.unlockAchievement(achievement.id, achievement.points)
                 }
             }

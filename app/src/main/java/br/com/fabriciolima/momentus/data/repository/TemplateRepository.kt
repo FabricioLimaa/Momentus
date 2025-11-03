@@ -140,7 +140,7 @@ open class TemplateRepository @Inject constructor(
 
     private suspend fun checkTemplateAchievements() {
         val totalTemplates = templateDao.getCountSync()
-        Log.d(TAG, "[TEMPLATE] Acionando verificação de conquistas com contagem total: $totalTemplates")
+        Log.d(TAG, "[TEMPLATE_FLOW] Acionando verificação de conquistas com contagem total: $totalTemplates")
         checkAndUnlockAchievementsUseCase(totalTemplates = totalTemplates)
     }
 

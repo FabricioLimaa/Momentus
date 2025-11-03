@@ -31,7 +31,6 @@ class GamificationRepository @Inject constructor(
 ) {
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
-    private var achievementsListener: ListenerRegistration? = null
 
     private val _newlyUnlockedAchievement = MutableSharedFlow<Achievement>()
     val newlyUnlockedAchievement = _newlyUnlockedAchievement.asSharedFlow()
@@ -43,53 +42,71 @@ class GamificationRepository @Inject constructor(
 
     fun getUnlockedAchievementIdsSync(): List<String> = unlockedAchievementDao.getAllIdsSync()
 
-    fun startListeningForChanges() {
-        val currentUserId = userId ?: return
-        if (achievementsListener != null) return
-
-        val collectionRef = firestore.collection("users").document(currentUserId).collection("unlocked_achievements")
-        achievementsListener = collectionRef.addSnapshotListener { snapshots, e ->
-            if (e != null) {
-                Log.w(TAG, "Erro ao escutar por mudanças nas conquistas.", e)
-                return@addSnapshotListener
-            }
-            val cloudAchievements = snapshots?.toObjects<UnlockedAchievement>() ?: emptyList()
-            CoroutineScope(dispatcher).launch {
-                unlockedAchievementDao.clear()
-                cloudAchievements.forEach { unlockedAchievementDao.insert(it) }
-                Log.d(TAG, "[SYNC] ${cloudAchievements.size} conquistas sincronizadas em tempo real.")
-            }
-        }
-    }
-
-    fun stopListeningForChanges() {
-        achievementsListener?.remove()
-        achievementsListener = null
-    }
-
     suspend fun unlockAchievement(achievementId: String, points: Int) = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
-        Log.d(TAG, "[SYNC] Desbloqueando conquista '$achievementId' para o usuário.")
+        Log.d(TAG, "[ACHIEVEMENT_FLOW] 6. Desbloqueando conquista '$achievementId' para o usuário.")
 
         val unlocked = UnlockedAchievement(achievementId, Date())
         
-        Log.d(TAG, "[LOCAL] Salvando no Room: ID=${unlocked.achievementId}, Data=${unlocked.dateUnlocked}")
+        Log.d(TAG, "[ACHIEVEMENT_FLOW] 7. Salvando no Room: ID=${unlocked.achievementId}, Data=${unlocked.dateUnlocked}")
         unlockedAchievementDao.insert(unlocked)
 
         val userDocRef = firestore.collection("users").document(currentUserId)
         val achievementDocRef = userDocRef.collection("unlocked_achievements").document(achievementId)
         
-        Log.d(TAG, "[FIREBASE] Salvando no Firestore: ID=${unlocked.achievementId}, Data=${unlocked.dateUnlocked}")
+        Log.d(TAG, "[ACHIEVEMENT_FLOW] 8. Salvando no Firestore: ID=${unlocked.achievementId}, Data=${unlocked.dateUnlocked}")
         achievementDocRef.set(unlocked)
             .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Conquista '$achievementId' salva com sucesso no Firestore.") }
             .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar conquista no Firestore.", e) }
 
+        Log.d(TAG, "[ACHIEVEMENT_FLOW] 9. Atualizando pontuação com +$points pontos.")
         userDocRef.update("points", FieldValue.increment(points.toLong()))
-            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Pontuação do usuário atualizada com +$points pontos.") }
-            .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao atualizar a pontuação do usuário.", e) }
+            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Pontuação do usuário atualizada.") }
+            .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao atualizar a pontuação.", e) }
 
         AchievementsList.allAchievements.find { it.id == achievementId }?.let {
             _newlyUnlockedAchievement.emit(it)
+        }
+    }
+
+    suspend fun syncUnlockedAchievements() = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
+        Log.d(TAG, "[SYNC] Iniciando sincronização de conquistas desbloqueadas.")
+        try {
+            val collectionRef = firestore.collection("users").document(currentUserId).collection("unlocked_achievements")
+            
+            // 1. Obter dados locais e da nuvem
+            val localAchievements = unlockedAchievementDao.getAllIdsSync().toSet()
+            val cloudAchievements = collectionRef.get().await().toObjects<UnlockedAchievement>()
+            val cloudAchievementMap = cloudAchievements.associateBy { it.achievementId }
+
+            // 2. Sincronizar da Nuvem para o Local (Download)
+            val achievementsToDownload = cloudAchievements.filter { it.achievementId !in localAchievements }
+            if (achievementsToDownload.isNotEmpty()) {
+                achievementsToDownload.forEach { unlockedAchievementDao.insert(it) }
+                Log.d(TAG, "[SYNC] Baixadas ${achievementsToDownload.size} novas conquistas da nuvem.")
+            }
+
+            // 3. Sincronizar do Local para a Nuvem (Upload)
+            val achievementsToUpload = localAchievements.filter { it !in cloudAchievementMap.keys }
+            if (achievementsToUpload.isNotEmpty()) {
+                val batch = firestore.batch()
+                achievementsToUpload.forEach { achievementId ->
+                    val docRef = collectionRef.document(achievementId)
+                    // Assumimos que a data é a atual se foi criada offline. O ideal seria ter a data no DAO.
+                    batch.set(docRef, UnlockedAchievement(achievementId, Date()))
+                }
+                batch.commit().await()
+                Log.d(TAG, "[SYNC] Enviadas ${achievementsToUpload.size} novas conquistas para a nuvem.")
+            }
+
+            if (achievementsToDownload.isEmpty() && achievementsToUpload.isEmpty()) {
+                 Log.d(TAG, "[SYNC] Conquistas já estão sincronizadas.")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "[SYNC] Erro ao sincronizar conquistas desbloqueadas.", e)
+            throw e
         }
     }
 }

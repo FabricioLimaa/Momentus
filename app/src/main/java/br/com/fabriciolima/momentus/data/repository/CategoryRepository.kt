@@ -100,7 +100,6 @@ open class CategoryRepository @Inject constructor(
 
         templateRepository.startListeningForChanges()
         eventoRepository.startListeningForChanges()
-        gamificationRepository.startListeningForChanges() // Adicionado
     }
 
     fun stopListeningForChanges() {
@@ -108,7 +107,6 @@ open class CategoryRepository @Inject constructor(
         categoriesListener = null
         templateRepository.stopListeningForChanges()
         eventoRepository.stopListeningForChanges()
-        gamificationRepository.stopListeningForChanges() // Adicionado
         _syncStatus.value = SyncStatus.OFFLINE
     }
 
@@ -117,6 +115,8 @@ open class CategoryRepository @Inject constructor(
         try {
             _syncMessage.value = "Verificando dados iniciais..."
             ensureDefaultCategoryExists()
+            _syncMessage.value = "Sincronizando conquistas..."
+            gamificationRepository.syncUnlockedAchievements()
             _syncMessage.value = "Sincronizando categorias..."
             syncCategories()
             _syncMessage.value = "Sincronizando templates..."
@@ -125,6 +125,8 @@ open class CategoryRepository @Inject constructor(
             eventoRepository.syncEventos()
             _syncMessage.value = "Sincronizando hábitos concluídos..."
             syncCompletedHabits()
+            _syncMessage.value = "Sincronização concluída!"
+            _syncStatus.value = SyncStatus.CONNECTED
         } catch (e: Exception) {
             Log.e(TAG, "Erro durante a sincronização geral.", e)
             _syncMessage.value = "Falha na sincronização."
@@ -274,35 +276,34 @@ open class CategoryRepository @Inject constructor(
     }
 
     suspend fun markHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
-        Log.d(TAG, "[SYNC] Iniciando marcação de hábito como concluído para o id: $itemCronogramaId")
+        Log.d(TAG, "[HABIT_FLOW] 1. markHabitAsCompleted acionado para o ID: $itemCronogramaId")
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
         
         habitoConcluidoDao.insert(habito)
-        Log.d(TAG, "[LOCAL] Hábito $itemCronogramaId salvo no Room.")
+        Log.d(TAG, "[HABIT_FLOW] 2. Hábito salvo no Room.")
 
         // Aciona a verificação de conquistas com os dados mais recentes
         checkAchievements()
 
         val currentUserId = userId
         if (currentUserId == null) {
-            Log.w(TAG, "[FIREBASE] Usuário não logado. A conclusão do hábito $itemCronogramaId não será salva na nuvem.")
+            Log.w(TAG, "[FIREBASE] Usuário não logado, não salvará na nuvem.")
             return@withContext
         }
 
         firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
             .document(itemCronogramaId)
             .set(habito)
-            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Hábito $itemCronogramaId salvo com sucesso na coleção correta: $COMPLETED_HABITS_COLLECTION") }
-            .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar hábito $itemCronogramaId no Firestore.", e) }
+            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Hábito $itemCronogramaId salvo com sucesso.") }
+            .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar hábito $itemCronogramaId.", e) }
     }
 
     private suspend fun checkAchievements() {
-        Log.d(TAG, "[HABIT] Acionando verificação de conquistas...")
-        // Busca síncrona dos dados mais recentes para evitar race conditions
+        Log.d(TAG, "[HABIT_FLOW] 3. checkAchievements chamado.")
         val completionDatesMillis = habitoConcluidoDao.getAllCompletionDatesSync()
         val totalCompleted = completionDatesMillis.size
         val streakCount = calculateStreak(completionDatesMillis)
-        Log.d(TAG, "[HABIT] Dados para verificação: totalCompleted=$totalCompleted, streakCount=$streakCount")
+        Log.d(TAG, "[HABIT_FLOW] 4. Dados para verificação: totalCompleted=$totalCompleted, streakCount=$streakCount")
         
         checkAndUnlockAchievementsUseCase(streakCount, totalCompleted)
     }
@@ -313,25 +314,25 @@ open class CategoryRepository @Inject constructor(
         val completionDates = completionDatesMillis
             .map { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
             .distinct()
-            .sortedDescending()
+            .sorted()
 
-        if (completionDates.isEmpty()) return 0
-
-        var currentStreak = 0
         val today = LocalDate.now()
         val yesterday = today.minusDays(1)
 
-        // A sequência só pode começar hoje ou ontem.
-        if (completionDates.first() != today && completionDates.first() != yesterday) return 0
+        if (completionDates.last() != today && completionDates.last() != yesterday) {
+            return 0
+        }
 
-        currentStreak = 1
-        var lastDate = completionDates.first()
+        var currentStreak = 0
+        var expectedDate: LocalDate? = null
 
-        for (i in 1 until completionDates.size) {
-            val currentDate = completionDates[i]
-            if (lastDate.minusDays(1) == currentDate) {
+        for (date in completionDates.reversed()) { 
+            if (expectedDate == null) { 
+                currentStreak = 1
+                expectedDate = date.minusDays(1)
+            } else if (date == expectedDate) { 
                 currentStreak++
-                lastDate = currentDate
+                expectedDate = date.minusDays(1)
             } else {
                 break
             }
@@ -341,22 +342,22 @@ open class CategoryRepository @Inject constructor(
     }
 
     suspend fun unmarkHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
-        Log.d(TAG, "[SYNC] Iniciando desmarcação de hábito como concluído para o id: $itemCronogramaId")
+        Log.d(TAG, "Iniciando desmarcação de hábito como concluído para o id: $itemCronogramaId")
 
         habitoConcluidoDao.delete(itemCronogramaId)
-        Log.d(TAG, "[LOCAL] Hábito $itemCronogramaId removido do Room.")
+        Log.d(TAG, "Hábito $itemCronogramaId removido do Room.")
 
         val currentUserId = userId
         if (currentUserId == null) {
-            Log.w(TAG, "[FIREBASE] Usuário não logado. A conclusão do hábito $itemCronogramaId não será removida da nuvem.")
+            Log.w(TAG, "Usuário não logado. A conclusão do hábito não será removida da nuvem.")
             return@withContext
         }
 
         firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
             .document(itemCronogramaId)
             .delete()
-            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Hábito $itemCronogramaId removido com sucesso da coleção correta: $COMPLETED_HABITS_COLLECTION") }
-            .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao remover hábito $itemCronogramaId do Firestore.", e) }
+            .addOnSuccessListener { Log.d(TAG, "Hábito $itemCronogramaId removido com sucesso do Firestore.") }
+            .addOnFailureListener { e -> Log.w(TAG, "Falha ao remover hábito $itemCronogramaId do Firestore.", e) }
     }
 
     suspend fun saveEventToGoogle(
