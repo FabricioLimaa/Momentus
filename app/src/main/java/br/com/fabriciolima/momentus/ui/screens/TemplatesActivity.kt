@@ -72,6 +72,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -112,13 +113,13 @@ class TemplatesActivity : ComponentActivity() {
                     uiState = uiState,
                     onNavigateUp = { finish() },
                     onShowCreateDialog = viewModel::onShowCreateDialog,
-                    onShowImportDialog = viewModel::onShowImportDialog, 
+                    onShowImportDialog = viewModel::onShowImportDialog,
                     onShowEditDialog = viewModel::onShowEditDialog,
                     onShowDeleteDialog = viewModel::onShowDeleteDialog,
                     onShowApplyDialog = viewModel::onShowApplyDialog,
                     onDialogDismiss = viewModel::onDialogDismiss,
                     onSaveTemplate = viewModel::salvarTemplateCompleto,
-                    onImportTemplate = viewModel::importTemplateFromJson, 
+                    onImportTemplate = viewModel::importTemplateFromJson,
                     onDeleteTemplate = viewModel::deleteTemplate,
                     onApplyTemplate = viewModel::applyTemplateToDates,
                     getShareableJson = viewModel::getShareableJsonForTemplate, // Adicionado
@@ -179,7 +180,7 @@ fun TemplatesScreen(
                 }
             )
         }
-        is TemplateDialogState.Import -> { 
+        is TemplateDialogState.Import -> {
             ImportTemplateDialog(
                 onDismiss = onDialogDismiss,
                 onConfirm = { jsonString ->
@@ -228,10 +229,10 @@ fun TemplatesScreen(
                 title = { Text("Deletar Template") },
                 text = { Text("Você tem certeza que quer deletar o template \"${dialogState.template.template.nome}\"? Essa ação não pode ser desfeita.") },
                 confirmButton = {
-                    Button(onClick = { onDeleteTemplate(dialogState.template.template) }) { 
+                    Button(onClick = { onDeleteTemplate(dialogState.template.template) }) {
                         Icon(Icons.Default.Delete, contentDescription = "Deletar")
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("DELETAR") 
+                        Text("DELETAR")
                     }
                 },
                 dismissButton = { TextButton(onClick = onDialogDismiss) { Text("Cancelar") } }
@@ -269,7 +270,7 @@ fun TemplatesScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text("Templates de Rotina", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(
-                text = "Crie e aplique rotinas em vários dias", 
+                text = "Crie e aplique rotinas em vários dias",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -285,7 +286,7 @@ fun TemplatesScreen(
                     Text("Novo")
                 }
                 OutlinedButton(
-                    onClick = onShowImportDialog, 
+                    onClick = onShowImportDialog,
                     modifier = Modifier.weight(1f).height(50.dp)
                 ) {
                     Icon(Icons.Default.ContentPasteGo, contentDescription = "Importar Template")
@@ -348,7 +349,7 @@ fun ImportTemplateDialog(
     onConfirm: (String) -> Unit
 ) {
     var jsonString by remember { mutableStateOf("") }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Importar Template") },
@@ -380,7 +381,7 @@ fun ImportTemplateDialog(
 
 @Composable
 fun TemplateCard(
-    templateComEventos: TemplateComEventos, 
+    templateComEventos: TemplateComEventos,
     categoriesMap: Map<String, Category>,
     isSyncing: Boolean,
     onShareClick: () -> Unit, // Adicionado
@@ -422,7 +423,7 @@ fun TemplateCard(
                     }
                 }
             }
-            
+
             if (!isSyncing) {
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
 
@@ -471,12 +472,13 @@ fun CreateTemplateDialog(
     onConfirm: (id: String?, name: String, events: List<EventFormData>) -> Unit
 ) {
     val isEditMode = templateToEdit != null
+    val focusManager = LocalFocusManager.current
     var templateName by remember { mutableStateOf(templateToEdit?.template?.nome ?: "") }
 
     val defaultCategory = remember { categories.find { it.nome.equals("Outros", ignoreCase = true) } }
 
     var eventForms by remember { mutableStateOf(
-        templateToEdit?.eventos?.map { EventFormData.fromItemCronograma(it, categories) } 
+        templateToEdit?.eventos?.map { EventFormData.fromItemCronograma(it, categories) }
             ?: listOf(EventFormData(selectedCategory = defaultCategory))
     ) }
 
@@ -491,14 +493,14 @@ fun CreateTemplateDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
+    Dialog(onDismissRequest = {
+        focusManager.clearFocus()
+        onDismiss()
+    }) {
         Card(
-            modifier = Modifier
+            /*modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 48.dp, horizontal = 16.dp),
+                .padding(vertical = 30.dp, horizontal = 16.dp),*/
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -536,7 +538,7 @@ fun CreateTemplateDialog(
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("Evento ${index + 1}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-                                if (eventForms.size > 1) { 
+                                if (eventForms.size > 1) {
                                     IconButton(onClick = { eventForms = eventForms.toMutableList().also { it.removeAt(index) } }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Remover Evento", tint = MaterialTheme.colorScheme.error)
                                     }
@@ -573,10 +575,10 @@ fun CreateTemplateDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) { 
+                    TextButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Cancelar")
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Cancelar") 
+                        Text("Cancelar")
                     }
                     Button(
                         onClick = { onConfirm(templateToEdit?.template?.id, templateName, eventForms) },
@@ -615,9 +617,9 @@ fun EventTemplateForm(
             title = "Hora de Início",
             initialTime = eventData.horarioInicio,
             onDismissRequest = { showStartTimePicker = false },
-            onConfirm = { 
+            onConfirm = {
                 onDataChange(eventData.copy(horarioInicio = it))
-                showStartTimePicker = false 
+                showStartTimePicker = false
             }
         )
     }
@@ -627,7 +629,7 @@ fun EventTemplateForm(
             title = "Hora de Término",
             initialTime = eventData.horarioTermino,
             onDismissRequest = { showEndTimePicker = false },
-            onConfirm = { 
+            onConfirm = {
                 onDataChange(eventData.copy(horarioTermino = it))
                 showEndTimePicker = false
             }
@@ -648,7 +650,7 @@ fun EventTemplateForm(
             label = { Text("Descrição (opcional)") },
             modifier = Modifier.fillMaxWidth()
         )
-        
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
                 OutlinedTextField(
