@@ -49,16 +49,23 @@ O **Momentus** foi projetado para ser um companheiro de produtividade inteligent
 ## 📸 Telas
 
 <p align="center">
-  <img src="screenshots/02-login.png" width="200" alt="Tela de Login">
-  <img src="screenshots/04-calendar.png" width="200" alt="Tela Principal do Calendário">
-  <img src="screenshots/01-new-event.png" width="200" alt="Criação de Novo Evento">
-  <img src="screenshots/03-categories.png" width="200" alt="Gerenciamento de Categorias">
+  <img src="screenshots/01-login.png" width="200" alt="Tela de Login">
+  <img src="screenshots/02-loading.png" width="200" alt="Tela de Carregamento">
+  <img src="screenshots/03-calendar.png" width="200" alt="Tela Principal do Calendário">
+  <img src="screenshots/04-new-event.png" width="200" alt="Criação de Novo Evento">
 </p>
 <p align="center">
-  <img src="screenshots/06-templates.png" width="200" alt="Criação de Templates de Rotina">
-  <img src="screenshots/07-navigation-drawer.png" width="200" alt="Menu de Navegação">
-  <img src="screenshots/08-widget.png" width="200" alt="Widget na Tela Inicial">
-  <img src="screenshots/05-loading.png" width="200" alt="Tela de Carregamento">
+  <img src="screenshots/05-navigation-drawer.png" width="200" alt="Menu de Navegação">
+  <img src="screenshots/06-templates.png" width="200" alt="Tela de Templates">
+  <img src="screenshots/07-new-templates.png" width="200" alt="Criação de Novo Template">
+  <img src="screenshots/08-categories.png" width="200" alt="Tela de Categorias">
+">
+</p>
+<p align="center">
+  <img src="screenshots/09-.png" width="200" alt="Tela das Estatísticas">
+  <img src="screenshots/10-.png" width="200" alt="Tela das Conquistas">
+  <img src="screenshots/11-widget.png" width="200" alt="Widget Interativo">
+">
 </p>
 
 ---
