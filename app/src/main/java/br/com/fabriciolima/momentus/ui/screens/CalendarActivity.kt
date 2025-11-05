@@ -640,18 +640,16 @@ fun CalendarHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
         Text(
-            modifier = Modifier
-                .weight(1f)
-                .clickable(onClick = onTitleClick),
+            modifier = Modifier.clickable(onClick = onTitleClick),
             text = month.format(monthFormatter).replaceFirstChar { it.titlecase(Locale.getDefault()) },
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            fontWeight = FontWeight.Bold
         )
         Row {
             IconButton(onClick = onPreviousMonth) {
@@ -966,15 +964,15 @@ fun EventsForDay(
                     }
                 }
 
-                items(eventsForDate.googleEvents) { event ->
+                /*items(eventsForDate.googleEvents) { event ->
                     GoogleEventListItem(event = event)
-                }
+                }*/
             }
         }
     }
 }
 
-@Composable
+/*@Composable
 fun GoogleEventListItem(event: GoogleCalendarEvent) {
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val instant = Instant.ofEpochMilli(event.start.value)
@@ -1000,8 +998,8 @@ fun GoogleEventListItem(event: GoogleCalendarEvent) {
             }
         }
     }
-}
+}*/
 
-private fun Color.luminance(): Float {
+/*private fun Color.luminance(): Float {
     return (0.299f * red + 0.587f * green + 0.114f * blue)
-}
+}*/
