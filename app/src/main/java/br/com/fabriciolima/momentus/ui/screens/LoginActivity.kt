@@ -1,6 +1,7 @@
 package br.com.fabriciolima.momentus.ui.screens
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -8,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -92,9 +94,6 @@ class LoginActivity : ComponentActivity() {
                     },
                     onEmailSignInClick = { email, password ->
                         signInWithEmail(email, password)
-                    },
-                    onEmailSignUpClick = { email, password ->
-                        signUpWithEmail(email, password)
                     }
                 )
             }
@@ -126,25 +125,6 @@ class LoginActivity : ComponentActivity() {
                 val message = when (e) {
                     is FirebaseAuthInvalidUserException, is FirebaseAuthInvalidCredentialsException -> "E-mail ou senha incorretos."
                     else -> "Falha na autenticação. Tente novamente."
-                }
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-            }
-    }
-
-    private fun signUpWithEmail(email: String, password: String) {
-        _isLoading.value = true
-        firebaseAuth.createUserWithEmailAndPassword(email, password)
-            .addOnSuccessListener { 
-                Log.d("LoginActivity", "Email/Senha Cadastro SUCESSO. UID: ${it.user?.uid}")
-                handleNavigation()
-            }
-            .addOnFailureListener { e ->
-                _isLoading.value = false
-                Log.w("LoginActivity", "Email/Senha Cadastro FALHA", e)
-                val message = when (e) {
-                    is FirebaseAuthUserCollisionException -> "Este e-mail já está em uso por outra conta."
-                    is FirebaseAuthWeakPasswordException -> "A senha é muito fraca. Use pelo menos 6 caracteres."
-                    else -> "Falha no cadastro. Tente novamente."
                 }
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()
             }
@@ -195,12 +175,12 @@ class LoginActivity : ComponentActivity() {
 fun LoginScreen(
     isLoading: Boolean,
     onGoogleSignInClick: () -> Unit,
-    onEmailSignInClick: (String, String) -> Unit,
-    onEmailSignUpClick: (String, String) -> Unit
+    onEmailSignInClick: (String, String) -> Unit
 ) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var showEmailFields by remember { mutableStateOf(false) }
 
     fun isEmailValid(): Boolean = android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
     fun isPasswordValid(): Boolean = password.length >= 6
@@ -233,14 +213,15 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(32.dp))
 
+            // --- Botão Google ---
             Button(
                 onClick = onGoogleSignInClick,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                if (isLoading && !showEmailFields) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google_logo),
@@ -249,73 +230,94 @@ fun LoginScreen(
                         tint = Color.Unspecified
                     )
                     Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                    Text("Entrar com Google", color = MaterialTheme.colorScheme.onPrimary)
+                    Text("Entrar com Google", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // --- Botão E-mail ---
+            Button(
+                onClick = { showEmailFields = true },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Email,
+                    contentDescription = "Ícone de E-mail",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                Text("Entrar com E-mail", color = MaterialTheme.colorScheme.onPrimary)
+            }
+
+            // --- Campos de E-mail e Senha (aparecem ao clicar no botão) ---
+            AnimatedVisibility(visible = showEmailFields) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
+                    }
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("E-mail") },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        isError = email.isNotEmpty() && !isEmailValid()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Senha") },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        isError = password.isNotEmpty() && !isPasswordValid()
+                    )
+                    TextButton(onClick = { 
+                        if (email.isEmpty() || !isEmailValid()) {
+                            Toast.makeText(context, "Por favor, insira um e-mail válido para a recuperação.", Toast.LENGTH_SHORT).show()
+                            return@TextButton
+                        }
+                        Firebase.auth.sendPasswordResetEmail(email)
+                            .addOnSuccessListener { Toast.makeText(context, "E-mail de recuperação enviado para $email", Toast.LENGTH_LONG).show() }
+                            .addOnFailureListener { e ->
+                                val message = when (e) {
+                                    is FirebaseAuthInvalidUserException -> "Nenhuma conta encontrada com este e-mail."
+                                    else -> "Falha ao enviar e-mail de recuperação."
+                                }
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show() 
+                            }
+                    }, modifier = Modifier.align(Alignment.End)) {
+                        Text("Esqueceu a senha?")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { onEmailSignInClick(email, password) },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        enabled = !isLoading && isEmailValid() && isPasswordValid()
+                    ) {
+                        if(isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                        } else {
+                            Text("Entrar")
+                        }
+                    }
                 }
             }
             
-            Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
-                Text("OU", modifier = Modifier.padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
-                Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
-            }
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("E-mail") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                isError = email.isNotEmpty() && !isEmailValid()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Senha (mínimo 6 caracteres)") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                visualTransformation = PasswordVisualTransformation(),
-                isError = password.isNotEmpty() && !isPasswordValid()
-            )
-            TextButton(onClick = { 
-                if (email.isEmpty() || !isEmailValid()) {
-                    Toast.makeText(context, "Por favor, insira um e-mail válido.", Toast.LENGTH_SHORT).show()
-                    return@TextButton
-                }
-                Firebase.auth.sendPasswordResetEmail(email)
-                    .addOnSuccessListener { Toast.makeText(context, "E-mail de recuperação enviado para $email", Toast.LENGTH_LONG).show() }
-                    .addOnFailureListener { e ->
-                        val message = when (e) {
-                            is FirebaseAuthInvalidUserException -> "Nenhuma conta encontrada com este e-mail."
-                            else -> "Falha ao enviar e-mail de recuperação."
-                        }
-                        Toast.makeText(context, message, Toast.LENGTH_LONG).show() 
-                    }
-            }, modifier = Modifier.align(Alignment.End)) {
-                Text("Esqueceu a senha?")
-            }
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = { onEmailSignInClick(email, password) },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = !isLoading && isEmailValid() && isPasswordValid()
-            ) {
-                if(isLoading) {
-                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text("Entrar")
-                }
-            }
-            
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(
-                    onClick = { onEmailSignUpClick(email, password) },
-                    enabled = !isLoading && isEmailValid() && isPasswordValid()
-                ) {
-                    Text("Crie aqui")
+                TextButton(onClick = { 
+                    val intent = Intent(context, SignUpActivity::class.java)
+                    context.startActivity(intent)
+                }) {
+                    Text("Crie uma aqui")
                 }
             }
         }
