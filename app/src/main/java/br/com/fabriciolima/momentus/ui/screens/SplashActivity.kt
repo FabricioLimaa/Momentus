@@ -48,7 +48,7 @@ class SplashActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Image(
-                            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                            painter = painterResource(id = R.drawable.ic_launcher_logo_round),
                             contentDescription = "Logo do Momentus",
                             modifier = Modifier.size(128.dp)
                         )

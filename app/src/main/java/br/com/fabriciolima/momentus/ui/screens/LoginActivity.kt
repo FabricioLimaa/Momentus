@@ -117,7 +117,7 @@ class LoginActivity : ComponentActivity() {
     private fun firebaseAuthWithGoogle(account: GoogleSignInAccount) {
         val credential = GoogleAuthProvider.getCredential(account.idToken!!, null)
         firebaseAuth.signInWithCredential(credential)
-            .addOnSuccessListener {
+            .addOnSuccessListener {                
                 Log.d("LoginActivity", "Firebase Auth SUCESSO. UID: ${it.user?.uid}")
                 handleNavigation()
             }
@@ -166,7 +166,7 @@ fun LoginScreen(isSigningIn: Boolean, onGoogleSignInClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(id = R.drawable.app_logo),
+                painter = painterResource(id = R.drawable.ic_launcher_logo_round),
                 contentDescription = "Logo Momentus",
                 modifier = Modifier.size(100.dp)
             )

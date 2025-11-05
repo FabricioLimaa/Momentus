@@ -9,5 +9,5 @@
     android:previewLayout="@layout/widget_preview"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
-    android:icon="@drawable/app_logo">
+    android:icon="@mipmap/ic_launcher_logo_round">
 </appwidget-provider>
