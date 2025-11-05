@@ -72,9 +72,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -85,6 +88,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.data.model.Achievement
@@ -106,9 +110,15 @@ import br.com.fabriciolima.momentus.widget.OPEN_NEW_EVENT_DIALOG_KEY
 import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.kizitonwose.calendar.compose.HorizontalCalendar
+import com.kizitonwose.calendar.compose.rememberCalendarState
+import com.kizitonwose.calendar.core.CalendarDay
+import com.kizitonwose.calendar.core.DayPosition
+import com.kizitonwose.calendar.core.daysOfWeek
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -116,6 +126,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Locale
 
 @AndroidEntryPoint
@@ -142,9 +153,9 @@ class CalendarActivity : ComponentActivity() {
                 LaunchedEffect(key1 = true) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         if (ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.POST_NOTIFICATIONS
-                        ) != PackageManager.PERMISSION_GRANTED
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) != PackageManager.PERMISSION_GRANTED
                         ) {
                             launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
@@ -191,8 +202,6 @@ class CalendarActivity : ComponentActivity() {
                         eventsForSelectedDate = eventsForSelectedDate,
                         account = account,
                         onDateSelected = viewModel::selectDate,
-                        onPreviousMonth = { viewModel.selectDate(it.minusMonths(1)) },
-                        onNextMonth = { viewModel.selectDate(it.plusMonths(1)) },
                         onMenuClick = { scope.launch { drawerState.open() } },
                         onAddNewEventClicked = viewModel::onAddNewEventClicked,
                         onDialogDismiss = viewModel::onDialogDismiss,
@@ -300,8 +309,6 @@ fun CalendarScreen(
     eventsForSelectedDate: EventsForDate,
     account: GoogleSignInAccount?,
     onDateSelected: (LocalDate) -> Unit,
-    onPreviousMonth: (LocalDate) -> Unit,
-    onNextMonth: (LocalDate) -> Unit,
     onMenuClick: () -> Unit,
     onAddNewEventClicked: () -> Unit,
     onDialogDismiss: () -> Unit,
@@ -474,8 +481,12 @@ fun CalendarScreen(
                 }
                 Spacer(modifier = Modifier.height(24.dp))
 
-                CalendarHeader(selectedDate, onPreviousMonth, onNextMonth)
-                CalendarGrid(selectedDate, onDateSelected, uiState)
+                CalendarContent(
+                    uiState = uiState,
+                    selectedDate = selectedDate,
+                    onDateSelected = onDateSelected
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Divider()
                 Spacer(modifier = Modifier.height(16.dp))
@@ -551,7 +562,7 @@ fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavig
                     icon = { Icon(Icons.Default.Category, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
-                 NavigationDrawerItem(
+                NavigationDrawerItem(
                     label = { Text("Estatísticas") },
                     selected = false,
                     onClick = {
@@ -561,7 +572,7 @@ fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavig
                     icon = { Icon(Icons.Default.Assessment, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
-                 NavigationDrawerItem(
+                NavigationDrawerItem(
                     label = { Text("Conquistas") },
                     selected = false,
                     onClick = {
@@ -595,8 +606,8 @@ fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavig
                     Column(verticalArrangement = Arrangement.Center) {
                         Text(text = account?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                         Text(
-                            text = account?.email ?: "", 
-                            style = MaterialTheme.typography.bodySmall, 
+                            text = account?.email ?: "",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -619,96 +630,157 @@ fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavig
 }
 
 @Composable
-fun CalendarHeader(selectedDate: LocalDate, onPreviousMonth: (LocalDate) -> Unit, onNextMonth: (LocalDate) -> Unit) {
+fun CalendarHeader(
+    modifier: Modifier = Modifier,
+    month: YearMonth,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onTitleClick: () -> Unit
+) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
         Text(
-            text = selectedDate.format(monthFormatter).replaceFirstChar { it.titlecase(Locale.getDefault()) },
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onTitleClick),
+            text = month.format(monthFormatter).replaceFirstChar { it.titlecase(Locale.getDefault()) },
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
         )
         Row {
-            IconButton(onClick = { onPreviousMonth(selectedDate) }) {
+            IconButton(onClick = onPreviousMonth) {
                 Icon(Icons.Default.ChevronLeft, contentDescription = "Mês Anterior")
             }
-            IconButton(onClick = { onNextMonth(selectedDate) }) {
+            IconButton(onClick = onNextMonth) {
                 Icon(Icons.Default.ChevronRight, contentDescription = "Próximo Mês")
             }
         }
     }
 }
 
-@Composable
-fun CalendarGrid(selectedDate: LocalDate, onDateSelected: (LocalDate) -> Unit, uiState: CalendarUiState) {
-    val yearMonth = YearMonth.from(selectedDate)
-    val firstDayOfMonth = yearMonth.atDay(1)
-    val daysInMonth = yearMonth.lengthOfMonth()
 
-    val localEventsByDate = uiState.allScheduleItems.groupBy {
-        it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneOffset.UTC).toLocalDate() }
+@Composable
+fun CalendarContent(
+    uiState: CalendarUiState,
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    val currentMonth = remember { YearMonth.now() }
+    val startMonth = remember { currentMonth.minusYears(100) }
+    val endMonth = remember { currentMonth.plusYears(100) }
+    val daysOfWeek = remember { daysOfWeek(firstDayOfWeek = DayOfWeek.SUNDAY) }
+    var showMonthYearPicker by remember { mutableStateOf(false) }
+
+    val calendarState = rememberCalendarState(
+        startMonth = startMonth,
+        endMonth = endMonth,
+        firstVisibleMonth = YearMonth.from(selectedDate),
+        firstDayOfWeek = daysOfWeek.first()
+    )
+
+    val coroutineScope = rememberCoroutineScope()
+    val visibleMonth by remember { derivedStateOf { calendarState.firstVisibleMonth.yearMonth } }
+
+    LaunchedEffect(selectedDate) {
+        coroutineScope.launch {
+            calendarState.animateScrollToMonth(YearMonth.from(selectedDate))
+        }
     }
 
-    val googleEventsByDate = uiState.googleCalendarEvents.groupBy { event ->
-        val instant = Instant.ofEpochMilli(event.start.value)
-        instant.atZone(ZoneOffset.UTC).toLocalDate()
+    if (showMonthYearPicker) {
+        MonthYearPickerDialog(
+            currentMonth = visibleMonth,
+            onDismiss = { showMonthYearPicker = false },
+            onMonthYearSelected = {
+                coroutineScope.launch {
+                    calendarState.scrollToMonth(it)
+                }
+                showMonthYearPicker = false
+            }
+        )
     }
 
     Column {
+        CalendarHeader(
+            month = visibleMonth,
+            onPreviousMonth = {
+                coroutineScope.launch {
+                    calendarState.animateScrollToMonth(visibleMonth.minusMonths(1))
+                }
+            },
+            onNextMonth = {
+                coroutineScope.launch {
+                    calendarState.animateScrollToMonth(visibleMonth.plusMonths(1))
+                }
+            },
+            onTitleClick = { showMonthYearPicker = true }
+        )
         Row(modifier = Modifier.fillMaxWidth()) {
-            val daysOfWeek = listOf("Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb")
-            daysOfWeek.forEach {
-                Text(text = it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+            daysOfWeek.forEach { dayOfWeek ->
+                Text(
+                    text = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("pt", "BR")),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
-            userScrollEnabled = false
-        ) {
-            val startOffset = firstDayOfMonth.dayOfWeek.value % 7
-            items(startOffset) {
-                Box(modifier = Modifier.aspectRatio(1f))
-            }
-
-            items(daysInMonth) {
-                val day = firstDayOfMonth.plusDays(it.toLong())
-                val isSelected = day == selectedDate
-                val isCurrentMonth = YearMonth.from(day) == yearMonth
-                val localEventsForDay = localEventsByDate[day] ?: emptyList()
-                val googleEventsForDay = googleEventsByDate[day] ?: emptyList()
-
-                DayCell(day, isSelected, isCurrentMonth, localEventsForDay, googleEventsForDay, uiState.categoriesMap, onDateSelected)
-            }
+        val localEventsByDate = uiState.allScheduleItems.groupBy {
+            it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneOffset.UTC).toLocalDate() }
         }
+
+        val googleEventsByDate = uiState.googleCalendarEvents.groupBy { event ->
+            val instant = Instant.ofEpochMilli(event.start.value)
+            instant.atZone(ZoneOffset.UTC).toLocalDate()
+        }
+
+        HorizontalCalendar(
+            state = calendarState,
+            dayContent = { day ->
+                DayCell(
+                    day = day,
+                    isSelected = selectedDate == day.date,
+                    localEvents = localEventsByDate[day.date] ?: emptyList(),
+                    googleEvents = googleEventsByDate[day.date] ?: emptyList(),
+                    categoriesMap = uiState.categoriesMap,
+                    onDateSelected = { onDateSelected(it.date) }
+                )
+            }
+        )
     }
 }
 
 @Composable
 fun DayCell(
-    day: LocalDate,
+    day: CalendarDay,
     isSelected: Boolean,
-    isCurrentMonth: Boolean,
     localEvents: List<ItemCronograma>,
     googleEvents: List<GoogleCalendarEvent>,
     categoriesMap: Map<String, Category>,
-    onDateSelected: (LocalDate) -> Unit
+    onDateSelected: (CalendarDay) -> Unit
 ) {
-    val textColor = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+    val isCurrentMonth = day.position == DayPosition.MonthDate
+    val textColor = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
 
     var modifier = Modifier
         .aspectRatio(1f)
         .padding(2.dp)
         .clip(RoundedCornerShape(8.dp))
-        .clickable { onDateSelected(day) }
+        .clickable(
+            enabled = isCurrentMonth,
+            onClick = { onDateSelected(day) }
+        )
 
-    if (isSelected) {
+    if (isSelected && isCurrentMonth) {
         modifier = modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
     }
 
@@ -718,35 +790,38 @@ fun DayCell(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = day.dayOfMonth.toString(),
+            text = day.date.dayOfMonth.toString(),
             color = textColor,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 4.dp)
         )
 
-        val allEventsForDay = localEvents + googleEvents.map { it.summary }
-        if (allEventsForDay.isNotEmpty()) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.height(8.dp)
-            ) {
-                localEvents.take(2).forEach { event ->
-                    val category = categoriesMap[event.categoryId]
-                    val eventColor = category?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } } ?: MaterialTheme.colorScheme.secondary
-                    Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
-                }
-
-                if (localEvents.size < 2 && googleEvents.isNotEmpty()) {
-                    val remainingSlots = 2 - localEvents.size
-                    googleEvents.take(remainingSlots).forEach { _ ->
-                        Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.error, CircleShape))
+        if (isCurrentMonth) {
+            val allEventsForDay = localEvents + googleEvents.map { it.summary }
+            if (allEventsForDay.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.height(8.dp)
+                ) {
+                    localEvents.take(2).forEach { event ->
+                        val category = categoriesMap[event.categoryId]
+                        val eventColor = category?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } }
+                            ?: MaterialTheme.colorScheme.secondary
+                        Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
                     }
-                }
 
-                val remainingCount = allEventsForDay.size - 2
-                if (remainingCount > 0) {
-                    Text(text = "+${remainingCount}", fontSize = 8.sp, color = textColor)
+                    if (localEvents.size < 2 && googleEvents.isNotEmpty()) {
+                        val remainingSlots = 2 - localEvents.size
+                        googleEvents.take(remainingSlots).forEach { _ ->
+                            Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.error, CircleShape))
+                        }
+                    }
+
+                    val remainingCount = allEventsForDay.size - 2
+                    if (remainingCount > 0) {
+                        Text(text = "+${remainingCount}", fontSize = 8.sp, color = textColor)
+                    }
                 }
             }
         }
@@ -754,12 +829,66 @@ fun DayCell(
 }
 
 @Composable
-private fun rememberContentColorFor(backgroundColor: Color): Color {
-    return remember(backgroundColor) {
-        if (backgroundColor.luminance() > 0.5f) Color.Black else Color.White
+fun MonthYearPickerDialog(
+    currentMonth: YearMonth,
+    onDismiss: () -> Unit,
+    onMonthYearSelected: (YearMonth) -> Unit
+) {
+    var selectedYear by remember { mutableStateOf(currentMonth.year) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Selecione Mês e Ano", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { selectedYear-- }) {
+                        Icon(imageVector = Icons.Default.ChevronLeft, contentDescription = "Ano anterior")
+                    }
+                    Text(text = selectedYear.toString(), style = MaterialTheme.typography.headlineMedium)
+                    IconButton(onClick = { selectedYear++ }) {
+                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Próximo ano")
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(12) { month ->
+                        val monthName = YearMonth.of(selectedYear, month + 1).month.getDisplayName(TextStyle.SHORT, Locale("pt", "BR"))
+                        Box(
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (currentMonth.year == selectedYear && currentMonth.monthValue == month + 1) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        Color.Transparent
+                                    }
+                                )
+                                .clickable { onMonthYearSelected(YearMonth.of(selectedYear, month + 1)) }
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = monthName.replaceFirstChar { it.uppercase() })
+                        }
+                    }
+                }
+            }
+        }
     }
 }
-
 
 @Composable
 fun EventsForDay(
@@ -768,7 +897,7 @@ fun EventsForDay(
     eventsForDate: EventsForDate,
     onEventClick: (ItemCronograma) -> Unit,
     onAddNewEventClicked: () -> Unit,
-    onMarkAsCompleted: (String) -> Unit, 
+    onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("pt", "BR"))
@@ -789,15 +918,15 @@ fun EventsForDay(
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.EventBusy, 
-                    contentDescription = null, 
+                    imageVector = Icons.Outlined.EventBusy,
+                    contentDescription = null,
                     modifier = Modifier.size(80.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    text = "Dia livre!", 
-                    style = MaterialTheme.typography.headlineSmall, 
+                    text = "Dia livre!",
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -822,8 +951,8 @@ fun EventsForDay(
                     if (category != null) {
                         val isChecked = uiState.completedHabitIds.contains(it.id)
                         EventListItem(
-                            item = it, 
-                            category = category, 
+                            item = it,
+                            category = category,
                             isChecked = isChecked,
                             onCheckedChange = { newCheckedState ->
                                 if (newCheckedState) {
