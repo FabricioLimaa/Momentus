@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import br.com.fabriciolima.momentus.R
+import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
@@ -65,7 +66,9 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
 
-    @Inject lateinit var userRepository: UserRepository // Injetado
+    @Inject lateinit var userRepository: UserRepository
+    @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
+
     private lateinit var googleSignInClient: GoogleSignInClient
     private val firebaseAuth: FirebaseAuth by lazy { Firebase.auth }
 
@@ -92,22 +95,35 @@ class LoginActivity : ComponentActivity() {
         setContent {
             MomentusTheme {
                 val isLoading by remember { _isLoading }
-                LoginScreen(
-                    isLoading = isLoading,
-                    onGoogleSignInClick = {
-                        _isLoading.value = true
-                        signInWithGoogle()
-                    },
-                    onEmailSignInClick = { email, password ->
-                        signInWithEmail(email, password)
-                    }
-                )
+                val userPreferences by userPreferencesRepository.userPreferencesFlow.collectAsState(initial = null)
+
+                userPreferences?.let {
+                    LoginScreen(
+                        isLoading = isLoading,
+                        userPreferences = it,
+                        onGoogleSignInClick = {
+                            _isLoading.value = true
+                            signInWithGoogle()
+                        },
+                        onEmailSignInClick = { email, password, rememberMe ->
+                            signInWithEmail(email, password, rememberMe)
+                        },
+                        onUpdatePreferences = { email, rememberMe ->
+                            lifecycleScope.launch {
+                                userPreferencesRepository.updateUserEmail(email)
+                                userPreferencesRepository.updateRememberMe(rememberMe)
+                            }
+                        }
+                    )
+                }
             }
         }
     }
 
     override fun onStart() {
         super.onStart()
+        // Navega automaticamente se o usuário já estiver logado.
+        // A lógica de "Lembrar-me" é tratada na UI.
         if (firebaseAuth.currentUser != null) {
             handleNavigation()
         }
@@ -118,13 +134,19 @@ class LoginActivity : ComponentActivity() {
         googleSignInLauncher.launch(signInIntent)
     }
 
-    private fun signInWithEmail(email: String, password: String) {
+    private fun signInWithEmail(email: String, password: String, rememberMe: Boolean) {
         _isLoading.value = true
         firebaseAuth.signInWithEmailAndPassword(email, password)
             .addOnSuccessListener { authResult ->
                 val firebaseUser = authResult.user
                 if (firebaseUser != null) {
                     lifecycleScope.launch {
+                        if (rememberMe) {
+                            userPreferencesRepository.updateUserEmail(email)
+                            userPreferencesRepository.updateRememberMe(true)
+                        } else {
+                            userPreferencesRepository.clear()
+                        }
                         userRepository.createOrUpdateUser(firebaseUser)
                         Log.d("LoginActivity", "Email/Senha Auth SUCESSO. UID: ${firebaseUser.uid}")
                         handleNavigation()
@@ -164,6 +186,8 @@ class LoginActivity : ComponentActivity() {
                 if (firebaseUser != null) {
                     lifecycleScope.launch { // Usando lifecycleScope para a coroutine
                         userRepository.createOrUpdateUser(firebaseUser)
+                        // Para o login com Google, podemos simplesmente limpar as prefs de e-mail.
+                        userPreferencesRepository.clear()
                         Log.d("LoginActivity", "Firebase Auth SUCESSO. UID: ${firebaseUser.uid}")
                         handleNavigation()
                     }
@@ -198,13 +222,24 @@ class LoginActivity : ComponentActivity() {
 @Composable
 fun LoginScreen(
     isLoading: Boolean,
+    userPreferences: br.com.fabriciolima.momentus.data.repository.UserPreferences,
     onGoogleSignInClick: () -> Unit,
-    onEmailSignInClick: (String, String) -> Unit
+    onEmailSignInClick: (String, String, Boolean) -> Unit,
+    onUpdatePreferences: (String, Boolean) -> Unit
 ) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showEmailFields by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userPreferences) {
+        if (userPreferences.rememberMe) {
+            email = userPreferences.email
+            rememberMe = true
+            showEmailFields = true
+        }
+    }
 
     fun isEmailValid(): Boolean = android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
     fun isPasswordValid(): Boolean = password.length >= 6
@@ -300,6 +335,19 @@ fun LoginScreen(
                         visualTransformation = PasswordVisualTransformation(),
                         isError = password.isNotEmpty() && !isPasswordValid()
                     )
+                     Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = rememberMe,
+                            onCheckedChange = { 
+                                rememberMe = it
+                                onUpdatePreferences(email, it)
+                            }
+                        )
+                        Text("Lembrar-me")
+                    }
                     TextButton(onClick = { 
                         if (email.isEmpty() || !isEmailValid()) {
                             Toast.makeText(context, "Por favor, insira um e-mail válido para a recuperação.", Toast.LENGTH_SHORT).show()
@@ -320,7 +368,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
-                        onClick = { onEmailSignInClick(email, password) },
+                        onClick = { onEmailSignInClick(email, password, rememberMe) },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         enabled = !isLoading && isEmailValid() && isPasswordValid()
                     ) {
