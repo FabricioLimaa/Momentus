@@ -245,10 +245,17 @@ class CalendarActivity : ComponentActivity() {
 }
 
 @Composable
-fun UserAvatar(account: GoogleSignInAccount?, modifier: Modifier = Modifier) {
-    if (account?.photoUrl != null) {
+fun UserAvatar(
+    userData: UserData?,
+    account: GoogleSignInAccount?,
+    modifier: Modifier = Modifier
+) {
+    val photoUrl = account?.photoUrl
+    val displayName = userData?.displayName ?: account?.displayName
+
+    if (photoUrl != null) {
         AsyncImage(
-            model = account.photoUrl,
+            model = photoUrl,
             contentDescription = "Foto do Perfil",
             modifier = modifier.clip(CircleShape),
             contentScale = ContentScale.Crop
@@ -258,8 +265,14 @@ fun UserAvatar(account: GoogleSignInAccount?, modifier: Modifier = Modifier) {
             modifier = modifier.background(MaterialTheme.colorScheme.primary, CircleShape),
             contentAlignment = Alignment.Center
         ) {
+            val initials = displayName
+                ?.split(' ')
+                ?.take(2)
+                ?.mapNotNull { it.firstOrNull()?.uppercase() }
+                ?.joinToString("") 
+                ?: "U"
             Text(
-                text = account?.displayName?.firstOrNull()?.toString()?.uppercase() ?: "U",
+                text = initials,
                 color = MaterialTheme.colorScheme.onPrimary,
                 fontWeight = FontWeight.Bold
             )
@@ -601,13 +614,13 @@ fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavig
                 Text(text = "USUÁRIO", style = MaterialTheme.typography.labelSmall)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    UserAvatar(account = account, modifier = Modifier.size(40.dp))
+                    UserAvatar(userData = userData, account = account, modifier = Modifier.size(40.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(verticalArrangement = Arrangement.Center) {
-                        Text(text = account?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                        Text(text = userData?.displayName ?: account?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                         Text(
-                            text = account?.email ?: "",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = userData?.email ?: account?.email ?: "", 
+                            style = MaterialTheme.typography.bodySmall, 
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

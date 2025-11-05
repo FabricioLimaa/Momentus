@@ -61,8 +61,9 @@ class SignUpViewModel @Inject constructor() : ViewModel() {
             firebaseAuth.createUserWithEmailAndPassword(email, pass)
                 .addOnSuccessListener { authResult ->
                     val userId = authResult.user?.uid ?: return@addOnSuccessListener
+                    // Corrigido: Usando "display_name" para corresponder ao modelo UserData
                     val user = mapOf(
-                        "name" to name,
+                        "display_name" to name,
                         "email" to email,
                         "points" to 0
                     )

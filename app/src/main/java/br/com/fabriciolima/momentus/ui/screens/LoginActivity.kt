@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +38,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import br.com.fabriciolima.momentus.R
+import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import br.com.fabriciolima.momentus.widget.EVENT_ID_KEY
@@ -56,10 +59,13 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
 
+    @Inject lateinit var userRepository: UserRepository // Injetado
     private lateinit var googleSignInClient: GoogleSignInClient
     private val firebaseAuth: FirebaseAuth by lazy { Firebase.auth }
 
@@ -115,9 +121,18 @@ class LoginActivity : ComponentActivity() {
     private fun signInWithEmail(email: String, password: String) {
         _isLoading.value = true
         firebaseAuth.signInWithEmailAndPassword(email, password)
-            .addOnSuccessListener { 
-                Log.d("LoginActivity", "Email/Senha Auth SUCESSO. UID: ${it.user?.uid}")
-                handleNavigation() 
+            .addOnSuccessListener { authResult ->
+                val firebaseUser = authResult.user
+                if (firebaseUser != null) {
+                    lifecycleScope.launch {
+                        userRepository.createOrUpdateUser(firebaseUser)
+                        Log.d("LoginActivity", "Email/Senha Auth SUCESSO. UID: ${firebaseUser.uid}")
+                        handleNavigation()
+                    }
+                } else {
+                    _isLoading.value = false
+                    Toast.makeText(this, "Falha ao obter dados do usuário do Firebase.", Toast.LENGTH_LONG).show()
+                }
             }
             .addOnFailureListener { e ->
                 _isLoading.value = false
@@ -144,9 +159,18 @@ class LoginActivity : ComponentActivity() {
     private fun firebaseAuthWithGoogle(account: GoogleSignInAccount) {
         val credential = GoogleAuthProvider.getCredential(account.idToken!!, null)
         firebaseAuth.signInWithCredential(credential)
-            .addOnSuccessListener {                
-                Log.d("LoginActivity", "Firebase Auth SUCESSO. UID: ${it.user?.uid}")
-                handleNavigation()
+            .addOnSuccessListener { authResult ->
+                val firebaseUser = authResult.user
+                if (firebaseUser != null) {
+                    lifecycleScope.launch { // Usando lifecycleScope para a coroutine
+                        userRepository.createOrUpdateUser(firebaseUser)
+                        Log.d("LoginActivity", "Firebase Auth SUCESSO. UID: ${firebaseUser.uid}")
+                        handleNavigation()
+                    }
+                } else {
+                     _isLoading.value = false
+                    Toast.makeText(this, "Falha ao obter dados do usuário do Firebase.", Toast.LENGTH_LONG).show()
+                }
             }
             .addOnFailureListener { e ->
                 _isLoading.value = false

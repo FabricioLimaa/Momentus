@@ -1,8 +1,10 @@
 package br.com.fabriciolima.momentus.data.repository
 
+import android.util.Log
 import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.di.IoDispatcher
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.awaitClose
@@ -12,6 +14,8 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val TAG = "UserRepository"
 
 @Singleton
 class UserRepository @Inject constructor(
@@ -40,10 +44,31 @@ class UserRepository @Inject constructor(
             if (snapshot != null && snapshot.exists()) {
                 trySend(snapshot.toObject(UserData::class.java))
             } else {
-                trySend(null)
+                trySend(null) // Usuário autenticado mas sem dados no Firestore ainda.
             }
         }
         awaitClose { listenerRegistration.remove() }
+    }
+
+    suspend fun createOrUpdateUser(firebaseUser: FirebaseUser) = withContext(dispatcher) {
+        val userDocRef = firestore.collection("users").document(firebaseUser.uid)
+        try {
+            val document = userDocRef.get().await()
+            if (!document.exists()) {
+                Log.d(TAG, "Documento de usuário não encontrado para UID: ${firebaseUser.uid}. Criando novo documento.")
+                val newUser = UserData(
+                    displayName = firebaseUser.displayName,
+                    email = firebaseUser.email
+                )
+                userDocRef.set(newUser).await()
+                 Log.i(TAG, "Novo documento de usuário criado com sucesso no Firestore.")
+            } else {
+                Log.d(TAG, "Documento de usuário já existe para UID: ${firebaseUser.uid}. Nenhuma ação necessária.")
+                // Opcional: Adicionar lógica para atualizar o documento se necessário.
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Falha ao criar ou verificar documento do usuário no Firestore.", e)
+        }
     }
 
     suspend fun acceptTerms() = withContext(dispatcher) {
