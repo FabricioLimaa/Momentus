@@ -19,7 +19,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "br.com.fabriciolima.momentus"
-    compileSdk = 34
+    compileSdk = 36
 
     // Configuração de assinatura para release com os dados corretos
     signingConfigs {
@@ -38,15 +38,19 @@ android {
     defaultConfig {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
-        versionName = "0.9.80-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        targetSdk = 36
+        versionCode = 3 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionName = "0.9.802-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true // REATIVADO - Essencial para segurança do código
+
+            // Enables resource shrinking.
+            isShrinkResources = true
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -106,7 +110,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation("androidx.hilt:hilt-work:1.2.0") // Adicionado para integração com WorkManager
+    implementation(libs.androidx.hilt.work) // Adicionado para integração com WorkManager
     //ksp("androidx.hilt:hilt-compiler:1.2.0") // Adicionado para integração com WorkManager
 
     // Glance for App Widgets
@@ -133,7 +137,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.material.icons.extended)
-    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.1") // Adicionado
+    implementation(libs.androidx.constraintlayout.compose) // Adicionado
 
     implementation(libs.composeReorderable)
 
@@ -175,7 +179,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.androidx.core.testing)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1") // Adicionado para os testes
+    testImplementation(libs.mockito.kotlin) // Adicionado para os testes
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
