@@ -11,6 +11,7 @@ import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.GamificationRepository
+import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
@@ -81,8 +82,9 @@ data class CalendarUiState(
 class CalendarViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val eventoRepository: EventoRepository,
+    private val templateRepository: TemplateRepository, // Adicionado
     private val userRepository: UserRepository,
-    private val gamificationRepository: GamificationRepository, // Adicionado
+    private val gamificationRepository: GamificationRepository,
     private val alarmScheduler: AlarmScheduler,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
@@ -161,17 +163,29 @@ class CalendarViewModel @Inject constructor(
         super.onCleared()
         dataCollectionJob?.cancel()
         categoryRepository.stopListeningForChanges()
+        templateRepository.stopListeningForChanges()
     }
 
     fun logout() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                // 1. Parar de ouvir mudanças do Firebase
                 dataCollectionJob?.cancel()
                 categoryRepository.stopListeningForChanges()
+                templateRepository.stopListeningForChanges()
+
+                // 2. Limpar todos os dados locais
+                eventoRepository.clear()
+                categoryRepository.clearAllLocalData()
+                templateRepository.clear()
+                gamificationRepository.clear()
+
+                // 3. Fazer logout dos serviços de autenticação
                 googleSignInClient.signOut().await()
                 auth.signOut()
-                categoryRepository.clearAllLocalData()
+
+                // 4. Emitir evento de sucesso
                 _logoutEvent.emit(LogoutEvent.Success)
 
             } catch (e: Exception) {

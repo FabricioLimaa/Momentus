@@ -315,7 +315,7 @@ fun LoginScreen(
                     onClick = { onEmailSignUpClick(email, password) },
                     enabled = !isLoading && isEmailValid() && isPasswordValid()
                 ) {
-                    Text("Crie uma aqui")
+                    Text("Crie aqui")
                 }
             }
         }

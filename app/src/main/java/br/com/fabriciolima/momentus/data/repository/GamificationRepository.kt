@@ -42,6 +42,11 @@ class GamificationRepository @Inject constructor(
 
     fun getUnlockedAchievementIdsSync(): List<String> = unlockedAchievementDao.getAllIdsSync()
 
+    suspend fun clear() = withContext(dispatcher) {
+        Log.d(TAG, "Limpando todas as conquistas desbloqueadas do banco de dados local.")
+        unlockedAchievementDao.clear()
+    }
+
     suspend fun unlockAchievement(achievementId: String, points: Int) = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
         Log.d(TAG, "[ACHIEVEMENT_FLOW] 6. Desbloqueando conquista '$achievementId' para o usuário.")
