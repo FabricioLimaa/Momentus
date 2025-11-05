@@ -37,7 +37,7 @@ interface TemplateDao {
 
     @Transaction
     @Query("SELECT * FROM tabela_templates WHERE id = :templateId")
-    fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos>
+    fun getTemplateComEventos(templateId: String): Flow<TemplateComEventos?>
 
     @Query("DELETE FROM tabela_templates")
     suspend fun clear()

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,7 +28,7 @@ private const val TAG = "TemplateRepository"
 
 @Singleton
 open class TemplateRepository @Inject constructor(
-    @ApplicationContext private val context: Context, // Adicionado
+    @ApplicationContext private val context: Context,
     private val templateDao: TemplateDao,
     private val eventoRepository: EventoRepository,
     private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase, 
@@ -123,25 +124,29 @@ open class TemplateRepository @Inject constructor(
         }
     }
 
-    fun getTemplateComEventos(templateId: Int): Flow<TemplateComEventos> {
+    fun getTemplateComEventos(templateId: String): Flow<TemplateComEventos?> {
         return templateDao.getTemplateComEventos(templateId)
     }
 
     suspend fun insertTemplate(template: Template) = withContext(dispatcher) {
-        Log.d(TAG, "Inserindo/Atualizando template: ID=${template.id}, Nome=${template.nome}")
+        Log.d(TAG, "ROOM_UPDATE: Iniciando atualização do template no banco de dados local: ID=${template.id}")
         templateDao.insert(template)
+        Log.i(TAG, "ROOM_UPDATE_SUCCESS: Template ID=${template.id} salvo no Room com sucesso.")
 
         checkTemplateAchievements()
 
-        userId?.let {
-            firestore.collection("users").document(it).collection("templates").document(template.id)
+        userId?.let { userId ->
+            Log.d(TAG, "FIREBASE_SYNC: Iniciando sincronização com Firebase para o template ID=${template.id}")
+            firestore.collection("users").document(userId).collection("templates").document(template.id)
                 .set(template)
                 .addOnSuccessListener { 
-                    Log.d(TAG, "Template ${template.id} salvo com sucesso no Firestore.")
+                    Log.i(TAG, "FIREBASE_SYNC_SUCCESS: Template ID=${template.id} salvo com sucesso no Firestore.")
                     WidgetUpdater.requestUpdate(context)
                 }
-                .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar template ${template.id} no Firestore.", e) }
-        }
+                .addOnFailureListener { e -> 
+                    Log.w(TAG, "FIREBASE_SYNC_FAILURE: Erro ao salvar template ID=${template.id} no Firestore.", e) 
+                }
+        } ?: Log.w(TAG, "FIREBASE_SYNC_SKIPPED: UID do usuário nulo. Sincronização com Firebase ignorada para o template ID=${template.id}.")
     }
 
     private suspend fun checkTemplateAchievements() {
@@ -151,13 +156,29 @@ open class TemplateRepository @Inject constructor(
     }
 
     suspend fun saveTemplateWithEvents(template: Template, eventos: List<ItemCronograma>) = withContext(dispatcher) {
-        Log.d(TAG, "Salvando template com eventos (transacional): ID=${template.id}")
-        templateDao.update(template)
-        eventoRepository.deleteEventsByTemplateId(template.id)
+        Log.d(TAG, "TRANSACTION_UPDATE: Iniciando atualização transacional do template ID=${template.id}")
+        val updatedTemplate = template.copy(lastUpdated = Date())
+
+        Log.d(TAG, "ROOM_UPDATE: Atualizando template e eventos no Room para o template ID=${updatedTemplate.id}")
+        templateDao.insert(updatedTemplate) // Usando insert (upsert) para garantir a atualização
+        eventoRepository.deleteEventsByTemplateId(updatedTemplate.id)
         eventoRepository.insertAll(eventos)
+        Log.i(TAG, "ROOM_UPDATE_SUCCESS: Template e eventos do ID=${updatedTemplate.id} atualizados no Room.")
 
         checkTemplateAchievements()
-        WidgetUpdater.requestUpdate(context)
+
+        userId?.let { userId ->
+            Log.d(TAG, "FIREBASE_SYNC: Iniciando sincronização com Firebase para o template ID=${updatedTemplate.id}")
+            firestore.collection("users").document(userId).collection("templates").document(updatedTemplate.id)
+                .set(updatedTemplate)
+                .addOnSuccessListener { 
+                    Log.i(TAG, "FIREBASE_SYNC_SUCCESS: Template ID=${updatedTemplate.id} salvo com sucesso no Firestore.")
+                    WidgetUpdater.requestUpdate(context)
+                }
+                .addOnFailureListener { e -> 
+                    Log.w(TAG, "FIREBASE_SYNC_FAILURE: Erro ao salvar template ID=${updatedTemplate.id} no Firestore.", e) 
+                }
+        } ?: Log.w(TAG, "FIREBASE_SYNC_SKIPPED: UID do usuário nulo. Sincronização com Firebase ignorada para o template ID=${updatedTemplate.id}.")
     }
 
     suspend fun deleteTemplate(template: Template) {
