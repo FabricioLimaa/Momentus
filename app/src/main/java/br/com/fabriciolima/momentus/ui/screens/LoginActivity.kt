@@ -13,6 +13,7 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -248,150 +249,153 @@ fun LoginScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_logo_round),
-                contentDescription = "Logo Momentus",
-                modifier = Modifier.size(100.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Momentus", style = MaterialTheme.typography.displaySmall)
-            Text(
-                text = "Organize suas metas, conquiste seu dia.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // --- Botão Google ---
-            Button(
-                onClick = onGoogleSignInClick,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        Box(modifier = Modifier.fillMaxSize()) { 
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(32.dp)
+                    .padding(bottom = 32.dp), // Espaço extra para o texto da versão
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (isLoading && !showEmailFields) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_logo_round),
+                    contentDescription = "Logo Momentus",
+                    modifier = Modifier.size(100.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("Momentus", style = MaterialTheme.typography.displaySmall)
+                Text(
+                    text = "Organize suas metas, conquiste seu dia.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // --- Botão Google ---
+                Button(
+                    onClick = onGoogleSignInClick,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    if (isLoading && !showEmailFields) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_google_logo),
+                            contentDescription = "Logo do Google",
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.Unspecified
+                        )
+                        Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                        Text("Entrar com Google", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // --- Botão E-mail ---
+                Button(
+                    onClick = { showEmailFields = true },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_google_logo),
-                        contentDescription = "Logo do Google",
-                        modifier = Modifier.size(24.dp),
-                        tint = Color.Unspecified
+                        imageVector = Icons.Default.Email,
+                        contentDescription = "Ícone de E-mail",
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                    Text("Entrar com Google", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Entrar com E-mail", color = MaterialTheme.colorScheme.onPrimary)
                 }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
 
-            // --- Botão E-mail ---
-            Button(
-                onClick = { showEmailFields = true },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Email,
-                    contentDescription = "Ícone de E-mail",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                Text("Entrar com E-mail", color = MaterialTheme.colorScheme.onPrimary)
-            }
-
-            // --- Campos de E-mail e Senha (aparecem ao clicar no botão) ---
-            AnimatedVisibility(visible = showEmailFields) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
-                    }
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("E-mail") },
-                        modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        isError = email.isNotEmpty() && !isEmailValid()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Senha") },
-                        modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        isError = password.isNotEmpty() && !isPasswordValid()
-                    )
-                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Checkbox(
-                            checked = rememberMe,
-                            onCheckedChange = { 
-                                rememberMe = it
-                                onUpdatePreferences(email, it)
-                            }
+                // --- Campos de E-mail e Senha (aparecem ao clicar no botão) ---
+                AnimatedVisibility(visible = showEmailFields) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
+                        }
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = { Text("E-mail") },
+                            modifier = Modifier.fillMaxWidth(),
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            isError = email.isNotEmpty() && !isEmailValid()
                         )
-                        Text("Lembrar-me")
-                    }
-                    TextButton(onClick = { 
-                        if (email.isEmpty() || !isEmailValid()) {
-                            Toast.makeText(context, "Por favor, insira um e-mail válido para a recuperação.", Toast.LENGTH_SHORT).show()
-                            return@TextButton
-                        }
-                        Firebase.auth.sendPasswordResetEmail(email)
-                            .addOnSuccessListener { Toast.makeText(context, "E-mail de recuperação enviado para $email", Toast.LENGTH_LONG).show() }
-                            .addOnFailureListener { e ->
-                                val message = when (e) {
-                                    is FirebaseAuthInvalidUserException -> "Nenhuma conta encontrada com este e-mail."
-                                    else -> "Falha ao enviar e-mail de recuperação."
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Senha") },
+                            modifier = Modifier.fillMaxWidth(),
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            isError = password.isNotEmpty() && !isPasswordValid()
+                        )
+                         Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = rememberMe,
+                                onCheckedChange = { 
+                                    rememberMe = it
+                                    onUpdatePreferences(email, it)
                                 }
-                                Toast.makeText(context, message, Toast.LENGTH_LONG).show() 
-                            }
-                    }, modifier = Modifier.align(Alignment.End)) {
-                        Text("Esqueceu a senha?")
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
+                            )
+                            Text("Lembrar-me")
+                        }
+                        TextButton(
+                            onClick = { 
+                                context.startActivity(Intent(context, ForgotPasswordActivity::class.java))
+                            },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("Esqueceu a senha?")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { onEmailSignInClick(email, password, rememberMe) },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        enabled = !isLoading && isEmailValid() && isPasswordValid()
-                    ) {
-                        if(isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                        } else {
-                            Text("Entrar")
+                        Button(
+                            onClick = { onEmailSignInClick(email, password, rememberMe) },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            enabled = !isLoading && isEmailValid() && isPasswordValid()
+                        ) {
+                            if(isLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                            } else {
+                                Text("Entrar")
+                            }
                         }
                     }
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
+                
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { 
-                    val intent = Intent(context, SignUpActivity::class.java)
-                    context.startActivity(intent)
-                }) {
-                    Text("Crie uma aqui")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = { 
+                        val intent = Intent(context, SignUpActivity::class.java)
+                        context.startActivity(intent)
+                    }) {
+                        Text("Crie uma aqui")
+                    }
                 }
             }
+
+            Text(
+                text = "Versão: 0.9.80-beta",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            )
         }
     }
 }

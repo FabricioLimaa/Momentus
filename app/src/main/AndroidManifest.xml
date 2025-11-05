@@ -64,6 +64,7 @@
         <activity android:name=".ui.screens.StatsActivity" android:exported="false" />
         <activity android:name=".ui.screens.AchievementsActivity" android:exported="false" />
         <activity android:name=".ui.screens.SignUpActivity" android:exported="false" />
+        <activity android:name=".ui.screens.ForgotPasswordActivity" android:exported="false" />
 
         <activity
             android:name=".ui.screens.WidgetConfigurationActivity"
