@@ -640,7 +640,7 @@ fun CalendarHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -795,7 +795,7 @@ fun DayCell(
         )
 
         if (isCurrentMonth) {
-            val allEventsForDay = localEvents + googleEvents.map { it.summary }
+            val allEventsForDay = localEvents // + googleEvents.map { it.summary }
             if (allEventsForDay.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
@@ -809,12 +809,14 @@ fun DayCell(
                         Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
                     }
 
+                    /*
                     if (localEvents.size < 2 && googleEvents.isNotEmpty()) {
                         val remainingSlots = 2 - localEvents.size
                         googleEvents.take(remainingSlots).forEach { _ ->
                             Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.error, CircleShape))
                         }
                     }
+                    */
 
                     val remainingCount = allEventsForDay.size - 2
                     if (remainingCount > 0) {
@@ -964,15 +966,17 @@ fun EventsForDay(
                     }
                 }
 
-                /*items(eventsForDate.googleEvents) { event ->
+                /*
+                items(eventsForDate.googleEvents) { event ->
                     GoogleEventListItem(event = event)
-                }*/
+                }
+                */
             }
         }
     }
 }
 
-/*@Composable
+@Composable
 fun GoogleEventListItem(event: GoogleCalendarEvent) {
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val instant = Instant.ofEpochMilli(event.start.value)
@@ -998,8 +1002,8 @@ fun GoogleEventListItem(event: GoogleCalendarEvent) {
             }
         }
     }
-}*/
+}
 
-/*private fun Color.luminance(): Float {
+private fun Color.luminance(): Float {
     return (0.299f * red + 0.587f * green + 0.114f * blue)
-}*/
+}
