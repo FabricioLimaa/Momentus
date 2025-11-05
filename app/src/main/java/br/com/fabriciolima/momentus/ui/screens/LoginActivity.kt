@@ -46,27 +46,32 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
 
     private lateinit var googleSignInClient: GoogleSignInClient
-    private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
+    private val firebaseAuth: FirebaseAuth by lazy { Firebase.auth }
 
-    private val _isSigningIn = mutableStateOf(false)
+    private val _isLoading = mutableStateOf(false)
 
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        _isSigningIn.value = false
+        _isLoading.value = false
         if (result.resultCode == Activity.RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             handleSignInResult(task)
         } else {
-             Toast.makeText(this, "Login com Google cancelado", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Login com Google cancelado", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -78,12 +83,18 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             MomentusTheme {
-                val isSigningIn by remember { _isSigningIn }
+                val isLoading by remember { _isLoading }
                 LoginScreen(
-                    isSigningIn = isSigningIn,
+                    isLoading = isLoading,
                     onGoogleSignInClick = {
-                        _isSigningIn.value = true
+                        _isLoading.value = true
                         signInWithGoogle()
+                    },
+                    onEmailSignInClick = { email, password ->
+                        signInWithEmail(email, password)
+                    },
+                    onEmailSignUpClick = { email, password ->
+                        signUpWithEmail(email, password)
                     }
                 )
             }
@@ -92,7 +103,6 @@ class LoginActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        // Se o usuário já estiver logado, navegue para a tela correta
         if (firebaseAuth.currentUser != null) {
             handleNavigation()
         }
@@ -103,12 +113,49 @@ class LoginActivity : ComponentActivity() {
         googleSignInLauncher.launch(signInIntent)
     }
 
+    private fun signInWithEmail(email: String, password: String) {
+        _isLoading.value = true
+        firebaseAuth.signInWithEmailAndPassword(email, password)
+            .addOnSuccessListener { 
+                Log.d("LoginActivity", "Email/Senha Auth SUCESSO. UID: ${it.user?.uid}")
+                handleNavigation() 
+            }
+            .addOnFailureListener { e ->
+                _isLoading.value = false
+                Log.w("LoginActivity", "Email/Senha Auth FALHA", e)
+                val message = when (e) {
+                    is FirebaseAuthInvalidUserException, is FirebaseAuthInvalidCredentialsException -> "E-mail ou senha incorretos."
+                    else -> "Falha na autenticação. Tente novamente."
+                }
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun signUpWithEmail(email: String, password: String) {
+        _isLoading.value = true
+        firebaseAuth.createUserWithEmailAndPassword(email, password)
+            .addOnSuccessListener { 
+                Log.d("LoginActivity", "Email/Senha Cadastro SUCESSO. UID: ${it.user?.uid}")
+                handleNavigation()
+            }
+            .addOnFailureListener { e ->
+                _isLoading.value = false
+                Log.w("LoginActivity", "Email/Senha Cadastro FALHA", e)
+                val message = when (e) {
+                    is FirebaseAuthUserCollisionException -> "Este e-mail já está em uso por outra conta."
+                    is FirebaseAuthWeakPasswordException -> "A senha é muito fraca. Use pelo menos 6 caracteres."
+                    else -> "Falha no cadastro. Tente novamente."
+                }
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
+    }
+
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try {
             val account = completedTask.getResult(ApiException::class.java)!!
             firebaseAuthWithGoogle(account)
         } catch (e: ApiException) {
-            _isSigningIn.value = false
+            _isLoading.value = false
             Log.w("LoginActivity", "Falha no login com Google: code=" + e.statusCode)
             Toast.makeText(this, "Falha ao obter conta Google. Tente novamente.", Toast.LENGTH_LONG).show()
         }
@@ -122,7 +169,7 @@ class LoginActivity : ComponentActivity() {
                 handleNavigation()
             }
             .addOnFailureListener { e ->
-                _isSigningIn.value = false
+                _isLoading.value = false
                 Log.e("LoginActivity", "Firebase Auth FALHA", e)
                 Toast.makeText(this, "Falha na autenticação com Firebase. Tente novamente.", Toast.LENGTH_LONG).show()
             }
@@ -132,15 +179,12 @@ class LoginActivity : ComponentActivity() {
         val openNewEvent = intent.getBooleanExtra(OPEN_NEW_EVENT_DIALOG_KEY, false)
         val eventId = intent.getStringExtra(EVENT_ID_KEY)
 
-        // Se a intenção veio do widget (para criar ou visualizar um evento), vá para a CalendarActivity.
         val targetIntent = if (openNewEvent || eventId != null) {
             Intent(this, CalendarActivity::class.java)
         } else {
-            // Caso contrário, siga o fluxo normal pela SplashActivity.
             Intent(this, SplashActivity::class.java)
         }
 
-        // Propaga os extras da Intent original (como EVENT_ID_KEY) para a próxima tela.
         intent.extras?.let { targetIntent.putExtras(it) }
         startActivity(targetIntent)
         finish()
@@ -148,10 +192,18 @@ class LoginActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoginScreen(isSigningIn: Boolean, onGoogleSignInClick: () -> Unit) {
+fun LoginScreen(
+    isLoading: Boolean,
+    onGoogleSignInClick: () -> Unit,
+    onEmailSignInClick: (String, String) -> Unit,
+    onEmailSignUpClick: (String, String) -> Unit
+) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    fun isEmailValid(): Boolean = android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    fun isPasswordValid(): Boolean = password.length >= 6
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -161,7 +213,7 @@ fun LoginScreen(isSigningIn: Boolean, onGoogleSignInClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(32.dp)
-                .verticalScroll(rememberScrollState()), // Permite rolagem
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -181,14 +233,13 @@ fun LoginScreen(isSigningIn: Boolean, onGoogleSignInClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- Botão Google ---
             Button(
                 onClick = onGoogleSignInClick,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = !isSigningIn,
+                enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                if (isSigningIn) {
+                if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
                     Icon(
@@ -208,46 +259,62 @@ fun LoginScreen(isSigningIn: Boolean, onGoogleSignInClick: () -> Unit) {
                 Divider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline)
             }
 
-            // --- Campos de E-mail e Senha ---
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("E-mail") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                isError = email.isNotEmpty() && !isEmailValid()
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Senha") },
+                label = { Text("Senha (mínimo 6 caracteres)") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                visualTransformation = PasswordVisualTransformation()
+                visualTransformation = PasswordVisualTransformation(),
+                isError = password.isNotEmpty() && !isPasswordValid()
             )
             TextButton(onClick = { 
-                Toast.makeText(context, "Funcionalidade não implementada.", Toast.LENGTH_SHORT).show()
+                if (email.isEmpty() || !isEmailValid()) {
+                    Toast.makeText(context, "Por favor, insira um e-mail válido.", Toast.LENGTH_SHORT).show()
+                    return@TextButton
+                }
+                Firebase.auth.sendPasswordResetEmail(email)
+                    .addOnSuccessListener { Toast.makeText(context, "E-mail de recuperação enviado para $email", Toast.LENGTH_LONG).show() }
+                    .addOnFailureListener { e ->
+                        val message = when (e) {
+                            is FirebaseAuthInvalidUserException -> "Nenhuma conta encontrada com este e-mail."
+                            else -> "Falha ao enviar e-mail de recuperação."
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show() 
+                    }
             }, modifier = Modifier.align(Alignment.End)) {
                 Text("Esqueceu a senha?")
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- Botão de Sign In com E-mail ---
             Button(
-                onClick = { 
-                    Toast.makeText(context, "Login com E-mail/Senha não implementado.", Toast.LENGTH_SHORT).show()
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                onClick = { onEmailSignInClick(email, password) },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = !isLoading && isEmailValid() && isPasswordValid()
             ) {
-                Text("Entrar")
+                if(isLoading) {
+                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Text("Entrar")
+                }
             }
             
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { 
-                    Toast.makeText(context, "Funcionalidade não implementada.", Toast.LENGTH_SHORT).show()
-                }) {
+                TextButton(
+                    onClick = { onEmailSignUpClick(email, password) },
+                    enabled = !isLoading && isEmailValid() && isPasswordValid()
+                ) {
                     Text("Crie uma aqui")
                 }
             }
