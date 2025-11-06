@@ -59,13 +59,11 @@ O **Momentus** foi projetado para ser um companheiro de produtividade inteligent
   <img src="screenshots/06-templates.png" width="200" alt="Tela de Templates">
   <img src="screenshots/07-new-templates.png" width="200" alt="Criação de Novo Template">
   <img src="screenshots/08-categories.png" width="200" alt="Tela de Categorias">
-">
 </p>
 <p align="center">
   <img src="screenshots/09-.png" width="200" alt="Tela das Estatísticas">
   <img src="screenshots/10-.png" width="200" alt="Tela das Conquistas">
   <img src="screenshots/11-widget.png" width="200" alt="Widget Interativo">
-">
 </p>
 
 ---
