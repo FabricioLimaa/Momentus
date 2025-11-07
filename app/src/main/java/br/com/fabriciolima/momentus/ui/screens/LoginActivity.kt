@@ -388,13 +388,20 @@ fun LoginScreen(
                 }
             }
 
+            val versionName = try {
+                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                packageInfo.versionName
+            } catch (e: Exception) {
+                "N/A"
+            }
+
             Text(
-                text = "Versão: 0.9.80-beta",
+                text = "Versão: $versionName",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = 30.dp)
             )
         }
     }

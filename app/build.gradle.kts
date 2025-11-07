@@ -10,6 +10,16 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// Força a resolução de conflitos de dependências do Compose
+configurations.all {
+    resolutionStrategy {
+        force("androidx.compose.runtime:runtime:1.6.7")
+        force("androidx.compose.foundation:foundation:1.6.7")
+        force("androidx.compose.foundation:foundation-layout:1.6.7")
+        force("androidx.compose.animation:animation:1.6.7")
+    }
+}
+
 // 1. Carrega as propriedades do keystore de forma segura
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -170,10 +180,6 @@ dependencies {
 
     // WorkManager
     implementation(libs.androidx.work.manager)
-
-    // Accompanist
-    implementation(libs.accompanist.pager)
-    implementation(libs.accompanist.pager.indicators)
 
     // Testing
     testImplementation(libs.junit)
