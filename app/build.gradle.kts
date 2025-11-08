@@ -49,23 +49,21 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
-        versionName = "0.9.803-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionCode = 6 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionName = "0.9.805-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true // REATIVADO - Essencial para segurança do código
-
-            // Enables resource shrinking.
+            isMinifyEnabled = true
             isShrinkResources = true
+            ndk.debugSymbolLevel = "FULL"
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Vincula a configuração de assinatura ao build de release
             signingConfig = signingConfigs.getByName("release")
         }
     }
