@@ -56,15 +56,15 @@ class AlarmReceiver : BroadcastReceiver() {
     private fun showNotification(context: Context, eventId: String, message: String) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val fullScreenIntent = Intent(context, ReminderActivity::class.java).apply {
+        val contentIntent = Intent(context, ReminderActivity::class.java).apply {
             putExtra(EXTRA_EVENT_ID, eventId)
             putExtra(EXTRA_MESSAGE, message)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        val fullScreenPendingIntent = PendingIntent.getActivity(
+        val contentPendingIntent = PendingIntent.getActivity(
             context,
             eventId.hashCode(),
-            fullScreenIntent,
+            contentIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -95,13 +95,13 @@ class AlarmReceiver : BroadcastReceiver() {
             .setContentTitle("Lembrete de Rotina")
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setContentIntent(contentPendingIntent) // Ação ao tocar na notificação
             .addAction(R.drawable.ic_check_circle_outline, "Concluir", completePendingIntent)
             .addAction(R.drawable.ic_time, "Adiar 15 min", snoozePendingIntent)
             .setAutoCancel(true)
             .build()
 
         notificationManager.notify(eventId.hashCode(), notification)
-        Log.d("AlarmReceiver", "Notificação de tela cheia para o evento '$eventId' disparada.")
+        Log.d("AlarmReceiver", "Notificação de alta prioridade para o evento '$eventId' disparada.")
     }
 }

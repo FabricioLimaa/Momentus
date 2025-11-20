@@ -49,8 +49,8 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
-        versionName = "0.9.805-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionCode = 8 // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
+        versionName = "0.9.806-beta" // LEMBRA DE MODIFICAR AQUI TAMBÉM NO BUILD.GRADLE
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -120,6 +120,9 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.hilt.work) // Adicionado para integração com WorkManager
     //ksp("androidx.hilt:hilt-compiler:1.2.0") // Adicionado para integração com WorkManager
+
+    // Play Integrity API
+    implementation("com.google.android.play:integrity:1.3.0")
 
     // Glance for App Widgets
     implementation(libs.androidx.glance)
