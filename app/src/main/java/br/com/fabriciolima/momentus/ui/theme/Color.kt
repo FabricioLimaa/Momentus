@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.toArgb
 val DarkBlue = Color(0xFF0A1A4A)
 val GreenVibrant = Color(0xFF3DDC84)
 val GreenDark = Color(0xFF2A9371)
-val OffWhite = Color(0xFFF7F9FF)
+val OffWhite = Color(0xFFE6E6E6)
 
 // Cores do Tema Claro (Light Theme)
 val md_theme_light_primary = GreenVibrant
