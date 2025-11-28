@@ -14,9 +14,11 @@ import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
+import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.api.client.util.DateTime
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -70,8 +72,9 @@ data class CalendarUiState(
     val completedHabitIds: Set<String> = emptySet(),
     val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
     val userData: UserData? = null,
-    val streak: Int = 0, // Adicionado
-    val newlyUnlockedAchievement: Achievement? = null, // Adicionado
+    val streak: Int = 0,
+    val newlyUnlockedAchievement: Achievement? = null,
+    val updateInfo: AppUpdateInfo? = null, // Adicionado para a atualização
     val error: String? = null,
     val successMessage: String? = null,
     val dialogState: DialogState = DialogState.Hidden,
@@ -82,10 +85,11 @@ data class CalendarUiState(
 class CalendarViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val eventoRepository: EventoRepository,
-    private val templateRepository: TemplateRepository, // Adicionado
+    private val templateRepository: TemplateRepository,
     private val userRepository: UserRepository,
     private val gamificationRepository: GamificationRepository,
     private val alarmScheduler: AlarmScheduler,
+    private val inAppUpdateManager: InAppUpdateManager, // Adicionado
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
     private val application: Application
@@ -101,6 +105,8 @@ class CalendarViewModel @Inject constructor(
     val logoutEvent = _logoutEvent.asSharedFlow()
 
     private var dataCollectionJob: Job? = null
+
+    val installStatus = inAppUpdateManager.installStatus
 
     val eventsForSelectedDate: StateFlow<EventsForDate> = combine(
         _uiState,
@@ -123,6 +129,17 @@ class CalendarViewModel @Inject constructor(
     init {
         startDataCollection()
         listenForNewAchievements()
+    }
+
+    fun checkForAppUpdate() {
+        viewModelScope.launch {
+            val updateInfo = inAppUpdateManager.checkForUpdate()
+            _uiState.update { it.copy(updateInfo = updateInfo) }
+        }
+    }
+
+    fun onUpdateDialogDismissed() {
+        _uiState.update { it.copy(updateInfo = null) }
     }
 
     private fun startDataCollection() {
@@ -164,6 +181,7 @@ class CalendarViewModel @Inject constructor(
         dataCollectionJob?.cancel()
         categoryRepository.stopListeningForChanges()
         templateRepository.stopListeningForChanges()
+        inAppUpdateManager.unregisterListener()
     }
 
     fun logout() {

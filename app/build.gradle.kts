@@ -49,8 +49,8 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9 
-        versionName = "0.9.807-beta" 
+        versionCode = 11
+        versionName = "0.9.811-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -119,6 +119,9 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.hilt.work) // Adicionado para integração com WorkManager
+
+    // Play Core & In-App Updates
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
 
     // Play Integrity & App Check
     implementation("com.google.firebase:firebase-appcheck-ktx")
