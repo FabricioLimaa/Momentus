@@ -1,6 +1,10 @@
 package br.com.fabriciolima.momentus.data.repository
 
 import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.di.IoDispatcher
 import com.google.firebase.auth.FirebaseAuth
@@ -10,6 +14,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -21,8 +26,13 @@ private const val TAG = "UserRepository"
 class UserRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
+    private val dataStore: DataStore<Preferences>,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
+
+    private object PreferencesKeys {
+        val LAST_SEEN_VERSION_CODE = intPreferencesKey("last_seen_version_code")
+    }
 
     private val userId: String?
         get() = auth.currentUser?.uid
@@ -48,6 +58,16 @@ class UserRepository @Inject constructor(
             }
         }
         awaitClose { listenerRegistration.remove() }
+    }
+
+    val lastSeenVersionCode: Flow<Int> = dataStore.data.map {
+        it[PreferencesKeys.LAST_SEEN_VERSION_CODE] ?: 0
+    }
+
+    suspend fun updateLastSeenVersionCode(versionCode: Int) {
+        dataStore.edit {
+            it[PreferencesKeys.LAST_SEEN_VERSION_CODE] = versionCode
+        }
     }
 
     suspend fun createOrUpdateUser(firebaseUser: FirebaseUser) = withContext(dispatcher) {

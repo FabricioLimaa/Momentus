@@ -142,8 +142,10 @@ class CalendarActivity : ComponentActivity() {
                         AppDrawerContent(
                             userData = uiState.userData,
                             account = account,
+                            showUpdateBadge = uiState.showUpdateBadge,
                             onNavigate = { scope.launch { drawerState.close() } },
-                            onLogout = { viewModel.logout() }
+                            onLogout = { viewModel.logout() },
+                            onUpdatesClicked = viewModel::onUpdatesClicked
                         )
                     }
                 ) {
@@ -233,7 +235,7 @@ fun UserAvatar(
                 ?.split(' ')
                 ?.take(2)
                 ?.mapNotNull { it.firstOrNull()?.uppercase() }
-                ?.joinToString("") 
+                ?.joinToString("")
                 ?: "U"
             Text(
                 text = initials,
@@ -315,7 +317,7 @@ fun CalendarScreen(
 
     uiState.updateInfo?.let {
         UpdateAvailableDialog(
-            onUpdateClick = { 
+            onUpdateClick = {
                 onStartUpdate(it)
                 onDismissUpdateDialog()
             },
@@ -522,8 +524,16 @@ fun CalendarScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavigate: () -> Unit, onLogout: () -> Unit) {
+fun AppDrawerContent(
+    userData: UserData?,
+    account: GoogleSignInAccount?,
+    showUpdateBadge: Boolean,
+    onNavigate: () -> Unit,
+    onLogout: () -> Unit,
+    onUpdatesClicked: () -> Unit
+) {
     val context = LocalContext.current
     ModalDrawerSheet {
         Column(
@@ -589,6 +599,22 @@ fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavig
                     icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
+                NavigationDrawerItem(
+                    label = { Text("Novidades") },
+                    selected = false,
+                    onClick = {
+                        context.startActivity(Intent(context, UpdateNotesActivity::class.java))
+                        onUpdatesClicked()
+                        onNavigate()
+                    },
+                    icon = { Icon(Icons.Default.NewReleases, contentDescription = "Novidades") },
+                    badge = {
+                        if (showUpdateBadge) {
+                            Badge()
+                        }
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
             }
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Divider()
@@ -613,8 +639,8 @@ fun AppDrawerContent(userData: UserData?, account: GoogleSignInAccount?, onNavig
                     Column(verticalArrangement = Arrangement.Center) {
                         Text(text = userData?.displayName ?: account?.displayName ?: "Usuário", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                         Text(
-                            text = userData?.email ?: account?.email ?: "", 
-                            style = MaterialTheme.typography.bodySmall, 
+                            text = userData?.email ?: account?.email ?: "",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

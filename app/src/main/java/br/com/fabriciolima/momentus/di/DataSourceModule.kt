@@ -1,6 +1,8 @@
 package br.com.fabriciolima.momentus.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
@@ -44,9 +46,10 @@ object RepositoryModule {
     fun provideUserRepository(
         firestore: FirebaseFirestore,
         auth: FirebaseAuth,
+        dataStore: DataStore<Preferences>,
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): UserRepository {
-        return UserRepository(firestore, auth, dispatcher)
+        return UserRepository(firestore, auth, dataStore, dispatcher)
     }
 
     @Provides

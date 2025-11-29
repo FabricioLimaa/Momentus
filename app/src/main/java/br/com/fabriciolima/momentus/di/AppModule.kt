@@ -1,7 +1,11 @@
 package br.com.fabriciolima.momentus.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import br.com.fabriciolima.momentus.BuildConfig
 import br.com.fabriciolima.momentus.data.database.AppDatabase
 import br.com.fabriciolima.momentus.data.database.CategoryDao
 import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
@@ -22,9 +26,25 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+private const val USER_PREFERENCES_NAME = "user_preferences"
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = USER_PREFERENCES_NAME
+)
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @VersionCode
+    fun provideVersionCode(): Int = BuildConfig.VERSION_CODE
+
+    @Provides
+    @Singleton
+    fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
+        return context.dataStore
+    }
 
     @Provides
     @Singleton

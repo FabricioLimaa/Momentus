@@ -13,6 +13,7 @@ import br.com.fabriciolima.momentus.data.repository.EventoRepository
 import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
+import br.com.fabriciolima.momentus.di.VersionCode
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import br.com.fabriciolima.momentus.util.Result
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -75,6 +77,7 @@ data class CalendarUiState(
     val streak: Int = 0,
     val newlyUnlockedAchievement: Achievement? = null,
     val updateInfo: AppUpdateInfo? = null, // Adicionado para a atualização
+    val showUpdateBadge: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
     val dialogState: DialogState = DialogState.Hidden,
@@ -92,7 +95,8 @@ class CalendarViewModel @Inject constructor(
     private val inAppUpdateManager: InAppUpdateManager, // Adicionado
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
-    private val application: Application
+    private val application: Application,
+    @VersionCode private val currentVersionCode: Int
 ) : ViewModel() {
 
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -129,6 +133,21 @@ class CalendarViewModel @Inject constructor(
     init {
         startDataCollection()
         listenForNewAchievements()
+        checkIfNeedToShowUpdateBadge()
+    }
+
+    private fun checkIfNeedToShowUpdateBadge() {
+        viewModelScope.launch {
+            val lastSeenVersionCode = userRepository.lastSeenVersionCode.first()
+            _uiState.update { it.copy(showUpdateBadge = currentVersionCode > lastSeenVersionCode) }
+        }
+    }
+
+    fun onUpdatesClicked() {
+        viewModelScope.launch {
+            userRepository.updateLastSeenVersionCode(currentVersionCode)
+            _uiState.update { it.copy(showUpdateBadge = false) }
+        }
     }
 
     fun checkForAppUpdate() {
@@ -349,7 +368,7 @@ class CalendarViewModel @Inject constructor(
                 } else {
                     eventoRepository.insertItemCronograma(itemAtualizado)
                 }
-                
+
                 alarmScheduler.schedule(itemAtualizado)
 
                 _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)
@@ -403,7 +422,7 @@ class CalendarViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun onErrorShown() {
         _uiState.value = _uiState.value.copy(error = null)
     }
