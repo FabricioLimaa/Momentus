@@ -20,6 +20,11 @@ import javax.inject.Singleton
 
 private const val TAG = "InAppUpdateManager"
 
+data class UpdateProgress(
+    val bytesDownloaded: Long,
+    val totalBytesToDownload: Long
+)
+
 @Singleton
 class InAppUpdateManager @Inject constructor(
     @ApplicationContext private val context: Context
@@ -30,10 +35,24 @@ class InAppUpdateManager @Inject constructor(
     private val _installStatus = MutableStateFlow<Int>(InstallStatus.UNKNOWN)
     val installStatus: StateFlow<Int> = _installStatus.asStateFlow()
 
+    private val _updateProgress = MutableStateFlow<UpdateProgress?>(null)
+    val updateProgress: StateFlow<UpdateProgress?> = _updateProgress.asStateFlow()
+
     private val installStateUpdatedListener = InstallStateUpdatedListener { state ->
         _installStatus.value = state.installStatus()
-        if (state.installStatus() == InstallStatus.DOWNLOADED) {
-            Log.d(TAG, "Update downloaded. Ready to be installed.")
+        when (state.installStatus()) {
+            InstallStatus.DOWNLOADING -> {
+                val bytesDownloaded = state.bytesDownloaded()
+                val totalBytesToDownload = state.totalBytesToDownload()
+                _updateProgress.value = UpdateProgress(bytesDownloaded, totalBytesToDownload)
+            }
+            InstallStatus.DOWNLOADED -> {
+                Log.d(TAG, "Update downloaded. Ready to be installed.")
+                _updateProgress.value = null
+            }
+            else -> {
+                _updateProgress.value = null
+            }
         }
     }
 

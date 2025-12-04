@@ -51,8 +51,10 @@ fun UpdateNotesScreen(modifier: Modifier = Modifier) {
     ) {
         Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("- Correção de bugs e melhorias de performance.", style = MaterialTheme.typography.bodyLarge)
+        Text("- Indicador de progresso ao baixar novas atualizações.", style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(8.dp))
         Text("- Nova seção 'Novidades' para você ficar por dentro de tudo.", style = MaterialTheme.typography.bodyLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("- Correções de bugs e melhorias gerais de performance.", style = MaterialTheme.typography.bodyLarge)
     }
 }

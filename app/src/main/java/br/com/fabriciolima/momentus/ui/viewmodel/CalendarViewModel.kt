@@ -17,6 +17,7 @@ import br.com.fabriciolima.momentus.di.VersionCode
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import br.com.fabriciolima.momentus.util.Result
+import br.com.fabriciolima.momentus.util.UpdateProgress
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.play.core.appupdate.AppUpdateInfo
@@ -76,8 +77,9 @@ data class CalendarUiState(
     val userData: UserData? = null,
     val streak: Int = 0,
     val newlyUnlockedAchievement: Achievement? = null,
-    val updateInfo: AppUpdateInfo? = null, // Adicionado para a atualização
+    val updateInfo: AppUpdateInfo? = null,
     val showUpdateBadge: Boolean = false,
+    val updateProgress: UpdateProgress? = null,
     val error: String? = null,
     val successMessage: String? = null,
     val dialogState: DialogState = DialogState.Hidden,
@@ -92,7 +94,7 @@ class CalendarViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val gamificationRepository: GamificationRepository,
     private val alarmScheduler: AlarmScheduler,
-    private val inAppUpdateManager: InAppUpdateManager, // Adicionado
+    private val inAppUpdateManager: InAppUpdateManager,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
     private val application: Application,
@@ -134,6 +136,15 @@ class CalendarViewModel @Inject constructor(
         startDataCollection()
         listenForNewAchievements()
         checkIfNeedToShowUpdateBadge()
+        listenForUpdateProgress()
+    }
+
+    private fun listenForUpdateProgress() {
+        inAppUpdateManager.updateProgress
+            .onEach { progress ->
+                _uiState.update { it.copy(updateProgress = progress) }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun checkIfNeedToShowUpdateBadge() {

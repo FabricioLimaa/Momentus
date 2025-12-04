@@ -465,49 +465,72 @@ fun CalendarScreen(
                 )
             }
         ) { paddingValues ->
-            Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Calendário", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "Gerencie seus eventos e compromissos",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = onAddNewEventClicked,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    enabled = !uiState.isLoading
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    } else {
-                        Icon(Icons.Default.Add, contentDescription = "Adicionar Evento")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Novo Evento", fontSize = 16.sp)
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxWidth()
+            ) {
+                uiState.updateProgress?.let { progress ->
+                    if (progress.totalBytesToDownload > 0) {
+                        val percentage = (progress.bytesDownloaded * 100 / progress.totalBytesToDownload).toInt()
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            Text(
+                                text = "Baixando atualização: $percentage%",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { progress.bytesDownloaded.toFloat() / progress.totalBytesToDownload.toFloat() },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Calendário", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Gerencie seus eventos e compromissos",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                CalendarContent(
-                    uiState = uiState,
-                    selectedDate = selectedDate,
-                    onDateSelected = onDateSelected
-                )
+                    Button(
+                        onClick = onAddNewEventClicked,
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        enabled = !uiState.isLoading
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                        } else {
+                            Icon(Icons.Default.Add, contentDescription = "Adicionar Evento")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Novo Evento", fontSize = 16.sp)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(16.dp))
-                EventsForDay(
-                    uiState = uiState,
-                    selectedDate = selectedDate,
-                    eventsForDate = eventsForSelectedDate,
-                    onEventClick = onShowDetailClicked,
-                    onAddNewEventClicked = onAddNewEventClicked,
-                    onMarkAsCompleted = onMarkAsCompleted,
-                    onUnmarkAsCompleted = onUnmarkAsCompleted
-                )
+                    CalendarContent(
+                        uiState = uiState,
+                        selectedDate = selectedDate,
+                        onDateSelected = onDateSelected
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    EventsForDay(
+                        uiState = uiState,
+                        selectedDate = selectedDate,
+                        eventsForDate = eventsForSelectedDate,
+                        onEventClick = onShowDetailClicked,
+                        onAddNewEventClicked = onAddNewEventClicked,
+                        onMarkAsCompleted = onMarkAsCompleted,
+                        onUnmarkAsCompleted = onUnmarkAsCompleted
+                    )
+                }
             }
         }
 
