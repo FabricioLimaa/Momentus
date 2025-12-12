@@ -49,8 +49,8 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 16
-        versionName = "0.9.822-beta"
+        versionCode = 17
+        versionName = "0.9.831-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -173,6 +173,7 @@ dependencies {
     implementation(libs.firebaseAnalytics)
     implementation(libs.firebaseAuth)
     implementation(libs.firebaseFirestore)
+    implementation("com.google.firebase:firebase-messaging-ktx")
     implementation(libs.playServicesAuth)
 
     implementation(libs.googleApiClientAndroid) {

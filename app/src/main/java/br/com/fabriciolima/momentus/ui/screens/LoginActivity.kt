@@ -51,7 +51,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
+import com.google.api.services.calendar.CalendarScopes
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -171,7 +173,16 @@ class LoginActivity : ComponentActivity() {
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try {
             val account = completedTask.getResult(ApiException::class.java)!!
-            firebaseAuthWithGoogle(account)
+            
+            // Etapa 3: Verificar se a permissão para o Google Calendar foi concedida
+            if (GoogleSignIn.hasPermissions(account, Scope(CalendarScopes.CALENDAR))) {
+                firebaseAuthWithGoogle(account)
+            } else {
+                _isLoading.value = false
+                Toast.makeText(this, "A permissão para o Google Calendar é necessária.", Toast.LENGTH_LONG).show()
+                // Desconectar para garantir que a tela de consentimento apareça na próxima vez
+                googleSignInClient.signOut()
+            }
         } catch (e: ApiException) {
             _isLoading.value = false
             Log.w("LoginActivity", "Falha no login com Google: code=" + e.statusCode)
