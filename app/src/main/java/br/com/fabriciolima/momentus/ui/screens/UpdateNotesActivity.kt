@@ -50,11 +50,33 @@ fun UpdateNotesScreen(modifier: Modifier = Modifier) {
             .padding(16.dp)
     ) {
         Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text("Versão 0.9.832-beta (12 de Dezembro de 2024)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("Esta atualização foca em estabilidade e correções críticas:", style = MaterialTheme.typography.bodyMedium)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text("✅ Correção de Incompatibilidade", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "Resolvemos um erro crítico que impedia o aplicativo de iniciar em alguns dispositivos devido a conflitos de versão em componentes internos.",
+            style = MaterialTheme.typography.bodyLarge
+        )
         Spacer(modifier = Modifier.height(16.dp))
+
+        Text("✨ Melhorias Gerais", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "Melhoramos a estabilidade geral e a performance para garantir uma experiência mais fluida.",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text("Recursos Anteriores", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
         Text("- Indicador de progresso ao baixar novas atualizações.", style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(8.dp))
         Text("- Nova seção 'Novidades' para você ficar por dentro de tudo.", style = MaterialTheme.typography.bodyLarge)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("- Correções de bugs e melhorias gerais de performance.", style = MaterialTheme.typography.bodyLarge)
     }
 }

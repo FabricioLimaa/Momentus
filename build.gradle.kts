@@ -9,5 +9,6 @@ plugins {
     // ADICIONADO: Plugin do Hilt
     alias(libs.plugins.dagger.hilt.android) apply false
     // ADICIONADO: Plugin de serialização do Kotlin
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.0" apply false
+    alias(libs.plugins.jetbrainsCompose) apply false
 }

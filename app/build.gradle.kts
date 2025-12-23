@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.google.gms.services)
     alias(libs.plugins.dagger.hilt.android)
     id("org.jetbrains.kotlin.plugin.serialization")
+    alias(libs.plugins.jetbrainsCompose)
 }
 
 // Força a resolução de conflitos de dependências do Compose
@@ -49,8 +50,8 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 17
-        versionName = "0.9.831-beta"
+        versionCode = 18
+        versionName = "0.9.832-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -81,10 +82,10 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
-    }
     packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "META-INF/DEPENDENCIES"
@@ -123,10 +124,6 @@ dependencies {
 
     // Play Core & In-App Updates
     implementation("com.google.android.play:app-update-ktx:2.1.0")
-
-    // Play Integrity & App Check
-    implementation("com.google.firebase:firebase-appcheck-ktx")
-    implementation("com.google.firebase:firebase-appcheck-playintegrity")
     implementation("com.google.android.play:integrity:1.3.0")
 
     // Glance for App Widgets
@@ -168,12 +165,14 @@ dependencies {
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
 
-    //Firebase
-    implementation(platform(libs.firebaseBom))
-    implementation(libs.firebaseAnalytics)
-    implementation(libs.firebaseAuth)
-    implementation(libs.firebaseFirestore)
-    implementation("com.google.firebase:firebase-messaging-ktx")
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-inappmessaging-display:22.0.2")
+    implementation("com.google.firebase:firebase-appcheck-playintegrity")
     implementation(libs.playServicesAuth)
 
     implementation(libs.googleApiClientAndroid) {
