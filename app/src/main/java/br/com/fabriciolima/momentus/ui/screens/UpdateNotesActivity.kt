@@ -52,31 +52,39 @@ fun UpdateNotesScreen(modifier: Modifier = Modifier) {
         Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text("Versão 0.9.832-beta (12 de Dezembro de 2024)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Versão 1.0.1 (Janeiro de 2025)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
-        Text("Esta atualização foca em estabilidade e correções críticas:", style = MaterialTheme.typography.bodyMedium)
+        Text("Esta atualização traz uma experiência sonora e de notificações completamente renovada:", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text("✅ Correção de Incompatibilidade", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("🔔 Notificações de Início e Término", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Resolvemos um erro crítico que impedia o aplicativo de iniciar em alguns dispositivos devido a conflitos de versão em componentes internos.",
+            "Agora o Momentus te acompanha do início ao fim. Você receberá lembretes automáticos tanto no horário de início quanto no término de cada atividade da sua rotina.",
             style = MaterialTheme.typography.bodyLarge
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text("✨ Melhorias Gerais", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("🎵 Identidade Sonora", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Melhoramos a estabilidade geral e a performance para garantir uma experiência mais fluida.",
+            "Adicionamos sons diferenciados para o início e o fim das tarefas. Saiba exatamente o que fazer apenas pelo toque, sem precisar olhar para a tela.",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("🧠 Notificações Inteligentes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "O app agora entende seu progresso. Se você já concluiu uma tarefa manualmente, os lembretes de término não serão exibidos, garantindo zero interrupções desnecessárias.",
             style = MaterialTheme.typography.bodyLarge
         )
         Spacer(modifier = Modifier.height(24.dp))
 
         Text("Recursos Anteriores", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
-        Text("- Indicador de progresso ao baixar novas atualizações.", style = MaterialTheme.typography.bodyLarge)
+        Text("- ✅ Correção de incompatibilidade em dispositivos específicos.", style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(8.dp))
-        Text("- Nova seção 'Novidades' para você ficar por dentro de tudo.", style = MaterialTheme.typography.bodyLarge)
+        Text("- 🚀 Melhorias de estabilidade e performance no Widget Glance.", style = MaterialTheme.typography.bodyLarge)
     }
 }

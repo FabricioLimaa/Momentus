@@ -19,20 +19,19 @@ class AlarmReceiver : BroadcastReceiver() {
     companion object {
         const val EXTRA_EVENT_ID = "EXTRA_EVENT_ID"
         const val EXTRA_MESSAGE = "EXTRA_MESSAGE"
+        const val EXTRA_ALARM_TYPE = "EXTRA_ALARM_TYPE"
+        
+        // Novos IDs de canais para sons diferentes
+        private const val CHANNEL_INICIO_ID = "CHANNEL_INICIO"
+        private const val CHANNEL_TERMINO_ID = "CHANNEL_TERMINO"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d("AlarmReceiver", "Alarme recebido!")
-
         val eventId = intent.getStringExtra(EXTRA_EVENT_ID)
-        val message = intent.getStringExtra(EXTRA_MESSAGE) ?: "Sua rotina está prestes a começar"
+        val eventTitle = intent.getStringExtra(EXTRA_MESSAGE) ?: "Rotina"
+        val alarmType = intent.getStringExtra(EXTRA_ALARM_TYPE) ?: AlarmScheduler.TYPE_START
 
-        Log.d("AlarmReceiver", "Dados recebidos: eventId='$eventId', message='$message'")
-
-        if (eventId == null) {
-            Log.e("AlarmReceiver", "Erro: eventId é nulo. Notificação cancelada.")
-            return
-        }
+        if (eventId == null) return
 
         val hiltEntryPoint = EntryPointAccessors.fromApplication(
             context.applicationContext,
@@ -40,30 +39,34 @@ class AlarmReceiver : BroadcastReceiver() {
         )
         val categoryRepository = hiltEntryPoint.categoryRepository()
 
-        // VERIFICA SE O HÁBITO JÁ FOI CONCLUÍDO
         MainScope().launch {
             val completedHabits = categoryRepository.idsHabitosConcluidos.first()
-            if (completedHabits.contains(eventId)) {
-                Log.d("AlarmReceiver", "Evento $eventId já concluído. Notificação suprimida.")
-                return@launch
-            }
+            
+            if (completedHabits.contains(eventId)) return@launch
 
-            // Se não foi concluído, continua para exibir a notificação
-            showNotification(context, eventId, message)
+            val title = if (alarmType == AlarmScheduler.TYPE_START) "Início: $eventTitle" else "Término: $eventTitle"
+            val message = if (alarmType == AlarmScheduler.TYPE_START) 
+                "Sua rotina começou! 🚀" else "Hora de finalizar sua rotina. Como foi seu progresso? ✅"
+
+            showNotification(context, eventId, title, message, alarmType)
         }
     }
 
-    private fun showNotification(context: Context, eventId: String, message: String) {
+    private fun showNotification(context: Context, eventId: String, title: String, message: String, type: String) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationId = eventId.hashCode()
+
+        // Seleciona o canal baseado no tipo para tocar o som correto
+        val channelId = if (type == AlarmScheduler.TYPE_START) CHANNEL_INICIO_ID else CHANNEL_TERMINO_ID
 
         val contentIntent = Intent(context, ReminderActivity::class.java).apply {
             putExtra(EXTRA_EVENT_ID, eventId)
-            putExtra(EXTRA_MESSAGE, message)
+            putExtra(EXTRA_MESSAGE, title)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val contentPendingIntent = PendingIntent.getActivity(
             context,
-            eventId.hashCode(),
+            notificationId,
             contentIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -79,29 +82,30 @@ class AlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val snoozeIntent = Intent(context, NotificationActionReceiver::class.java).apply {
-            action = NotificationActionReceiver.ACTION_SNOOZE
-            putExtra(EXTRA_EVENT_ID, eventId)
-        }
-        val snoozePendingIntent = PendingIntent.getBroadcast(
-            context,
-            "${eventId}_snooze".hashCode(),
-            snoozeIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(context, "LEMBRETE_ROTINA_CHANNEL")
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_stat_name)
-            .setContentTitle("Lembrete de Rotina")
+            .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(contentPendingIntent) // Ação ao tocar na notificação
-            .addAction(R.drawable.ic_check_circle_outline, "Concluir", completePendingIntent)
-            .addAction(R.drawable.ic_time, "Adiar 15 min", snoozePendingIntent)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setContentIntent(contentPendingIntent)
             .setAutoCancel(true)
-            .build()
+            .addAction(R.drawable.ic_check_circle_outline, "Concluir", completePendingIntent)
 
-        notificationManager.notify(eventId.hashCode(), notification)
-        Log.d("AlarmReceiver", "Notificação de alta prioridade para o evento '$eventId' disparada.")
+        if (type == AlarmScheduler.TYPE_START) {
+            val snoozeIntent = Intent(context, NotificationActionReceiver::class.java).apply {
+                action = NotificationActionReceiver.ACTION_SNOOZE
+                putExtra(EXTRA_EVENT_ID, eventId)
+            }
+            val snoozePendingIntent = PendingIntent.getBroadcast(
+                context,
+                "${eventId}_snooze".hashCode(),
+                snoozeIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(R.drawable.ic_time, "Adiar 15 min", snoozePendingIntent)
+        }
+
+        notificationManager.notify(notificationId, builder.build())
     }
 }

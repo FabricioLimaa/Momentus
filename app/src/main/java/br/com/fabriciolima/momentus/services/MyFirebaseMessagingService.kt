@@ -40,7 +40,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun sendRegistrationToServer(token: String?) {
-        // Implemente este método para enviar o token para o servidor do seu aplicativo.
+        // Implemente este caminho para enviar o token para o servidor do seu aplicativo.
         // Por exemplo, usando uma biblioteca de requisições de rede como Retrofit ou Ktor.
         Log.d("FCM", "Enviando token para o servidor: $token")
     }

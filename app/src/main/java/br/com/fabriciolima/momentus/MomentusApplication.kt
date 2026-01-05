@@ -4,6 +4,8 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -18,12 +20,6 @@ import dagger.hilt.android.HiltAndroidApp
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-/**
- * Classe de aplicação para o aplicativo Momentus.
- *
- * Anotada com `@HiltAndroidApp` para habilitar a injeção de dependência do Hilt.
- * Também configura e agenda o worker periódico para atualização do widget.
- */
 @HiltAndroidApp
 class MomentusApplication : Application(), Configuration.Provider {
 
@@ -44,7 +40,7 @@ class MomentusApplication : Application(), Configuration.Provider {
         )
 
         setupWidgetUpdateWorker()
-        createNotificationChannel()
+        createNotificationChannels()
     }
 
     private fun setupWidgetUpdateWorker() {
@@ -59,17 +55,47 @@ class MomentusApplication : Application(), Configuration.Provider {
         )
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Lembretes de Rotina"
-            val descriptionText = "Notificações para lembrar sobre suas rotinas agendadas"
-            val importance = NotificationManager.IMPORTANCE_HIGH // CORRIGIDO PARA HIGH
-            val channel = NotificationChannel("LEMBRETE_ROTINA_CHANNEL", name, importance).apply {
-                description = descriptionText
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            val attributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+
+            // 1. Canal de INÍCIO
+            val startChannel = NotificationChannel(
+                "CHANNEL_INICIO",
+                "Lembretes de Início",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notificações para o início das rotinas"
+                enableLights(true)
+                enableVibration(true)
+                
+                // Para usar som personalizado, coloque o arquivo em res/raw/inicio_som.mp3
+                val soundUri = Uri.parse("android.resource://$packageName/${R.raw.inicio_som}")
+                setSound(soundUri, attributes)
             }
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+
+            // 2. Canal de TÉRMINO
+            val endChannel = NotificationChannel(
+                "CHANNEL_TERMINO",
+                "Lembretes de Término",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notificações para o término das rotinas"
+                enableLights(true)
+                enableVibration(true)
+                
+                // Para usar som personalizado, coloque o arquivo em res/raw/termino_som.mp3
+                val soundUri = Uri.parse("android.resource://$packageName/${R.raw.termino_som}")
+                setSound(soundUri, attributes)
+            }
+
+            notificationManager.createNotificationChannel(startChannel)
+            notificationManager.createNotificationChannel(endChannel)
         }
     }
 }
