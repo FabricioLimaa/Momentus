@@ -173,6 +173,7 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-inappmessaging-display:22.0.2")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
+    implementation("com.google.firebase:firebase-appcheck-debug")
     implementation(libs.playServicesAuth)
 
     implementation(libs.googleApiClientAndroid) {

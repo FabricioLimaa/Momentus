@@ -11,13 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -33,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,26 +66,29 @@ fun StatsScreen(
                 }
             )
         }
-    ) {
+    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(it)
-                .padding(16.dp),
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Filtro de Período",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                FilterButtons(selectedFilter = uiState.filter, onFilterSelected = { viewModel.setFilter(it) })
+                FilterButtons(
+                    selectedFilter = uiState.filter, 
+                    onFilterSelected = viewModel::setFilter 
+                )
             }
             
             item {
-                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Total de Hábitos Concluídos",
                     style = MaterialTheme.typography.titleLarge,
@@ -102,9 +103,7 @@ fun StatsScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(16.dp))
                 Divider()
-                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Taxa de Conclusão",
                     style = MaterialTheme.typography.titleLarge,
@@ -117,15 +116,21 @@ fun StatsScreen(
                 )
             }
 
-            if (uiState.completionRates.isNotEmpty()) {
-                items(uiState.completionRates) {
-                    rate -> CompletionRateItem(rate = rate)
-                }
-            } else {
+            // Adicionado KEY para evitar recomposições desnecessárias da lista
+            items(
+                items = uiState.completionRates,
+                key = { it.categoryName } 
+            ) { rate ->
+                CompletionRateItem(rate = rate)
+            }
+
+            if (uiState.completionRates.isEmpty()) {
                 item {
                     Text("Nenhuma taxa de conclusão para este período.")
                 }
             }
+            
+            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 }
@@ -134,32 +139,33 @@ fun StatsScreen(
 @Composable
 fun FilterButtons(selectedFilter: StatsFilter, onFilterSelected: (StatsFilter) -> Unit) {
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        SegmentedButton(
-            selected = selectedFilter == StatsFilter.WEEK,
-            onClick = { onFilterSelected(StatsFilter.WEEK) },
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text("Semana")
-        }
-        SegmentedButton(
-            selected = selectedFilter == StatsFilter.MONTH,
-            onClick = { onFilterSelected(StatsFilter.MONTH) },
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text("Mês")
-        }
-        SegmentedButton(
-            selected = selectedFilter == StatsFilter.YEAR,
-            onClick = { onFilterSelected(StatsFilter.YEAR) },
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text("Ano")
+        StatsFilter.entries.forEachIndexed { index, filter ->
+            SegmentedButton(
+                selected = selectedFilter == filter,
+                onClick = { onFilterSelected(filter) },
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(when(filter) {
+                    StatsFilter.WEEK -> "Semana"
+                    StatsFilter.MONTH -> "Mês"
+                    StatsFilter.YEAR -> "Ano"
+                })
+            }
         }
     }
 }
 
 @Composable
 fun CompletionRateItem(rate: CompletionRate) {
+    // Cache da cor para evitar parse repetitivo
+    val categoryColor = remember(rate.categoryColor) {
+        try {
+            Color(android.graphics.Color.parseColor(rate.categoryColor))
+        } catch (e: Exception) {
+            Color.Gray
+        }
+    }
+
     Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -181,7 +187,7 @@ fun CompletionRateItem(rate: CompletionRate) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp),
-                color = rate.categoryColor.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.primary } },
+                color = categoryColor,
                 strokeCap = StrokeCap.Round
             )
         }
@@ -190,7 +196,8 @@ fun CompletionRateItem(rate: CompletionRate) {
 
 @Composable
 fun BarChart(data: List<BarChartData>) {
-    val maxValue = data.maxOfOrNull { it.value } ?: 0
+    // Otimização: Cálculo do valor máximo apenas quando os dados mudam
+    val maxValue = remember(data) { data.maxOfOrNull { it.value } ?: 0 }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -205,6 +212,15 @@ fun BarChart(data: List<BarChartData>) {
             verticalAlignment = Alignment.Bottom
         ) {
             data.forEach { item ->
+                // Cache da cor do item
+                val itemColor = remember(item.color) {
+                    try {
+                        Color(android.graphics.Color.parseColor(item.color))
+                    } catch (e: Exception) {
+                        Color.LightGray
+                    }
+                }
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom,
@@ -217,11 +233,7 @@ fun BarChart(data: List<BarChartData>) {
                             .fillMaxWidth(0.6f)
                             .fillMaxHeight(if (maxValue > 0) item.value.toFloat() / maxValue else 0f)
                             .clip(MaterialTheme.shapes.small)
-                            .background(try {
-                                Color(android.graphics.Color.parseColor(item.color))
-                            } catch (e: Exception) {
-                                MaterialTheme.colorScheme.secondary
-                            })
+                            .background(itemColor)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(

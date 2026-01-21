@@ -68,9 +68,10 @@ object RepositoryModule {
     @Singleton
     fun provideEventoRepository(
         itemCronogramaDao: ItemCronogramaDao,
-        @IoDispatcher dispatcher: CoroutineDispatcher
+        @IoDispatcher dispatcher: CoroutineDispatcher,
+        @ApplicationContext context: Context
     ): EventoRepository {
-        return EventoRepository(itemCronogramaDao, dispatcher)
+        return EventoRepository(itemCronogramaDao, dispatcher, context)
     }
 
     @Provides

@@ -1,15 +1,20 @@
 package br.com.fabriciolima.momentus.data.repository
 
+import android.content.Context
 import android.util.Log
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.di.IoDispatcher
 import br.com.fabriciolima.momentus.util.Result
+import br.com.fabriciolima.momentus.widget.WidgetUpdateWorker
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.toObjects
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -26,11 +31,22 @@ private const val TAG = "EventoRepository"
 @Singleton
 open class EventoRepository @Inject constructor(
     private val itemCronogramaDao: ItemCronogramaDao,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher
+    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @ApplicationContext private val context: Context
 ) {
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private var eventosListener: ListenerRegistration? = null
+    private val workManager = WorkManager.getInstance(context)
+
+    private fun triggerWidgetUpdate() {
+        val workRequest = OneTimeWorkRequestBuilder<WidgetUpdateWorker>().build()
+        workManager.enqueueUniqueWork(
+            WidgetUpdateWorker.WORK_NAME,
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
+    }
 
     private val userId: String?
         get() = auth.currentUser?.uid
@@ -56,6 +72,7 @@ open class EventoRepository @Inject constructor(
                 CoroutineScope(dispatcher).launch {
                     itemCronogramaDao.insertAll(it)
                     Log.d(TAG, "${it.size} eventos sincronizados em tempo real.")
+                    triggerWidgetUpdate()
                 }
             }
         }
@@ -109,6 +126,7 @@ open class EventoRepository @Inject constructor(
             if (itemsToDownload.isNotEmpty()) {
                 itemCronogramaDao.insertAll(itemsToDownload.toList())
                 Log.d(TAG, "${itemsToDownload.size} eventos da nuvem sincronizados para o banco local.")
+                triggerWidgetUpdate()
             }
 
         } catch (e: Exception) {
@@ -133,6 +151,7 @@ open class EventoRepository @Inject constructor(
                 .addOnSuccessListener { Log.d(TAG, "Evento ${item.id} salvo com sucesso no Firestore.") }
                 .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar evento ${item.id} no Firestore.", e) }
         }
+        triggerWidgetUpdate()
     }
     
     suspend fun insertAll(items: List<ItemCronograma>) {
@@ -148,6 +167,7 @@ open class EventoRepository @Inject constructor(
                 .addOnSuccessListener { Log.d(TAG, "${items.size} eventos inseridos na nuvem.") }
                 .addOnFailureListener { e -> Log.w(TAG, "Erro ao inserir eventos na nuvem", e) }
         }
+        triggerWidgetUpdate()
     }
 
     suspend fun updateItensCronograma(items: List<ItemCronograma>) {
@@ -163,6 +183,7 @@ open class EventoRepository @Inject constructor(
                 .addOnSuccessListener { Log.d(TAG, "${items.size} eventos atualizados na nuvem.") }
                 .addOnFailureListener { e -> Log.w(TAG, "Erro ao atualizar eventos na nuvem", e) }
         }
+        triggerWidgetUpdate()
     }
 
     suspend fun excluirEventoCompleto(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
@@ -175,6 +196,7 @@ open class EventoRepository @Inject constructor(
                     .addOnSuccessListener { Log.d(TAG, "Evento ${item.id} deletado com sucesso do Firestore.") }
                     .addOnFailureListener { e -> Log.w(TAG, "Erro ao deletar evento ${item.id} do Firestore.", e) }
             }
+            triggerWidgetUpdate()
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(Exception("Falha ao excluir evento.", e))
@@ -196,11 +218,13 @@ open class EventoRepository @Inject constructor(
             batch.commit().await()
             Log.d(TAG, "Deletados ${documents.size()} eventos do Firestore para templateId: $templateId")
         }
+        triggerWidgetUpdate()
     }
 
     suspend fun deleteEventsByCategoryId(categoryId: String) {
         Log.d(TAG, "Deletando eventos por categoryId: $categoryId")
         itemCronogramaDao.deleteByCategoryId(categoryId)
+        triggerWidgetUpdate()
     }
 
     fun getWidgetEvents(data: LocalDate, allowedCategoryIds: Set<String>): List<WidgetEventItem> {
@@ -215,5 +239,6 @@ open class EventoRepository @Inject constructor(
     suspend fun clear() = withContext(dispatcher){
         Log.d(TAG, "Limpando todos os eventos do banco de dados local.")
         itemCronogramaDao.clear()
+        triggerWidgetUpdate()
     }
 }
