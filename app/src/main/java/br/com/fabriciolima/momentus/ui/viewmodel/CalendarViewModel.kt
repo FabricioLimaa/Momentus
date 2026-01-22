@@ -52,6 +52,7 @@ sealed interface DialogState {
     data class EditEvent(val event: ItemCronograma) : DialogState
     data class ShowDetail(val event: ItemCronograma) : DialogState
     data class ConfirmDelete(val event: ItemCronograma) : DialogState
+    data class ConfirmDeleteMultiple(val count: Int) : DialogState
     object AddNewEvent : DialogState
 }
 
@@ -83,7 +84,10 @@ data class CalendarUiState(
     val error: String? = null,
     val successMessage: String? = null,
     val dialogState: DialogState = DialogState.Hidden,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    // State for multiple selection
+    val isSelectionModeActive: Boolean = false,
+    val selectedEventIds: Set<String> = emptySet()
 )
 
 @HiltViewModel
@@ -138,6 +142,73 @@ class CalendarViewModel @Inject constructor(
         checkIfNeedToShowUpdateBadge()
         listenForUpdateProgress()
     }
+
+    // --- Multiple Selection Logic ---
+
+    fun onEventLongPressed(eventId: String) {
+        _uiState.update {
+            it.copy(
+                isSelectionModeActive = true,
+                selectedEventIds = it.selectedEventIds + eventId
+            )
+        }
+    }
+
+    fun onEventClicked(eventId: String) {
+        _uiState.update { currentState ->
+            val newSelectedIds = if (currentState.selectedEventIds.contains(eventId)) {
+                currentState.selectedEventIds - eventId
+            } else {
+                currentState.selectedEventIds + eventId
+            }
+            // If the last item is deselected, exit selection mode
+            currentState.copy(
+                selectedEventIds = newSelectedIds,
+                isSelectionModeActive = newSelectedIds.isNotEmpty()
+            )
+        }
+    }
+
+    fun onClearSelection() {
+        _uiState.update { it.copy(isSelectionModeActive = false, selectedEventIds = emptySet()) }
+    }
+
+    fun onSelectAll() {
+        _uiState.update { currentState ->
+            val allVisibleEventIds = eventsForSelectedDate.value.localEvents.map { it.id }.toSet()
+            currentState.copy(selectedEventIds = allVisibleEventIds)
+        }
+    }
+
+    fun confirmDeleteSelectedEvents() {
+        _uiState.update { it.copy(dialogState = DialogState.ConfirmDeleteMultiple(it.selectedEventIds.size)) }
+    }
+
+    fun deleteSelectedEvents() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, dialogState = DialogState.Hidden) }
+            try {
+                val idsToDelete = _uiState.value.selectedEventIds
+                if (idsToDelete.isNotEmpty()) {
+                    eventoRepository.deleteEventsByIds(idsToDelete)
+                    _uiState.update {
+                        it.copy(
+                            successMessage = "${idsToDelete.size} eventos excluídos.",
+                            isSelectionModeActive = false,
+                            selectedEventIds = emptySet()
+                        )
+                    }
+                    WidgetUpdater.requestUpdate(application)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Falha ao excluir eventos.") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    // --- End of Multiple Selection Logic ---
 
     private fun listenForUpdateProgress() {
         inAppUpdateManager.updateProgress

@@ -121,11 +121,15 @@ fun TemplateDetailScreen(templateId: String, viewModel: TemplateDetailViewModel,
                                     .detectReorderAfterLongPress(state)
                                     .padding(end = 8.dp)
                             )
-                            uiState.categoriesMap[item.categoryId]?.let {
+                            uiState.categoriesMap[item.categoryId]?.let { category ->
                                 EventListItem(
                                     item = item, 
-                                    category = it,
-                                    onCheckedChange = null // Passando null para não mostrar o checkbox
+                                    category = category,
+                                    isChecked = false,
+                                    showCheckbox = false,
+                                    isSelected = false,
+                                    onCheckedChange = {},
+                                    onCardClicked = {}
                                 )
                             }
                         }

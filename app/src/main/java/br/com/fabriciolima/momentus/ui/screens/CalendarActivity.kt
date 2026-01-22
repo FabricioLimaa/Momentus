@@ -14,6 +14,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -176,7 +177,14 @@ class CalendarActivity : ComponentActivity() {
                             inAppUpdateManager.startUpdateFlow(updateInfo, this)
                         },
                         onCompleteUpdate = inAppUpdateManager::completeUpdate,
-                        onDismissUpdateDialog = viewModel::onUpdateDialogDismissed
+                        onDismissUpdateDialog = viewModel::onUpdateDialogDismissed,
+                        // Callbacks for multiple selection
+                        onEventLongPressed = viewModel::onEventLongPressed,
+                        onEventClicked = viewModel::onEventClicked,
+                        onClearSelection = viewModel::onClearSelection,
+                        onSelectAll = viewModel::onSelectAll,
+                        onDeleteSelectedEvents = viewModel::deleteSelectedEvents,
+                        onConfirmDeleteSelectedEvents = viewModel::confirmDeleteSelectedEvents
                     )
                 }
             }
@@ -209,6 +217,40 @@ class CalendarActivity : ComponentActivity() {
         inAppUpdateManager.unregisterListener()
     }
 }
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelectionTopAppBar(
+    selectedCount: Int,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onDelete: () -> Unit
+) {
+    TopAppBar(
+        title = { Text("$selectedCount selecionados") },
+        navigationIcon = {
+            IconButton(onClick = onClearSelection) {
+                Icon(Icons.Default.Close, contentDescription = "Fechar")
+            }
+        },
+        actions = {
+            IconButton(onClick = onSelectAll) {
+                Icon(Icons.Default.SelectAll, contentDescription = "Selecionar Todos")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Excluir Selecionados")
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    )
+}
+
 
 @Composable
 fun UserAvatar(
@@ -306,7 +348,14 @@ fun CalendarScreen(
     onCheckForUpdate: () -> Unit,
     onStartUpdate: (com.google.android.play.core.appupdate.AppUpdateInfo) -> Unit,
     onCompleteUpdate: () -> Unit,
-    onDismissUpdateDialog: () -> Unit
+    onDismissUpdateDialog: () -> Unit,
+    // Callbacks for multiple selection
+    onEventLongPressed: (String) -> Unit,
+    onEventClicked: (String) -> Unit,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onConfirmDeleteSelectedEvents: () -> Unit,
+    onDeleteSelectedEvents: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -412,6 +461,24 @@ fun CalendarScreen(
                 }
             )
         }
+         is DialogState.ConfirmDeleteMultiple -> {
+            AlertDialog(
+                onDismissRequest = onDialogDismiss,
+                icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso de Exclusão Múltipla") },
+                title = { Text("Excluir Eventos") },
+                text = { Text("Tem certeza que deseja excluir os ${dialogState.count} eventos selecionados? Essa ação não pode ser desfeita.") },
+                confirmButton = {
+                    Button(onClick = onDeleteSelectedEvents) {
+                        Text("Excluir")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDialogDismiss) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
         is DialogState.Hidden -> {}
     }
 
@@ -419,50 +486,59 @@ fun CalendarScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                TopAppBar(
-                    title = { Text(text = "Minha Agenda") },
-                    navigationIcon = {
-                        IconButton(onClick = onMenuClick) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                 if (uiState.isSelectionModeActive) {
+                    SelectionTopAppBar(
+                        selectedCount = uiState.selectedEventIds.size,
+                        onClearSelection = onClearSelection,
+                        onSelectAll = onSelectAll,
+                        onDelete = onConfirmDeleteSelectedEvents
+                    )
+                } else {
+                    TopAppBar(
+                        title = { Text(text = "Minha Agenda") },
+                        navigationIcon = {
+                            IconButton(onClick = onMenuClick) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
+                        },
+                        actions = {
+                            Row(
+                                modifier = Modifier
+                                    .padding(horizontal = 8.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { context.startActivity(Intent(context, AchievementsActivity::class.java)) }
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocalFireDepartment,
+                                    contentDescription = "Sequência",
+                                    tint = getStreakColor(uiState.streak)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = uiState.streak.toString(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Pontos",
+                                    tint = Color(0xFFD4AF37)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = (uiState.userData?.points ?: 0).toString(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
-                    },
-                    actions = {
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = 8.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { context.startActivity(Intent(context, AchievementsActivity::class.java)) }
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalFireDepartment,
-                                contentDescription = "Sequência",
-                                tint = getStreakColor(uiState.streak)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = uiState.streak.toString(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = "Pontos",
-                                tint = Color(0xFFD4AF37)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = (uiState.userData?.points ?: 0).toString(),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                )
+                    )
+                }
             }
         ) { paddingValues ->
             Column(
@@ -500,7 +576,7 @@ fun CalendarScreen(
                     Button(
                         onClick = onAddNewEventClicked,
                         modifier = Modifier.fillMaxWidth().height(50.dp),
-                        enabled = !uiState.isLoading
+                        enabled = !uiState.isLoading && !uiState.isSelectionModeActive // Disable when in selection mode
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
@@ -525,7 +601,10 @@ fun CalendarScreen(
                         uiState = uiState,
                         selectedDate = selectedDate,
                         eventsForDate = eventsForSelectedDate,
-                        onEventClick = onShowDetailClicked,
+                        onEventClick = {
+                             if (uiState.isSelectionModeActive) onEventClicked(it.id) else onShowDetailClicked(it)
+                        },
+                        onEventLongClick = { onEventLongPressed(it.id) },
                         onAddNewEventClicked = onAddNewEventClicked,
                         onMarkAsCompleted = onMarkAsCompleted,
                         onUnmarkAsCompleted = onUnmarkAsCompleted
@@ -534,7 +613,7 @@ fun CalendarScreen(
             }
         }
 
-        if (uiState.isLoading) {
+        if (uiState.isLoading && !uiState.isSelectionModeActive) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -865,15 +944,6 @@ fun DayCell(
                         Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
                     }
 
-                    /*
-                    if (localEvents.size < 2 && googleEvents.isNotEmpty()) {
-                        val remainingSlots = 2 - localEvents.size
-                        googleEvents.take(remainingSlots).forEach { _ ->
-                            Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.error, CircleShape))
-                        }
-                    }
-                    */
-
                     val remainingCount = allEventsForDay.size - 2
                     if (remainingCount > 0) {
                         Text(text = "+${remainingCount}", fontSize = 8.sp, color = textColor)
@@ -946,12 +1016,14 @@ fun MonthYearPickerDialog(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun EventsForDay(
     uiState: CalendarUiState,
     selectedDate: LocalDate,
     eventsForDate: EventsForDate,
     onEventClick: (ItemCronograma) -> Unit,
+    onEventLongClick: (ItemCronograma) -> Unit,
     onAddNewEventClicked: () -> Unit,
     onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit
@@ -994,7 +1066,7 @@ fun EventsForDay(
                     modifier = Modifier.padding(horizontal = 32.dp)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onAddNewEventClicked) {
+                Button(onClick = onAddNewEventClicked, enabled = !uiState.isSelectionModeActive) {
                     Icon(Icons.Default.Add, contentDescription = "Adicionar Novo Evento")
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Adicionar Evento")
@@ -1002,59 +1074,33 @@ fun EventsForDay(
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(eventsForDate.localEvents) {
-                    val category = uiState.categoriesMap[it.categoryId]
+                items(eventsForDate.localEvents, key = { event -> event.id }) { event ->
+                    val category = uiState.categoriesMap[event.categoryId]
                     if (category != null) {
-                        val isChecked = uiState.completedHabitIds.contains(it.id)
-                        EventListItem(
-                            item = it,
-                            category = category,
-                            isChecked = isChecked,
-                            onCheckedChange = { newCheckedState ->
-                                if (newCheckedState) {
-                                    onMarkAsCompleted(it.id)
-                                } else {
-                                    onUnmarkAsCompleted(it.id)
-                                }
-                            },
-                            modifier = Modifier.clickable { onEventClick(it) }
-                        )
+                        val isChecked = uiState.completedHabitIds.contains(event.id)
+                        val isSelected = uiState.selectedEventIds.contains(event.id)
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth().combinedClickable(
+                                onClick = { onEventClick(event) },
+                                onLongClick = { onEventLongClick(event) }
+                            ),
+                            colors = if(isSelected) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else CardDefaults.cardColors()
+                        ) {
+                             EventListItem(
+                                item = event,
+                                category = category,
+                                isChecked = isChecked,
+                                showCheckbox = uiState.isSelectionModeActive,
+                                isSelected = isSelected,
+                                onCheckedChange = { isNowChecked ->
+                                    if (isNowChecked) onMarkAsCompleted(event.id) else onUnmarkAsCompleted(event.id)
+                                },
+                                onCardClicked = { onEventClick(event) }
+                            )
+                        }
                     }
                 }
-
-                /*
-                items(eventsForDate.googleEvents) { event ->
-                    GoogleEventListItem(event = event)
-                }
-                */
-            }
-        }
-    }
-}
-
-@Composable
-fun GoogleEventListItem(event: GoogleCalendarEvent) {
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-    val instant = Instant.ofEpochMilli(event.start.value)
-    val startTime = instant.atZone(ZoneOffset.UTC).toLocalTime()
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(MaterialTheme.colorScheme.error, CircleShape)
-            )
-            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-            Column {
-                Text(text = event.summary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Text(text = "Início: ${startTime.format(timeFormatter)} - Google Agenda", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

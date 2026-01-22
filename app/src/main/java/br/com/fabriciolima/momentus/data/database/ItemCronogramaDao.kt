@@ -25,6 +25,9 @@ interface ItemCronogramaDao {
     @Delete
     suspend fun delete(item: ItemCronograma)
 
+    @Query("DELETE FROM tabela_itens_cronograma WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: Set<String>)
+
     @Query("SELECT * FROM tabela_itens_cronograma ORDER BY horarioInicio ASC")
     fun getAllItems(): Flow<List<ItemCronograma>>
 

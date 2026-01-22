@@ -36,10 +36,17 @@ class MomentusApplication : Application(), Configuration.Provider {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         val firebaseAppCheck = FirebaseAppCheck.getInstance()
-        firebaseAppCheck.installAppCheckProviderFactory(
-            DebugAppCheckProviderFactory.getInstance()
-            //PlayIntegrityAppCheckProviderFactory.getInstance()
-        )
+
+        // Use DebugProvider in debug builds, and PlayIntegrity in release builds
+        if (BuildConfig.DEBUG) {
+            firebaseAppCheck.installAppCheckProviderFactory(
+                DebugAppCheckProviderFactory.getInstance()
+            )
+        } else {
+            firebaseAppCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+            )
+        }
 
         setupWidgetUpdateWorker()
         createNotificationChannels()

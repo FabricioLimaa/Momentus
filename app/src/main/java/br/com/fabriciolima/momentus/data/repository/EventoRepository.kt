@@ -203,6 +203,22 @@ open class EventoRepository @Inject constructor(
         }
     }
 
+    suspend fun deleteEventsByIds(ids: Set<String>) = withContext(dispatcher) {
+        if (ids.isEmpty()) return@withContext
+        Log.d(TAG, "Excluindo ${ids.size} eventos em lote.")
+        itemCronogramaDao.deleteByIds(ids)
+        userId?.let { currentUserId ->
+            val batch = firestore.batch()
+            val collectionRef = firestore.collection("users").document(currentUserId).collection("eventos")
+            ids.forEach {
+                val docRef = collectionRef.document(it)
+                batch.delete(docRef)
+            }
+            batch.commit().await()
+        }
+        triggerWidgetUpdate()
+    }
+
     suspend fun deleteEventsByTemplateId(templateId: String) = withContext(dispatcher) {
         Log.d(TAG, "Deletando eventos do DB local para templateId: $templateId")
         itemCronogramaDao.deleteByTemplateId(templateId)
