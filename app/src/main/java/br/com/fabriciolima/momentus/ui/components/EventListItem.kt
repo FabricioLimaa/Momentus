@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -33,30 +34,42 @@ import java.time.format.DateTimeFormatter
 fun EventListItem(
     item: ItemCronograma,
     category: Category,
-    isChecked: Boolean,
-    showCheckbox: Boolean, // Controls visibility of the main completion checkbox
-    isSelected: Boolean,   // For multiple selection mode
+    isChecked: Boolean, // For completion state
+    showCheckbox: Boolean, // For selection mode
+    isSelected: Boolean,   // For multiple selection state
     onCheckedChange: (Boolean) -> Unit,
-    onCardClicked: () -> Unit, // Handles click in selection mode
+    onCardClicked: () -> Unit, // For selection toggling
     modifier: Modifier = Modifier
 ) {
-    val formatter = DateTimeFormatter.ofPattern("HH:mm")
-    val categoryColor = try {
-        Color(android.graphics.Color.parseColor(category.cor))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.secondary
+    val formatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
+    val fallbackColor = MaterialTheme.colorScheme.secondary
+    val categoryColor = remember(category.cor) {
+        try {
+            Color(android.graphics.Color.parseColor(category.cor))
+        } catch (e: Exception) {
+            fallbackColor
+        }
     }
 
-    val contentAlpha = if (isChecked) 0.6f else 1f
-    val textDecoration = if (isChecked) TextDecoration.LineThrough else TextDecoration.None
+    val contentAlpha = if (isChecked && !showCheckbox) 0.6f else 1f
+    val textDecoration = if (isChecked && !showCheckbox) TextDecoration.LineThrough else TextDecoration.None
 
     Row(
         modifier = modifier.padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (showCheckbox) {
-            Checkbox(checked = isSelected, onCheckedChange = { onCardClicked() })
-        }
+        Checkbox(
+            checked = if (showCheckbox) isSelected else isChecked,
+            onCheckedChange = {
+                if (showCheckbox) {
+                    onCardClicked()
+                } else {
+                    onCheckedChange(!isChecked)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -97,11 +110,5 @@ fun EventListItem(
                 fontWeight = FontWeight.Bold
             )
         }
-
-        Checkbox(
-            checked = isChecked,
-            onCheckedChange = onCheckedChange,
-            modifier = Modifier.alpha(if(showCheckbox) 0f else 1f) // Hide if in selection mode
-        )
     }
 }
