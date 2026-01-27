@@ -14,6 +14,10 @@ import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.di.VersionCode
+import br.com.fabriciolima.momentus.domain.usecase.MarkHabitAsCompletedUseCase
+import br.com.fabriciolima.momentus.domain.usecase.SaveEventUseCase
+import br.com.fabriciolima.momentus.domain.usecase.UnmarkHabitAsCompletedUseCase
+import br.com.fabriciolima.momentus.domain.usecase.UpdateEventUseCase
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import br.com.fabriciolima.momentus.util.Result
@@ -102,6 +106,10 @@ class CalendarViewModel @Inject constructor(
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
     private val application: Application,
+    private val markHabitAsCompletedUseCase: MarkHabitAsCompletedUseCase,
+    private val unmarkHabitAsCompletedUseCase: UnmarkHabitAsCompletedUseCase,
+    private val saveEventUseCase: SaveEventUseCase,
+    private val updateEventUseCase: UpdateEventUseCase,
     @VersionCode private val currentVersionCode: Int
 ) : ViewModel() {
 
@@ -371,46 +379,19 @@ class CalendarViewModel @Inject constructor(
         category: Category,
         salvarNoGoogle: Boolean
     ) {
-        if (horarioTermino.isBefore(horarioInicio) || horarioTermino == horarioInicio) {
-            _uiState.value = _uiState.value.copy(error = "O horário de término deve ser depois do início.")
-            return
-        }
-
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            try {
-                var googleEventId: String? = null
+            val result = saveEventUseCase(titulo, descricao, data, horarioInicio, horarioTermino, category, salvarNoGoogle)
+            _uiState.update { it.copy(isLoading = false) }
 
-                if (salvarNoGoogle) {
-                    when (val result = categoryRepository.saveEventToGoogle(titulo, descricao, data, horarioInicio, horarioTermino, category.cor)) {
-                        is Result.Success -> {
-                            googleEventId = result.data
-                            fetchGoogleCalendarEvents()
-                        }
-                        is Result.Error -> {
-                            _uiState.value = _uiState.value.copy(error = result.exception.message)
-                        }
-                    }
+            when (result) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden) }
+                    if (salvarNoGoogle) fetchGoogleCalendarEvents()
                 }
-
-                val novoItem = ItemCronograma(
-                    titulo = titulo,
-                    descricao = descricao,
-                    data = data.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-                    diaDaSemana = null,
-                    horarioInicio = horarioInicio,
-                    horarioTermino = horarioTermino,
-                    categoryId = category.id,
-                    templateId = null,
-                    googleCalendarEventId = googleEventId
-                )
-                eventoRepository.insertItemCronograma(novoItem)
-                alarmScheduler.schedule(novoItem)
-
-                _uiState.value = _uiState.value.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden)
-                WidgetUpdater.requestUpdate(application)
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
+                is Result.Error -> {
+                    _uiState.update { it.copy(error = result.exception.message) }
+                }
             }
         }
     }
@@ -425,38 +406,20 @@ class CalendarViewModel @Inject constructor(
         novaCategory: Category,
         sincronizarComGoogle: Boolean
     ) {
-        if (novoHorarioTermino.isBefore(novoHorarioInicio) || novoHorarioTermino == novoHorarioInicio) {
-            _uiState.value = _uiState.value.copy(error = "O horário de término deve ser depois do início.")
-            return
-        }
-
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            try {
-                val itemAtualizado = item.copy(
-                    titulo = novoTitulo,
-                    descricao = novaDescricao,
-                    data = novaData.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-                    horarioInicio = novoHorarioInicio,
-                    horarioTermino = novoHorarioTermino,
-                    categoryId = novaCategory.id
-                )
+             _uiState.update { it.copy(isLoading = true) }
+            val result = updateEventUseCase(item, novoTitulo, novaDescricao, novaData, novoHorarioInicio, novoHorarioTermino, novaCategory, sincronizarComGoogle)
+            _uiState.update { it.copy(isLoading = false) }
 
-                if (sincronizarComGoogle) {
-                    when (val result = categoryRepository.updateCompleteEvent(itemAtualizado, novaCategory.cor)) {
-                        is Result.Success -> fetchGoogleCalendarEvents()
-                        is Result.Error -> _uiState.value = _uiState.value.copy(error = result.exception.message ?: "Falha ao sincronizar atualização com o Google Calendar.")
-                    }
-                } else {
-                    eventoRepository.insertItemCronograma(itemAtualizado)
+            when(result) {
+                is Result.Success -> {
+                     _uiState.update { it.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden) }
+                    if(sincronizarComGoogle) fetchGoogleCalendarEvents()
+                     WidgetUpdater.requestUpdate(application)
                 }
-
-                alarmScheduler.schedule(itemAtualizado)
-
-                _uiState.value = _uiState.value.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden)
-                WidgetUpdater.requestUpdate(application)
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
+                is Result.Error -> {
+                    _uiState.update { it.copy(error = result.exception.message) }
+                }
             }
         }
     }
@@ -484,15 +447,13 @@ class CalendarViewModel @Inject constructor(
 
     fun markHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
-            categoryRepository.markHabitAsCompleted(itemCronogramaId)
-            WidgetUpdater.requestUpdate(application)
+            markHabitAsCompletedUseCase(itemCronogramaId)
         }
     }
 
     fun unmarkHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
-            categoryRepository.unmarkHabitAsCompleted(itemCronogramaId)
-            WidgetUpdater.requestUpdate(application)
+            unmarkHabitAsCompletedUseCase(itemCronogramaId)
         }
     }
 
