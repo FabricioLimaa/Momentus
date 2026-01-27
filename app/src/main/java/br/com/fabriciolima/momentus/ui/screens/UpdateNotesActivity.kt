@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -47,44 +49,46 @@ fun UpdateNotesScreen(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
         Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text("Versão 1.0.1 (Janeiro de 2025)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("Versão 1.1.01 (22 de Janeiro de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
-        Text("Esta atualização traz uma experiência sonora e de notificações completamente renovada:", style = MaterialTheme.typography.bodyMedium)
+        Text("Esta atualização foca em usabilidade e polimento da interface, tornando a gestão da sua agenda ainda mais rápida e agradável.", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text("🔔 Notificações de Início e Término", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("🗑️ Exclusão Múltipla de Eventos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Agora o Momentus te acompanha do início ao fim. Você receberá lembretes automáticos tanto no horário de início quanto no término de cada atividade da sua rotina.",
+            "Agora você pode excluir vários eventos de uma só vez. Pressione e segure um item para iniciar o modo de seleção, escolha os eventos e limpe sua agenda com um único toque.",
             style = MaterialTheme.typography.bodyLarge
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text("🎵 Identidade Sonora", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("🎨 Polimento Visual e de Usabilidade", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "Adicionamos sons diferenciados para o início e o fim das tarefas. Saiba exatamente o que fazer apenas pelo toque, sem precisar olhar para a tela.",
+            "O checkbox para concluir e selecionar tarefas agora é o mesmo, localizado à esquerda, proporcionando uma experiência consistente. Além disso, a barra de status agora se adapta à cor do modo de seleção.",
             style = MaterialTheme.typography.bodyLarge
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text("🧠 Notificações Inteligentes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("🧹 Interface Mais Limpa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "O app agora entende seu progresso. Se você já concluiu uma tarefa manualmente, os lembretes de término não serão exibidos, garantindo zero interrupções desnecessárias.",
+            "Para uma visualização mais focada, removemos a descrição do evento diretamente da lista principal. Os detalhes ainda estão a um clique de distância.",
             style = MaterialTheme.typography.bodyLarge
         )
         Spacer(modifier = Modifier.height(24.dp))
 
+
         Text("Recursos Anteriores", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
-        Text("- ✅ Correção de incompatibilidade em dispositivos específicos.", style = MaterialTheme.typography.bodyLarge)
+        Text("🔔 Notificações de Início e Término com sons personalizados.", style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(8.dp))
-        Text("- 🚀 Melhorias de estabilidade e performance no Widget Glance.", style = MaterialTheme.typography.bodyLarge)
+        Text("🚀 Melhorias de estabilidade e performance no Widget.", style = MaterialTheme.typography.bodyLarge)
     }
 }

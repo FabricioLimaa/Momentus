@@ -17,6 +17,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -367,21 +368,22 @@ fun CalendarScreen(
 
     // Handle Status Bar Color
     val view = LocalView.current
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val selectionColor = MaterialTheme.colorScheme.primaryContainer
+    val darkTheme = isSystemInDarkTheme()
+    val surfaceColor = MaterialTheme.colorScheme.surface.toArgb()
+    val selectionColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
+
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             if (uiState.isSelectionModeActive) {
-                window.statusBarColor = selectionColor.toArgb()
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+                window.statusBarColor = selectionColor
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
             } else {
-                window.statusBarColor = primaryColor.toArgb()
-                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+                window.statusBarColor = surfaceColor
+                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
             }
         }
     }
-
 
     LaunchedEffect(Unit) {
         onCheckForUpdate()
