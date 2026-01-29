@@ -115,6 +115,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidxLifecycleRuntimeCompose)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.navigation.compose) // Corrected reference
 
     // Hilt
     implementation(libs.hilt.android)

@@ -59,17 +59,12 @@
         </service>
 
         <activity android:name=".ui.screens.MainActivity" android:exported="false" />
-        <activity android:name=".ui.screens.CalendarActivity" android:exported="false" />
         <activity android:name=".ui.screens.CreateTemplateActivity" android:exported="false" />
         <activity android:name=".ui.screens.EditorRotinaComposeActivity" android:exported="false" />
-        <activity android:name=".ui.screens.TemplatesActivity" android:exported="false" />
         <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
-        <activity android:name=".ui.screens.CategoryActivity" android:exported="false" />
         <activity android:name=".ui.screens.LegalActivity" android:exported="false" />
         <activity android:name=".ui.screens.TermsActivity" android:exported="false" />
         <activity android:name=".ui.screens.OnboardingActivity" android:exported="false" />
-        <activity android:name=".ui.screens.StatsActivity" android:exported="false" />
-        <activity android:name=".ui.screens.AchievementsActivity" android:exported="false" />
         <activity android:name=".ui.screens.SignUpActivity" android:exported="false" />
         <activity android:name=".ui.screens.ForgotPasswordActivity" android:exported="false" />
         <activity android:name=".ui.screens.UpdateNotesActivity" android:exported="false" />

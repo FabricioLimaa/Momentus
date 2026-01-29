@@ -1,6 +1,5 @@
 package br.com.fabriciolima.momentus.ui.screens
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -26,8 +25,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,6 +52,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import br.com.fabriciolima.momentus.BuildConfig
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
@@ -56,8 +71,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.auth
-import com.google.firebase.Firebase
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -65,23 +78,28 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
 
-    @Inject lateinit var userRepository: UserRepository
-    @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
+    @Inject
+    lateinit var firebaseAuth: FirebaseAuth
+
+    @Inject
+    lateinit var userRepository: UserRepository
+
+    @Inject
+    lateinit var userPreferencesRepository: UserPreferencesRepository
 
     private lateinit var googleSignInClient: GoogleSignInClient
-    private val firebaseAuth: FirebaseAuth by lazy { Firebase.auth }
 
     private val _isLoading = mutableStateOf(false)
 
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        _isLoading.value = false
-        if (result.resultCode == Activity.RESULT_OK) {
+        if (result.resultCode == RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             handleSignInResult(task)
         } else {
-            Toast.makeText(this, "Login com Google cancelado", Toast.LENGTH_SHORT).show()
+            _isLoading.value = false
+            Toast.makeText(this, "Login com Google cancelado.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -216,7 +234,7 @@ class LoginActivity : ComponentActivity() {
         val eventId = intent.getStringExtra(EVENT_ID_KEY)
 
         val targetIntent = if (openNewEvent || eventId != null) {
-            Intent(this, CalendarActivity::class.java)
+            Intent(this, MainActivity::class.java)
         } else {
             Intent(this, SplashActivity::class.java)
         }
@@ -342,38 +360,26 @@ fun LoginScreen(
                             label = { Text("Senha") },
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                            visualTransformation = PasswordVisualTransformation(),
-                            isError = password.isNotEmpty() && !isPasswordValid()
+                            visualTransformation = PasswordVisualTransformation()
                         )
-                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
-                                checked = rememberMe,
-                                onCheckedChange = { 
-                                    rememberMe = it
-                                    onUpdatePreferences(email, it)
-                                }
-                            )
+                            Checkbox(checked = rememberMe, onCheckedChange = { newCheckedState -> 
+                                rememberMe = newCheckedState
+                                onUpdatePreferences(email, newCheckedState)
+                            })
                             Text("Lembrar-me")
                         }
-                        TextButton(
-                            onClick = { 
-                                context.startActivity(Intent(context, ForgotPasswordActivity::class.java))
-                            },
-                            modifier = Modifier.align(Alignment.End)
-                        ) {
-                            Text("Esqueceu a senha?")
-                        }
                         Spacer(modifier = Modifier.height(16.dp))
-
                         Button(
                             onClick = { onEmailSignInClick(email, password, rememberMe) },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
-                            enabled = !isLoading && isEmailValid() && isPasswordValid()
+                            enabled = isLoading || (isEmailValid() && isPasswordValid())
                         ) {
-                            if(isLoading) {
+                            if (isLoading && showEmailFields) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                             } else {
                                 Text("Entrar")
@@ -381,35 +387,15 @@ fun LoginScreen(
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = { 
-                        val intent = Intent(context, SignUpActivity::class.java)
-                        context.startActivity(intent)
-                    }) {
-                        Text("Crie uma aqui")
-                    }
-                }
             }
-
-            val versionName = try {
-                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-                packageInfo.versionName
-            } catch (e: Exception) {
-                "N/A"
-            }
-
             Text(
-                text = "Versão: $versionName",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "Versão ${BuildConfig.VERSION_NAME}",
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 30.dp)
+                    .padding(16.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
+        } 
     }
 }

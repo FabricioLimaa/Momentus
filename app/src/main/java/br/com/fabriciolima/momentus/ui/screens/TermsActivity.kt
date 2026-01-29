@@ -34,7 +34,7 @@ class TermsActivity : ComponentActivity() {
                     viewModel = viewModel,
                     onTermsAccepted = {
                         // Navega para a tela principal após aceitar
-                        startActivity(Intent(this, CalendarActivity::class.java).apply {
+                        startActivity(Intent(this, MainActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         })
                         finish()
