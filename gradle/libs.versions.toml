@@ -22,7 +22,6 @@ ksp = "2.0.0-1.0.21"
 lifecycle = "2.7.0"
 material = "1.11.0"
 mockitoKotlin = "5.2.1"
-navigationCompose = "2.7.7"
 playServicesAuth = "20.7.0"
 room = "2.6.1"
 googleGmsServices = "4.4.2"
@@ -41,7 +40,6 @@ androidx-core-testing = { group = "androidx.arch.core", name = "core-testing", v
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version = "1.8.2" }
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version = "1.6.2" }
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version = "1.3.2" }
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }

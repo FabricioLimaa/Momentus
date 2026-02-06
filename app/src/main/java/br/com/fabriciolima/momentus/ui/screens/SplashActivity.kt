@@ -70,7 +70,7 @@ class SplashActivity : ComponentActivity() {
                 SplashViewModel.UserStatus.ONBOARDING_INCOMPLETE -> OnboardingActivity::class.java
                 SplashViewModel.UserStatus.NOT_LOGGED_IN -> LoginActivity::class.java
                 SplashViewModel.UserStatus.TERMS_NOT_ACCEPTED -> TermsActivity::class.java
-                SplashViewModel.UserStatus.LOGGED_IN -> MainActivity::class.java // Corrected reference
+                SplashViewModel.UserStatus.LOGGED_IN -> CalendarActivity::class.java
             }
             startActivity(Intent(this@SplashActivity, destination).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
