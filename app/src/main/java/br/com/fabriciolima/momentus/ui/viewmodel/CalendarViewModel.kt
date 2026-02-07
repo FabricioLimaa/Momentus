@@ -14,6 +14,7 @@ import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.di.VersionCode
+import br.com.fabriciolima.momentus.domain.usecase.DeleteEventUseCase
 import br.com.fabriciolima.momentus.domain.usecase.MarkHabitAsCompletedUseCase
 import br.com.fabriciolima.momentus.domain.usecase.SaveEventUseCase
 import br.com.fabriciolima.momentus.domain.usecase.UnmarkHabitAsCompletedUseCase
@@ -110,6 +111,7 @@ class CalendarViewModel @Inject constructor(
     private val unmarkHabitAsCompletedUseCase: UnmarkHabitAsCompletedUseCase,
     private val saveEventUseCase: SaveEventUseCase,
     private val updateEventUseCase: UpdateEventUseCase,
+    private val deleteEventUseCase: DeleteEventUseCase,
     @VersionCode private val currentVersionCode: Int
 ) : ViewModel() {
 
