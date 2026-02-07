@@ -14,7 +14,6 @@ import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.di.VersionCode
-import br.com.fabriciolima.momentus.domain.usecase.DeleteEventUseCase
 import br.com.fabriciolima.momentus.domain.usecase.MarkHabitAsCompletedUseCase
 import br.com.fabriciolima.momentus.domain.usecase.SaveEventUseCase
 import br.com.fabriciolima.momentus.domain.usecase.UnmarkHabitAsCompletedUseCase
@@ -102,6 +101,7 @@ class CalendarViewModel @Inject constructor(
     private val templateRepository: TemplateRepository,
     private val userRepository: UserRepository,
     private val gamificationRepository: GamificationRepository,
+    private val alarmScheduler: AlarmScheduler,
     private val inAppUpdateManager: InAppUpdateManager,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
@@ -110,7 +110,6 @@ class CalendarViewModel @Inject constructor(
     private val unmarkHabitAsCompletedUseCase: UnmarkHabitAsCompletedUseCase,
     private val saveEventUseCase: SaveEventUseCase,
     private val updateEventUseCase: UpdateEventUseCase,
-    private val deleteEventUseCase: DeleteEventUseCase,
     @VersionCode private val currentVersionCode: Int
 ) : ViewModel() {
 
@@ -427,15 +426,21 @@ class CalendarViewModel @Inject constructor(
 
     fun deleteEvent(item: ItemCronograma) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, dialogState = DialogState.Hidden) }
-            val result = deleteEventUseCase(item)
-            _uiState.update { it.copy(isLoading = false) }
-            when(result) {
-                is Result.Success -> {
-                    _uiState.update { it.copy(successMessage = "Evento excluído com sucesso!") }
-                    fetchGoogleCalendarEvents()
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                alarmScheduler.cancel(item)
+                when (val result = categoryRepository.deleteCompleteEvent(item)) {
+                    is Result.Success -> {
+                        fetchGoogleCalendarEvents()
+                        _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
+                        WidgetUpdater.requestUpdate(application)
+                    }
+                    is Result.Error -> {
+                        _uiState.value = _uiState.value.copy(error = result.exception.message)
+                    }
                 }
-                is Result.Error -> _uiState.update { it.copy(error = result.exception.message) }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
