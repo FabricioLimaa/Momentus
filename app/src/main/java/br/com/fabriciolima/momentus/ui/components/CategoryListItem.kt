@@ -1,25 +1,17 @@
 package br.com.fabriciolima.momentus.ui.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
@@ -27,14 +19,34 @@ import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 @Composable
 fun CategoryListItem(item: CategoryWithMeta, onEdit: (CategoryWithMeta) -> Unit, onDelete: (CategoryWithMeta) -> Unit) {
     val meta = item.meta?.metaMinutosSemanal ?: 0
+    val categoryColor = remember(item.category.cor) {
+        try {
+            Color(android.graphics.Color.parseColor(item.category.cor))
+        } catch (e: Exception) {
+            Color.Gray
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(item.category.nome, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // ADICIONADO: Ícone circular com a cor da categoria
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .background(categoryColor, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(item.category.nome, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
                 Row {
                     IconButton(onClick = { onEdit(item) }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar Categoria", tint = MaterialTheme.colorScheme.primary)
@@ -47,7 +59,7 @@ fun CategoryListItem(item: CategoryWithMeta, onEdit: (CategoryWithMeta) -> Unit,
             if (meta > 0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Meta Semanal: ${meta / 60}h ${meta % 60}m", style = MaterialTheme.typography.bodyMedium)
-                LinearProgressIndicator(progress = 0.5f, modifier = Modifier.fillMaxWidth()) // TODO: Calcular progresso real
+                LinearProgressIndicator(progress = { 0.5f }, modifier = Modifier.fillMaxWidth()) // TODO: Calcular progresso real
             }
         }
     }

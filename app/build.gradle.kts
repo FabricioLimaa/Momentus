@@ -151,6 +151,7 @@ dependencies {
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.constraintlayout.compose) // Adicionado
+    implementation("androidx.navigation:navigation-compose:2.7.7") // ADICIONADO
 
     implementation(libs.composeReorderable)
 

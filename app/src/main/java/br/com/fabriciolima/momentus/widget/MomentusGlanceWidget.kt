@@ -2,7 +2,6 @@ package br.com.fabriciolima.momentus.widget
 
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -46,11 +45,10 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
-import androidx.constraintlayout.compose.ConstraintLayout
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.EventoRepository
-import br.com.fabriciolima.momentus.ui.screens.LoginActivity
+import br.com.fabriciolima.momentus.ui.screens.MainActivity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -63,7 +61,6 @@ import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.glance.color.ColorProvider
-import androidx.glance.layout.fillMaxHeight
 
 // --- DATA E ESTADO DO WIDGET ---
 
@@ -75,7 +72,7 @@ data class WidgetEvent(
     val categoryName: String,
     val categoryColor: String?,
     val isPast: Boolean = false,
-    val isCompleted: Boolean = false // Adicionado
+    val isCompleted: Boolean = false
 )
 
 object EventWidgetStateKeys {
@@ -96,7 +93,7 @@ private val isCompletedParam = ActionParameters.Key<Boolean>("isCompleted")
 @InstallIn(SingletonComponent::class)
 interface WidgetUpdateEntryPoint {
     fun categoryRepository(): CategoryRepository
-    fun eventoRepository(): EventoRepository // Adicionado
+    fun eventoRepository(): EventoRepository
 }
 
 
@@ -169,7 +166,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                     LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
                         items(items = events, itemId = { it.id.hashCode().toLong() }) { event ->
                             EventListItem(context, event)
-                            Spacer(GlanceModifier.height(60.dp))
+                            Spacer(GlanceModifier.height(8.dp))
                         }
                     }
                 }
@@ -198,8 +195,8 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 colorFilter = ColorFilter.tint(primaryTextColor),
                 modifier = GlanceModifier.size(36.dp).clickable(
                     actionStartActivity(
-                        ComponentName(context, LoginActivity::class.java),
-                        parameters = actionParametersOf(ActionParameters.Key<String>(OPEN_NEW_EVENT_DIALOG_KEY) to "true")
+                        ComponentName(context, MainActivity::class.java),
+                        parameters = actionParametersOf(ActionParameters.Key<Boolean>(OPEN_NEW_EVENT_DIALOG_KEY) to true)
                     )
                 ).padding(8.dp)
             )
@@ -244,7 +241,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 .padding(horizontal = 12.dp, vertical = 8.dp)
                 .clickable(
                     actionStartActivity(
-                        ComponentName(context, LoginActivity::class.java),
+                        ComponentName(context, MainActivity::class.java),
                         parameters = actionParametersOf(ActionParameters.Key<String>(EVENT_ID_KEY) to event.id)
                     )
                 ),

@@ -1,44 +1,19 @@
-/*package br.com.fabriciolima.momentus.ui.screens.auth
+package br.com.fabriciolima.momentus.ui.screens.auth
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,59 +24,57 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import br.com.fabriciolima.momentus.BuildConfig
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import br.com.fabriciolima.momentus.R
-import br.com.fabriciolima.momentus.ui.viewmodel.LoginEvent
-import br.com.fabriciolima.momentus.ui.viewmodel.LoginViewModel
+import br.com.fabriciolima.momentus.ui.Screen
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = hiltViewModel(),
-    onNavigateToMain: () -> Unit,
-    onNavigateToSignUp: () -> Unit,
-    onNavigateToForgotPassword: () -> Unit
+    navController: NavController,
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        viewModel.onGoogleSignInResult(result)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                is NavigationEvent.NavigateToCalendar -> {
+                    navController.navigate(Screen.Calendar.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                }
+                is NavigationEvent.StartGoogleSignIn -> {
+                    googleSignInLauncher.launch(event.intent)
+                }
+            }
+        }
+    }
+    
+    uiState.error?.let {
+        Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+        viewModel.onErrorShown()
+    }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showEmailFields by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
 
-    val googleSignInClient = remember { GoogleSignIn.getClient(context, GoogleAuthUtils.getGoogleSignInOptions(context)) }
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val intent = result.data
-        if (result.resultCode == -1 && intent != null) { // RESULT_OK = -1
-            viewModel.handleGoogleSignInResult(intent)
-        } else {
-            viewModel.setLoading(false)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.loginEvent.collect { event ->
-            when (event) {
-                is LoginEvent.NavigateToMain -> {
-                    onNavigateToMain()
-                }
-                is LoginEvent.ShowError -> {
-                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
-    uiState.userPreferences?.let { prefs ->
-        LaunchedEffect(prefs) {
-            if (prefs.rememberMe) {
-                email = prefs.email
-                rememberMe = true
-                showEmailFields = true
-            }
+    LaunchedEffect(uiState.userPreferences) {
+        if (uiState.userPreferences.rememberMe) {
+            email = uiState.userPreferences.email
+            rememberMe = true
+            showEmailFields = true
         }
     }
 
@@ -112,13 +85,13 @@ fun LoginScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
+        Box(modifier = Modifier.fillMaxSize()) { 
+             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(32.dp)
-                    .padding(bottom = 32.dp), // Extra space for version text
+                    .padding(bottom = 32.dp), 
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -138,11 +111,11 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // --- Google Button ---
                 Button(
                     onClick = {
-                        viewModel.setLoading(true)
-                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        val gso = GoogleAuthUtils.getGoogleSignInOptions(context)
+                        val googleSignInClient = GoogleSignIn.getClient(context, gso)
+                        viewModel.onGoogleSignInClicked(googleSignInClient)
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     enabled = !uiState.isLoading,
@@ -163,7 +136,6 @@ fun LoginScreen(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // --- Email Button ---
                 Button(
                     onClick = { showEmailFields = true },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -179,7 +151,6 @@ fun LoginScreen(
                     Text("Entrar com E-mail", color = MaterialTheme.colorScheme.onPrimary)
                 }
 
-                // --- Email and Password Fields ---
                 AnimatedVisibility(visible = showEmailFields) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -192,8 +163,7 @@ fun LoginScreen(
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                            isError = email.isNotEmpty() && !isEmailValid(),
-                            singleLine = true
+                            isError = email.isNotEmpty() && !isEmailValid()
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
@@ -203,31 +173,35 @@ fun LoginScreen(
                             modifier = Modifier.fillMaxWidth(),
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                             visualTransformation = PasswordVisualTransformation(),
-                            singleLine = true
+                            isError = password.isNotEmpty() && !isPasswordValid()
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                         Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = rememberMe, onCheckedChange = { newCheckedState ->
-                                    rememberMe = newCheckedState
-                                    viewModel.updatePreferences(email, newCheckedState)
-                                })
-                                Text("Lembrar-me")
-                            }
-                            TextButton(onClick = onNavigateToForgotPassword) {
-                                Text("Esqueceu a senha?")
-                            }
+                            Checkbox(
+                                checked = rememberMe,
+                                onCheckedChange = { 
+                                    rememberMe = it
+                                    viewModel.onUpdatePreferences(email, it)
+                                }
+                            )
+                            Text("Lembrar-me")
+                        }
+                        TextButton(
+                            onClick = { navController.navigate(Screen.ForgotPassword.route) },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("Esqueceu a senha?")
                         }
                         Spacer(modifier = Modifier.height(16.dp))
+
                         Button(
-                            onClick = { viewModel.signInWithEmail(email, password, rememberMe) },
+                            onClick = { viewModel.onEmailSignInClicked(email, password, rememberMe) },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
                             enabled = !uiState.isLoading && isEmailValid() && isPasswordValid()
                         ) {
-                            if (uiState.isLoading && showEmailFields) {
+                            if(uiState.isLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                             } else {
                                 Text("Entrar")
@@ -235,23 +209,32 @@ fun LoginScreen(
                         }
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                TextButton(onClick = onNavigateToSignUp) {
-                    Text("Não tem uma conta? Cadastre-se")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = { navController.navigate(Screen.SignUp.route) }) {
+                        Text("Crie uma aqui")
+                    }
                 }
-
             }
+
+            val versionName = try {
+                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                packageInfo.versionName
+            } catch (e: Exception) {
+                "N/A"
+            }
+
             Text(
-                text = "Versão ${BuildConfig.VERSION_NAME}",
+                text = "Versão: $versionName",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    .padding(bottom = 30.dp)
             )
         }
     }
 }
-*/

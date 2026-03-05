@@ -67,8 +67,14 @@ class TemplateViewModel @Inject constructor(
                 templateRepository.todosOsTemplatesComEventos,
                 categoryRepository.getAllCategories()
             ) { templates, categories ->
+                // CORREÇÃO: Garante que cada template na lista seja único e que seus eventos internos também não sejam duplicados visualmente
+                val processedTemplates = templates.distinctBy { it.template.id }.map { templateComEventos ->
+                    templateComEventos.copy(
+                        eventos = templateComEventos.eventos.distinctBy { "${it.titulo}-${it.horarioInicioString}" }
+                    )
+                }
                 val categoriesMap = categories.associateBy { it.id }
-                templates to categoriesMap
+                processedTemplates to categoriesMap
             }.collect { (templates, categoriesMap) ->
                 _uiState.update {
                     it.copy(

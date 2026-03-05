@@ -30,8 +30,9 @@
                 tools:node="remove" />
         </provider>
 
+        <!-- ÚNICA ACTIVITY DE PONTO DE ENTRADA -->
         <activity
-            android:name=".ui.screens.LoginActivity"
+            android:name=".ui.screens.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Momentus">
             <intent-filter>
@@ -40,15 +41,14 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ui.screens.SplashActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Momentus" />
-            
+        <!-- ACTIVITIES QUE AINDA PRECISAM SER MIGRADAS -->
         <activity
             android:name=".ui.screens.ReminderActivity"
             android:exported="false"
             android:theme="@style/Theme.Momentus.Dialog" />
+        <activity android:name=".ui.screens.CreateTemplateActivity" android:exported="false" />
+        <activity android:name=".ui.screens.EditorRotinaComposeActivity" android:exported="false" />
+        <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
 
         <service
             android:name=".services.MyFirebaseMessagingService"
@@ -57,22 +57,6 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
-        <activity android:name=".ui.screens.MainActivity" android:exported="false" />
-        <activity android:name=".ui.screens.CalendarActivity" android:exported="false" />
-        <activity android:name=".ui.screens.CreateTemplateActivity" android:exported="false" />
-        <activity android:name=".ui.screens.EditorRotinaComposeActivity" android:exported="false" />
-        <activity android:name=".ui.screens.TemplatesActivity" android:exported="false" />
-        <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
-        <activity android:name=".ui.screens.CategoryActivity" android:exported="false" />
-        <activity android:name=".ui.screens.LegalActivity" android:exported="false" />
-        <activity android:name=".ui.screens.TermsActivity" android:exported="false" />
-        <activity android:name=".ui.screens.OnboardingActivity" android:exported="false" />
-        <activity android:name=".ui.screens.StatsActivity" android:exported="false" />
-        <activity android:name=".ui.screens.AchievementsActivity" android:exported="false" />
-        <activity android:name=".ui.screens.SignUpActivity" android:exported="false" />
-        <activity android:name=".ui.screens.ForgotPasswordActivity" android:exported="false" />
-        <activity android:name=".ui.screens.UpdateNotesActivity" android:exported="false" />
 
         <activity
             android:name=".ui.screens.WidgetConfigurationActivity"

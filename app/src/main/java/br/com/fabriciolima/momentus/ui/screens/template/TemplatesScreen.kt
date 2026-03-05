@@ -1,12 +1,17 @@
 package br.com.fabriciolima.momentus.ui.screens.template
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Dashboard
@@ -17,9 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -28,83 +35,83 @@ import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.ui.components.ApplyTemplateDialog
-import br.com.fabriciolima.momentus.ui.screens.Routes
+import br.com.fabriciolima.momentus.ui.components.EventFormData
+import br.com.fabriciolima.momentus.ui.theme.TimePickerDialog
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateDialogState
-import br.com.fabriciolima.momentus.ui.viewmodel.TemplateUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateViewModel
 import br.com.fabriciolima.momentus.util.Result
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-@Composable
-fun TemplatesRoute(
-    navController: NavController,
-    onNavigateUp: () -> Unit,
-    viewModel: TemplateViewModel = hiltViewModel(),
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    TemplatesScreen(
-        uiState = uiState,
-        navController = navController,
-        onNavigateUp = onNavigateUp,
-        onShowImportDialog = viewModel::onShowImportDialog,
-        onShowDeleteDialog = viewModel::onShowDeleteDialog,
-        onShowApplyDialog = viewModel::onShowApplyDialog,
-        onDialogDismiss = viewModel::onDialogDismiss,
-        onImportTemplate = { json, callback ->
-            viewModel.importTemplateFromJson(json, callback)
-        },
-        onDeleteTemplate = viewModel::deleteTemplate,
-        onApplyTemplate = { id, dates, toGoogle, callback ->
-            viewModel.applyTemplateToDates(id, dates, toGoogle, callback)
-        },
-        getShareableJson = viewModel::getShareableJsonForTemplate,
-        onErrorShown = viewModel::onErrorShown
-    )
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplatesScreen(
-    uiState: TemplateUiState,
     navController: NavController,
-    onNavigateUp: () -> Unit,
-    onShowImportDialog: () -> Unit,
-    onShowDeleteDialog: (TemplateComEventos) -> Unit,
-    onShowApplyDialog: (TemplateComEventos) -> Unit,
-    onDialogDismiss: () -> Unit,
-    onImportTemplate: (String, (Result<Unit>) -> Unit) -> Unit,
-    onDeleteTemplate: (Template) -> Unit,
-    onApplyTemplate: (String, List<LocalDate>, Boolean, (Result<Unit>) -> Unit) -> Unit,
-    getShareableJson: (String) -> String?,
-    onErrorShown: () -> Unit
+    viewModel: TemplateViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
             snackbarHostState.showSnackbar(it)
-            onErrorShown()
+            viewModel.onErrorShown()
         }
     }
 
     when (val dialogState = uiState.dialogState) {
+        is TemplateDialogState.CreateNew -> {
+            CreateTemplateDialog(
+                categories = uiState.categoriesMap.values.toList(),
+                onDismiss = viewModel::onDialogDismiss,
+                onConfirm = { id, name, events ->
+                    viewModel.salvarTemplateCompleto(id, name, events) { result ->
+                        when (result) {
+                            is Result.Success -> {
+                                scope.launch { snackbarHostState.showSnackbar("Template salvo com sucesso!") }
+                            }
+                            is Result.Error -> {
+                                Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                }
+            )
+        }
         is TemplateDialogState.Import -> {
             ImportTemplateDialog(
-                onDismiss = onDialogDismiss,
+                onDismiss = viewModel::onDialogDismiss,
                 onConfirm = { jsonString ->
-                    onImportTemplate(jsonString) { result ->
-                        scope.launch {
-                            val message = when (result) {
-                                is Result.Success -> "Template importado com sucesso!"
-                                is Result.Error -> result.exception.message ?: "Erro desconhecido"
+                    viewModel.importTemplateFromJson(jsonString) { result ->
+                        when (result) {
+                            is Result.Success -> {
+                                scope.launch { snackbarHostState.showSnackbar("Template importado com sucesso!") }
                             }
-                            snackbarHostState.showSnackbar(message)
+                            is Result.Error -> {
+                                scope.launch { snackbarHostState.showSnackbar(result.exception.message ?: "Erro desconhecido") }
+                            }
+                        }
+                    }
+                }
+            )
+        }
+        is TemplateDialogState.Edit -> {
+            CreateTemplateDialog(
+                templateToEdit = dialogState.template,
+                categories = uiState.categoriesMap.values.toList(),
+                onDismiss = viewModel::onDialogDismiss,
+                onConfirm = { id, name, events ->
+                    viewModel.salvarTemplateCompleto(id, name, events) { result ->
+                        when (result) {
+                            is Result.Success -> {
+                                scope.launch { snackbarHostState.showSnackbar("Template atualizado com sucesso!") }
+                            }
+                            is Result.Error -> {
+                                Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                            }
                         }
                     }
                 }
@@ -112,36 +119,33 @@ fun TemplatesScreen(
         }
         is TemplateDialogState.ConfirmDelete -> {
             AlertDialog(
-                onDismissRequest = onDialogDismiss,
+                onDismissRequest = viewModel::onDialogDismiss,
                 icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso") },
                 title = { Text("Deletar Template") },
                 text = { Text("Você tem certeza que quer deletar o template \"${dialogState.template.template.nome}\"? Essa ação não pode ser desfeita.") },
                 confirmButton = {
-                    Button(onClick = {
-                        onDeleteTemplate(dialogState.template.template)
-                        onDialogDismiss()
-                    }) {
+                    Button(onClick = { viewModel.deleteTemplate(dialogState.template.template) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Deletar")
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text("DELETAR")
                     }
                 },
-                dismissButton = { TextButton(onClick = onDialogDismiss) { Text("Cancelar") } }
+                dismissButton = { TextButton(onClick = viewModel::onDialogDismiss) { Text("Cancelar") } }
             )
         }
         is TemplateDialogState.ApplyTemplate -> {
             ApplyTemplateDialog(
-                onDismiss = onDialogDismiss,
+                onDismiss = viewModel::onDialogDismiss,
                 onConfirm = { dates, saveToGoogle ->
-                    onApplyTemplate(dialogState.template.template.id, dates, saveToGoogle) { result ->
+                    viewModel.applyTemplateToDates(dialogState.template.template.id, dates, saveToGoogle) { result ->
                         if (result is Result.Success) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Template aplicado com sucesso!")
-                            }
+                            scope.launch { snackbarHostState.showSnackbar("Template aplicado com sucesso!") }
                         }
                     }
                 }
             )
         }
-        else -> {}
+        is TemplateDialogState.Hidden -> {}
     }
 
     Scaffold(
@@ -149,11 +153,7 @@ fun TemplatesScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Meus Templates") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Default.ArrowBack, "Voltar")
-                    }
-                }
+                navigationIcon = { IconButton(onClick = { navController.navigateUp() }) { Icon(Icons.Default.ArrowBack, "Voltar") } }
             )
         }
     ) { paddingValues ->
@@ -169,7 +169,7 @@ fun TemplatesScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { navController.navigate(Routes.CREATE_TEMPLATE) },
+                    onClick = viewModel::onShowCreateDialog,
                     modifier = Modifier.weight(1f).height(50.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Adicionar Template")
@@ -177,7 +177,7 @@ fun TemplatesScreen(
                     Text("Novo")
                 }
                 OutlinedButton(
-                    onClick = onShowImportDialog,
+                    onClick = viewModel::onShowImportDialog,
                     modifier = Modifier.weight(1f).height(50.dp)
                 ) {
                     Icon(Icons.Default.ContentPasteGo, contentDescription = "Importar Template")
@@ -206,13 +206,13 @@ fun TemplatesScreen(
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(uiState.templates, key = { it.template.id }) { templateComEventos ->
+                    items(uiState.templates) { templateComEventos ->
                         TemplateCard(
                             templateComEventos = templateComEventos,
                             categoriesMap = uiState.categoriesMap,
                             isSyncing = uiState.isSyncing,
-                            onShareClick = {
-                                val shareableJson = getShareableJson(templateComEventos.template.id)
+                            onShareClick = { 
+                                val shareableJson = viewModel.getShareableJsonForTemplate(templateComEventos.template.id)
                                 if (shareableJson != null) {
                                     val sendIntent: Intent = Intent().apply {
                                         action = Intent.ACTION_SEND
@@ -220,12 +220,12 @@ fun TemplatesScreen(
                                         type = "text/plain"
                                     }
                                     val shareIntent = Intent.createChooser(sendIntent, "Compartilhar Template")
-                                    navController.context.startActivity(shareIntent)
+                                    context.startActivity(shareIntent)
                                 }
-                            },
-                            onEditClick = { navController.navigate("${Routes.TEMPLATE_DETAIL}/${templateComEventos.template.id}") },
-                            onDeleteClick = { onShowDeleteDialog(templateComEventos) },
-                            onApplyClick = { onShowApplyDialog(templateComEventos) }
+                             },
+                            onEditClick = { viewModel.onShowEditDialog(templateComEventos) },
+                            onDeleteClick = { viewModel.onShowDeleteDialog(templateComEventos) },
+                            onApplyClick = { viewModel.onShowApplyDialog(templateComEventos) }
                         )
                     }
                 }
@@ -347,9 +347,293 @@ fun TemplateEventItem(item: ItemCronograma, category: Category) {
             }
         }
         Text(
-            text = "${item.horarioInicio?.format(timeFormatter)} - ${item.horarioTermino?.format(timeFormatter)}",
+            text = "${item.horarioInicio.format(timeFormatter)} - ${item.horarioTermino.format(timeFormatter)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateTemplateDialog(
+    templateToEdit: TemplateComEventos? = null,
+    categories: List<Category>,
+    onDismiss: () -> Unit,
+    onConfirm: (id: String?, name: String, events: List<EventFormData>) -> Unit
+) {
+    val isEditMode = templateToEdit != null
+    val focusManager = LocalFocusManager.current
+    var templateName by remember { mutableStateOf(templateToEdit?.template?.nome ?: "") }
+
+    val defaultCategory = remember { categories.find { it.nome.equals("Outros", ignoreCase = true) } }
+
+    var eventForms by remember { mutableStateOf(
+        templateToEdit?.eventos?.map { EventFormData.fromItemCronograma(it, categories) }
+            ?: listOf(EventFormData(selectedCategory = defaultCategory))
+    ) }
+
+    val isFormValid by remember(templateName, eventForms) {
+        derivedStateOf {
+            templateName.isNotBlank() && eventForms.isNotEmpty() && eventForms.all {
+                it.titulo.isNotBlank() &&
+                it.selectedCategory != null &&
+                !it.horarioTermino.isBefore(it.horarioInicio) &&
+                it.horarioTermino != it.horarioInicio
+            }
+        }
+    }
+
+    Dialog(onDismissRequest = {
+        focusManager.clearFocus()
+        onDismiss()
+    }) {
+        Card(
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                        Text(if(isEditMode) "Editar Template" else "Criar Template de Rotina", style = MaterialTheme.typography.titleLarge)
+                        Text(if(isEditMode) "Ajuste os detalhes do seu template" else "Defina uma rotina com múltiplos eventos", style = MaterialTheme.typography.bodySmall)
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Fechar")
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = templateName,
+                    onValueChange = { templateName = it },
+                    label = { Text("Nome do Template") },
+                    placeholder = { Text("ex: Dia de trabalho, Fim de semana") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = templateName.isBlank()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    LazyColumn() {
+                        item {
+                            Text("Eventos da Rotina", style = MaterialTheme.typography.titleMedium)
+                        }
+                        itemsIndexed(eventForms) { index, eventData ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Evento ${index + 1}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                                if (eventForms.size > 1) {
+                                    IconButton(onClick = { eventForms = eventForms.toMutableList().also { it.removeAt(index) } }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Remover Evento", tint = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
+                            EventTemplateForm(
+                                eventData = eventData,
+                                categories = categories,
+                                onDataChange = { updatedData ->
+                                    eventForms = eventForms.toMutableList().also { it[index] = updatedData }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (index < eventForms.lastIndex) {
+                                Divider()
+                            }
+                        }
+                        item {
+                            TextButton(
+                                onClick = { eventForms = eventForms + EventFormData(selectedCategory = defaultCategory) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Adicionar Evento ao Template")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Adicionar Evento")
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Cancelar")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Cancelar")
+                    }
+                    Button(
+                        onClick = { onConfirm(templateToEdit?.template?.id, templateName, eventForms) },
+                        enabled = isFormValid
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = if(isEditMode) "Salvar Alterações" else "Criar Template")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if(isEditMode) "Salvar Alterações" else "Criar Template")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EventTemplateForm(
+    eventData: EventFormData,
+    categories: List<Category>,
+    onDataChange: (EventFormData) -> Unit
+) {
+    var showDropdown by remember { mutableStateOf(false) }
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
+
+    val isTimeInvalid by remember(eventData.horarioInicio, eventData.horarioTermino) {
+        derivedStateOf {
+            eventData.horarioTermino.isBefore(eventData.horarioInicio) || eventData.horarioTermino == eventData.horarioInicio
+        }
+    }
+
+    if (showStartTimePicker) {
+        TimePickerDialog(
+            title = "Hora de Início",
+            initialTime = eventData.horarioInicio,
+            onDismissRequest = { showStartTimePicker = false },
+            onConfirm = {
+                onDataChange(eventData.copy(horarioInicio = it))
+                showStartTimePicker = false
+            }
+        )
+    }
+
+    if (showEndTimePicker) {
+        TimePickerDialog(
+            title = "Hora de Término",
+            initialTime = eventData.horarioTermino,
+            onDismissRequest = { showEndTimePicker = false },
+            onConfirm = {
+                onDataChange(eventData.copy(horarioTermino = it))
+                showEndTimePicker = false
+            }
+        )
+    }
+
+    Column(modifier = Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = eventData.titulo,
+            onValueChange = { onDataChange(eventData.copy(titulo = it)) },
+            label = { Text("Título") },
+            modifier = Modifier.fillMaxWidth(),
+            isError = eventData.titulo.isBlank()
+        )
+        OutlinedTextField(
+            value = eventData.descricao,
+            onValueChange = { onDataChange(eventData.copy(descricao = it)) },
+            label = { Text("Descrição (opcional)") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = eventData.horarioInicio.format(timeFormatter),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Início") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") },
+                    isError = isTimeInvalid
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showStartTimePicker = true }
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = eventData.horarioTermino.format(timeFormatter),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Término") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") },
+                    isError = isTimeInvalid
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showEndTimePicker = true }
+                )
+            }
+        }
+
+        if (isTimeInvalid) {
+            Text(
+                text = "O horário de término deve ser depois do início",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+
+        ExposedDropdownMenuBox(
+            expanded = showDropdown,
+            onExpandedChange = { showDropdown = !showDropdown },
+        ) {
+            OutlinedTextField(
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                readOnly = true,
+                value = eventData.selectedCategory?.nome ?: "",
+                onValueChange = {},
+                label = { Text("Categoria") },
+                isError = eventData.selectedCategory == null,
+                leadingIcon = {
+                    eventData.selectedCategory?.cor?.let {
+                        val color = try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { Color.Gray }
+                        Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
+                    }
+                },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
+            )
+            ExposedDropdownMenu(
+                expanded = showDropdown,
+                onDismissRequest = { showDropdown = false },
+            ) {
+                categories.forEach { category ->
+                    val isSelected = category == eventData.selectedCategory
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.width(24.dp)) {
+                                    if (isSelected) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = "Selecionado",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                val color = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
+                                Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(category.nome)
+                            }
+                        },
+                        onClick = {
+                            onDataChange(eventData.copy(selectedCategory = category))
+                            showDropdown = false
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                    )
+                }
+            }
+        }
     }
 }

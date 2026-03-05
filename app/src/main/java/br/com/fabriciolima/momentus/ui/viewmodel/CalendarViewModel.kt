@@ -133,7 +133,7 @@ class CalendarViewModel @Inject constructor(
         _selectedDate
     ) { state, date ->
         val localEvents = state.allScheduleItems.filter {
-            it.data != null && Instant.ofEpochMilli(it.data).atZone(ZoneOffset.UTC).toLocalDate() == date
+            it.data != null && Instant.ofEpochMilli(it.data!!).atZone(ZoneOffset.UTC).toLocalDate() == date
         }
         val googleEvents = state.googleCalendarEvents.filter { event ->
             val instant = Instant.ofEpochMilli(event.start.value)
@@ -147,10 +147,60 @@ class CalendarViewModel @Inject constructor(
     )
 
     init {
-        startDataCollection()
+        // Disparar coletas individuais para evitar o travamento do combine
+        collectAllScheduleItems()
+        collectCategories()
+        collectCompletedHabits()
+        collectUserData()
+        collectStreak()
+        
         listenForNewAchievements()
         checkIfNeedToShowUpdateBadge()
         listenForUpdateProgress()
+        
+        if (auth.currentUser != null) {
+            startFirebaseListeners()
+        }
+    }
+
+    private fun startFirebaseListeners() {
+        viewModelScope.launch {
+            categoryRepository.startListeningForChanges()
+            eventoRepository.startListeningForChanges()
+            templateRepository.startListeningForChanges()
+            categoryRepository.syncAllDataToLocal()
+        }
+    }
+
+    private fun collectAllScheduleItems() {
+        eventoRepository.todosOsItensDoCronograma.onEach { items ->
+            _uiState.update { it.copy(allScheduleItems = items) }
+        }.launchIn(viewModelScope)
+    }
+
+    private fun collectCategories() {
+        categoryRepository.allCategoriesWithMetas.onEach { categoriesWithMetas ->
+            val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
+            _uiState.update { it.copy(categoriesMap = categoriesMap) }
+        }.launchIn(viewModelScope)
+    }
+
+    private fun collectCompletedHabits() {
+        categoryRepository.idsHabitosConcluidos.onEach { ids ->
+            _uiState.update { it.copy(completedHabitIds = ids.toSet()) }
+        }.launchIn(viewModelScope)
+    }
+
+    private fun collectUserData() {
+        userRepository.userData.onEach { data ->
+            _uiState.update { it.copy(userData = data) }
+        }.launchIn(viewModelScope)
+    }
+
+    private fun collectStreak() {
+        categoryRepository.currentStreak.onEach { streak ->
+            _uiState.update { it.copy(streak = streak) }
+        }.launchIn(viewModelScope)
     }
 
     // --- Multiple Selection Logic ---
@@ -171,7 +221,6 @@ class CalendarViewModel @Inject constructor(
             } else {
                 currentState.selectedEventIds + eventId
             }
-            // If the last item is deselected, exit selection mode
             currentState.copy(
                 selectedEventIds = newSelectedIds,
                 isSelectionModeActive = newSelectedIds.isNotEmpty()
@@ -230,8 +279,9 @@ class CalendarViewModel @Inject constructor(
 
     private fun checkIfNeedToShowUpdateBadge() {
         viewModelScope.launch {
-            val lastSeenVersionCode = userRepository.lastSeenVersionCode.first()
-            _uiState.update { it.copy(showUpdateBadge = currentVersionCode > lastSeenVersionCode) }
+            userRepository.lastSeenVersionCode.collect { lastSeenVersionCode ->
+                _uiState.update { it.copy(showUpdateBadge = currentVersionCode > lastSeenVersionCode) }
+            }
         }
     }
 
@@ -253,28 +303,6 @@ class CalendarViewModel @Inject constructor(
         _uiState.update { it.copy(updateInfo = null) }
     }
 
-    private fun startDataCollection() {
-        dataCollectionJob?.cancel()
-        dataCollectionJob = combine(
-            eventoRepository.todosOsItensDoCronograma,
-            categoryRepository.allCategoriesWithMetas,
-            categoryRepository.idsHabitosConcluidos,
-            userRepository.userData,
-            categoryRepository.currentStreak
-        ) { allItems, categoriesWithMetas, completedIds, userData, streak ->
-            val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
-            _uiState.update { currentState ->
-                currentState.copy(
-                    allScheduleItems = allItems,
-                    categoriesMap = categoriesMap,
-                    completedHabitIds = completedIds.toSet(),
-                    userData = userData,
-                    streak = streak
-                )
-            }
-        }.launchIn(viewModelScope)
-    }
-
     private fun listenForNewAchievements() {
         viewModelScope.launch {
             gamificationRepository.newlyUnlockedAchievement.collect { achievement ->
@@ -289,8 +317,8 @@ class CalendarViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        dataCollectionJob?.cancel()
         categoryRepository.stopListeningForChanges()
+        eventoRepository.stopListeningForChanges()
         templateRepository.stopListeningForChanges()
         inAppUpdateManager.unregisterListener()
     }
@@ -299,22 +327,18 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                // 1. Parar de ouvir mudanças do Firebase
-                dataCollectionJob?.cancel()
                 categoryRepository.stopListeningForChanges()
+                eventoRepository.stopListeningForChanges()
                 templateRepository.stopListeningForChanges()
 
-                // 2. Limpar todos os dados locais
                 eventoRepository.clear()
                 categoryRepository.clearAllLocalData()
                 templateRepository.clear()
                 gamificationRepository.clear()
 
-                // 3. Fazer logout dos serviços de autenticação
-                googleSignInClient.signOut().await()
+                googleSignInClient.signOut()
                 auth.signOut()
 
-                // 4. Emitir evento de sucesso
                 _logoutEvent.emit(LogoutEvent.Success)
 
             } catch (e: Exception) {
