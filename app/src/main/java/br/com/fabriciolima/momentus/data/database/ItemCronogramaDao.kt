@@ -43,17 +43,21 @@ interface ItemCronogramaDao {
     @Query("DELETE FROM tabela_itens_cronograma WHERE templateId = :templateId")
     suspend fun deleteByTemplateId(templateId: String)
 
-    @Query("DELETE FROM tabela_itens_cronograma WHERE categoryId = :categoryId") // Corrigido
-    suspend fun deleteByCategoryId(categoryId: String) // Corrigido
+    @Query("DELETE FROM tabela_itens_cronograma WHERE categoryId = :categoryId")
+    suspend fun deleteByCategoryId(categoryId: String)
 
     @Query(
-        "SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, c.nome as nomeRotina, c.cor as corRotina, " +
-        "CASE WHEN thc.itemCronogramaId IS NOT NULL THEN 1 ELSE 0 END as isCompleted " +
-        "FROM tabela_itens_cronograma tic " +
-        "JOIN categories c ON tic.categoryId = c.id " +
-        "LEFT JOIN tabela_habitos_concluidos thc ON tic.id = thc.itemCronogramaId AND date(thc.dataConclusao / 1000, 'unixepoch') = date('now') " +
-        "WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) AND tic.categoryId IN (:allowedCategoryIds) " +
-        "ORDER BY tic.horarioInicio ASC"
+        """
+        SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, c.nome as nomeRotina, c.cor as corRotina, 
+        CASE WHEN thc.itemCronogramaId IS NOT NULL THEN 1 ELSE 0 END as isCompleted 
+        FROM tabela_itens_cronograma tic 
+        JOIN categories c ON tic.categoryId = c.id 
+        LEFT JOIN tabela_habitos_concluidos thc ON tic.id = thc.itemCronogramaId 
+        AND date(thc.dataConclusao / 1000, 'unixepoch', 'localtime') = date('now', 'localtime') 
+        WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) 
+        AND tic.categoryId IN (:allowedCategoryIds) 
+        ORDER BY tic.horarioInicio ASC
+        """
     )
     fun getWidgetEventItems(startOfDayMillis: Long, endOfDayMillis: Long, dayOfWeekName: String, allowedCategoryIds: Set<String>): List<WidgetEventItem>
 
@@ -68,7 +72,7 @@ interface ItemCronogramaDao {
             (diaDaSemana IS NOT NULL)
         )
     """)
-    fun getSchedulableEventsForCategory(categoryId: String, since: Long): Flow<List<ItemCronograma>> // Corrigido
+    fun getSchedulableEventsForCategory(categoryId: String, since: Long): Flow<List<ItemCronograma>>
 }
 
 data class WidgetEventItem(
@@ -79,5 +83,5 @@ data class WidgetEventItem(
     val descricao: String?,
     val nomeRotina: String,
     val corRotina: String,
-    val isCompleted: Boolean // Adicionado
+    val isCompleted: Boolean
 )

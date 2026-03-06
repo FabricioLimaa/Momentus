@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
@@ -40,6 +41,8 @@ class MainActivity : ComponentActivity() {
     ) { /* No-op */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Ativa a exibição de ponta a ponta (Edge-to-Edge)
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         askNotificationPermission()
@@ -52,12 +55,12 @@ class MainActivity : ComponentActivity() {
                     value = when (viewModel.checkUserStatus()) {
                         SplashViewModel.UserStatus.ONBOARDING_INCOMPLETE -> Screen.Onboarding.route
                         SplashViewModel.UserStatus.NOT_LOGGED_IN -> Screen.Login.route
+                        SplashViewModel.UserStatus.TERMS_NOT_ACCEPTED -> Screen.Terms.route
                         else -> Screen.Calendar.route
                     }
                 }
 
                 if (startDestination == null) {
-                    // ADICIONADO: Exibe a SplashScreen enquanto decide o destino
                     SplashScreen(syncMessage = syncMessage)
                 } else {
                     val destination = startDestination!!

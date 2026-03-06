@@ -37,18 +37,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.ZoneOffset
 import javax.inject.Inject
 
@@ -90,7 +87,6 @@ data class CalendarUiState(
     val successMessage: String? = null,
     val dialogState: DialogState = DialogState.Hidden,
     val isLoading: Boolean = false,
-    // State for multiple selection
     val isSelectionModeActive: Boolean = false,
     val selectedEventIds: Set<String> = emptySet()
 )
@@ -124,7 +120,7 @@ class CalendarViewModel @Inject constructor(
     private val _logoutEvent = MutableSharedFlow<LogoutEvent>()
     val logoutEvent = _logoutEvent.asSharedFlow()
 
-    private var dataCollectionJob: Job? = null
+    private val jobs = mutableListOf<Job>()
 
     val installStatus = inAppUpdateManager.installStatus
 
@@ -133,7 +129,8 @@ class CalendarViewModel @Inject constructor(
         _selectedDate
     ) { state, date ->
         val localEvents = state.allScheduleItems.filter {
-            it.data != null && Instant.ofEpochMilli(it.data!!).atZone(ZoneOffset.UTC).toLocalDate() == date
+            val itemDate = it.data
+            itemDate != null && Instant.ofEpochMilli(itemDate).atZone(ZoneOffset.UTC).toLocalDate() == date
         }
         val googleEvents = state.googleCalendarEvents.filter { event ->
             val instant = Instant.ofEpochMilli(event.start.value)
@@ -147,12 +144,7 @@ class CalendarViewModel @Inject constructor(
     )
 
     init {
-        // Disparar coletas individuais para evitar o travamento do combine
-        collectAllScheduleItems()
-        collectCategories()
-        collectCompletedHabits()
-        collectUserData()
-        collectStreak()
+        collectData()
         
         listenForNewAchievements()
         checkIfNeedToShowUpdateBadge()
@@ -172,35 +164,30 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    private fun collectAllScheduleItems() {
+    private fun collectData() {
         eventoRepository.todosOsItensDoCronograma.onEach { items ->
             _uiState.update { it.copy(allScheduleItems = items) }
-        }.launchIn(viewModelScope)
-    }
+        }.launchIn(viewModelScope).also { jobs.add(it) }
 
-    private fun collectCategories() {
         categoryRepository.allCategoriesWithMetas.onEach { categoriesWithMetas ->
             val categoriesMap = categoriesWithMetas.associateBy({ it.category.id }, { it.category })
             _uiState.update { it.copy(categoriesMap = categoriesMap) }
-        }.launchIn(viewModelScope)
-    }
+        }.launchIn(viewModelScope).also { jobs.add(it) }
 
-    private fun collectCompletedHabits() {
         categoryRepository.idsHabitosConcluidos.onEach { ids ->
             _uiState.update { it.copy(completedHabitIds = ids.toSet()) }
-        }.launchIn(viewModelScope)
-    }
+        }.launchIn(viewModelScope).also { jobs.add(it) }
 
-    private fun collectUserData() {
         userRepository.userData.onEach { data ->
-            _uiState.update { it.copy(userData = data) }
-        }.launchIn(viewModelScope)
-    }
+            val finalData = data ?: auth.currentUser?.let { user ->
+                UserData(displayName = user.displayName, email = user.email)
+            }
+            _uiState.update { it.copy(userData = finalData) }
+        }.launchIn(viewModelScope).also { jobs.add(it) }
 
-    private fun collectStreak() {
         categoryRepository.currentStreak.onEach { streak ->
             _uiState.update { it.copy(streak = streak) }
-        }.launchIn(viewModelScope)
+        }.launchIn(viewModelScope).also { jobs.add(it) }
     }
 
     // --- Multiple Selection Logic ---
@@ -317,19 +304,23 @@ class CalendarViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        stopAllDataCollection()
+        inAppUpdateManager.unregisterListener()
+    }
+
+    private fun stopAllDataCollection() {
+        jobs.forEach { it.cancel() }
+        jobs.clear()
         categoryRepository.stopListeningForChanges()
         eventoRepository.stopListeningForChanges()
         templateRepository.stopListeningForChanges()
-        inAppUpdateManager.unregisterListener()
     }
 
     fun logout() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                categoryRepository.stopListeningForChanges()
-                eventoRepository.stopListeningForChanges()
-                templateRepository.stopListeningForChanges()
+                stopAllDataCollection()
 
                 eventoRepository.clear()
                 categoryRepository.clearAllLocalData()
@@ -350,7 +341,7 @@ class CalendarViewModel @Inject constructor(
     }
 
     val allCategories: StateFlow<List<Category>> = categoryRepository.allCategoriesWithMetas.map { categoriesWithMetas ->
-        categoriesWithMetas.map(CategoryWithMeta::category)
+        categoriesWithMetas.map { it.category }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -385,8 +376,9 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             val event = eventoRepository.getItemCronograma(eventId)
             if (event != null) {
-                if (event.data != null) {
-                    val eventDate = Instant.ofEpochMilli(event.data!!).atZone(ZoneOffset.UTC).toLocalDate()
+                val eventDateLong = event.data
+                if (eventDateLong != null) {
+                    val eventDate = Instant.ofEpochMilli(eventDateLong).atZone(ZoneOffset.UTC).toLocalDate()
                     selectDate(eventDate)
                 }
                 _uiState.update { currentState ->
@@ -485,7 +477,8 @@ class CalendarViewModel @Inject constructor(
 
     fun fetchGoogleCalendarEvents() {
         viewModelScope.launch {
-            when (val result = categoryRepository.fetchGoogleCalendarEvents()) {
+            val result = categoryRepository.fetchGoogleCalendarEvents()
+            when (result) {
                 is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
                 is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
             }

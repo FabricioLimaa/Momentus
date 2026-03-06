@@ -10,6 +10,7 @@ import br.com.fabriciolima.momentus.di.IoDispatcher
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -38,23 +39,29 @@ class UserRepository @Inject constructor(
         get() = auth.currentUser?.uid
 
     val userData: Flow<UserData?> = callbackFlow {
-        val userId = auth.currentUser?.uid
-        if (userId == null) {
+        val currentUserId = auth.currentUser?.uid
+        if (currentUserId == null) {
             trySend(null)
             awaitClose { }
             return@callbackFlow
         }
 
-        val userDocRef = firestore.collection("users").document(userId)
+        val userDocRef = firestore.collection("users").document(currentUserId)
         val listenerRegistration = userDocRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                // CORREÇÃO: Ignora erro de permissão negada (comum durante logout) para evitar crash
+                if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                    Log.w(TAG, "Permissão negada ao acessar dados do usuário. Provavelmente deslogado.")
+                    trySend(null)
+                } else {
+                    close(error)
+                }
                 return@addSnapshotListener
             }
             if (snapshot != null && snapshot.exists()) {
                 trySend(snapshot.toObject(UserData::class.java))
             } else {
-                trySend(null) // Usuário autenticado mas sem dados no Firestore ainda.
+                trySend(null)
             }
         }
         awaitClose { listenerRegistration.remove() }
@@ -82,9 +89,6 @@ class UserRepository @Inject constructor(
                 )
                 userDocRef.set(newUser).await()
                  Log.i(TAG, "Novo documento de usuário criado com sucesso no Firestore.")
-            } else {
-                Log.d(TAG, "Documento de usuário já existe para UID: ${firebaseUser.uid}. Nenhuma ação necessária.")
-                // Opcional: Adicionar lógica para atualizar o documento se necessário.
             }
         } catch (e: Exception) {
             Log.e(TAG, "Falha ao criar ou verificar documento do usuário no Firestore.", e)

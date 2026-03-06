@@ -23,4 +23,4 @@ google-services.json
 gradlew
 gradlew.bat
 proguard-rules.pro
-libs.versions.toml
+#libs.versions.toml
