@@ -33,7 +33,6 @@ fun AppDrawerContent(
 ) {
     val firebaseUser = FirebaseAuth.getInstance().currentUser
     
-    // LOGICA DE FALLBACK PARA DADOS DO USUÁRIO
     val displayName = userData?.displayName 
         ?: firebaseUser?.displayName 
         ?: account?.displayName 
@@ -47,9 +46,15 @@ fun AppDrawerContent(
     val photoUrl = account?.photoUrl 
         ?: firebaseUser?.photoUrl
 
-    ModalDrawerSheet {
+    ModalDrawerSheet(
+        // Removendo padding do ModalDrawerSheet para o fundo preencher tudo
+        windowInsets = WindowInsets(0, 0, 0, 0) 
+    ) {
         Column(
-            modifier = Modifier.fillMaxHeight(),
+            modifier = Modifier
+                .fillMaxHeight()
+                // Aplicamos o padding de segurança APENAS no conteúdo interno
+                .windowInsetsPadding(WindowInsets.safeDrawing),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column {

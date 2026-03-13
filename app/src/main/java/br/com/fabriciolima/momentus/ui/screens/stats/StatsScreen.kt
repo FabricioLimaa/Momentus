@@ -81,7 +81,7 @@ fun StatsScreen(
             }
 
             item {
-                Divider()
+                HorizontalDivider()
                 Text(
                     text = "Taxa de Conclusão",
                     style = MaterialTheme.typography.titleLarge,
@@ -120,14 +120,15 @@ fun FilterButtons(selectedFilter: StatsFilter, onFilterSelected: (StatsFilter) -
             SegmentedButton(
                 selected = selectedFilter == filter,
                 onClick = { onFilterSelected(filter) },
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text(when(filter) {
-                    StatsFilter.WEEK -> "Semana"
-                    StatsFilter.MONTH -> "Mês"
-                    StatsFilter.YEAR -> "Ano"
-                })
-            }
+                label = {
+                    Text(when(filter) {
+                        StatsFilter.WEEK -> "Semana"
+                        StatsFilter.MONTH -> "Mês"
+                        StatsFilter.YEAR -> "Ano"
+                    })
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = StatsFilter.entries.size)
+            )
         }
     }
 }
@@ -221,4 +222,3 @@ fun BarChart(data: List<BarChartData>) {
         }
     }
 }
-

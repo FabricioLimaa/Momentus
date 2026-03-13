@@ -34,7 +34,6 @@ import br.com.fabriciolima.momentus.ui.viewmodel.CalendarViewModel
 import br.com.fabriciolima.momentus.ui.viewmodel.LogoutEvent
 import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String) {
@@ -81,7 +80,6 @@ fun AppScaffold(
         drawerState = drawerState,
         drawerContent = {
             val uiState by calendarViewModel.uiState.collectAsStateWithLifecycle()
-            // CORREÇÃO: Passando o usuário do Firebase como fallback imediato para Nome e Email
             AppDrawerContent(
                 userData = uiState.userData,
                 account = googleAccount,

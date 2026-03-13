@@ -340,13 +340,13 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    val allCategories: StateFlow<List<Category>> = categoryRepository.allCategoriesWithMetas.map { categoriesWithMetas ->
-        categoriesWithMetas.map { it.category }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val allCategories: StateFlow<List<Category>> = categoryRepository.allCategoriesWithMetas
+        .map { list -> list.map { it.category } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     fun onAddNewEventClicked() {
         _uiState.value = _uiState.value.copy(dialogState = DialogState.AddNewEvent)
@@ -466,6 +466,27 @@ class CalendarViewModel @Inject constructor(
     fun markHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
             markHabitAsCompletedUseCase(itemCronogramaId)
+        }
+    }
+
+    fun deleteEventsByIds(ids: Set<String>) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                eventoRepository.deleteEventsByIds(ids)
+                _uiState.update {
+                    it.copy(
+                        successMessage = "${ids.size} eventos excluídos.",
+                        isSelectionModeActive = false,
+                        selectedEventIds = emptySet()
+                    )
+                }
+                WidgetUpdater.requestUpdate(application)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Falha ao excluir eventos.") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
         }
     }
 
