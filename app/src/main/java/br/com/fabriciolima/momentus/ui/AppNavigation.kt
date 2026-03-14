@@ -118,6 +118,9 @@ fun AppNavHost(
         composable(Screen.Onboarding.route) {
             OnboardingScreen(navController = navController)
         }
+        class OnboardingScreen(navController: NavHostController) {
+
+        }
         composable(Screen.Login.route) {
             LoginScreen(navController = navController)
         }
@@ -149,14 +152,14 @@ fun AppNavHost(
                 onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                 onDateSelected = viewModel::selectDate,
                 onMenuClick = onMenuClick,
-                onAddNewEventClicked = viewModel::onAddNewEventClicked,
+                onAddNewRotinaClicked = viewModel::onAddNewRotinaClicked,
                 onDialogDismiss = viewModel::onDialogDismiss,
-                onSaveEvent = viewModel::saveSingleEvent,
-                onUpdateEvent = viewModel::updateEvent,
+                onSaveRotina = viewModel::saveSingleRotina,
+                onUpdateRotina = viewModel::updateRotina,
                 onShowDetailClicked = viewModel::onShowDetailClicked,
-                onEditEventClicked = viewModel::onEditEventClicked,
+                onEditRotinaClicked = viewModel::onEditRotinaClicked,
                 onConfirmDeleteClicked = viewModel::onConfirmDeleteClicked,
-                onDeleteEvent = viewModel::deleteEvent,
+                onDeleteRotina = viewModel::deleteRotina,
                 onMarkAsCompleted = viewModel::markHabitAsCompleted,
                 onUnmarkAsCompleted = viewModel::unmarkHabitAsCompleted,
                 onErrorShown = viewModel::onErrorShown,
@@ -168,13 +171,17 @@ fun AppNavHost(
                 },
                 onCompleteUpdate = inAppUpdateManager::completeUpdate,
                 onDismissUpdateDialog = viewModel::onUpdateDialogDismissed,
-                onEventLongPressed = viewModel::onEventLongPressed,
-                onEventClicked = viewModel::onEventClicked,
+                onRotinaLongPressed = viewModel::onRotinaLongPressed,
+                onRotinaClicked = viewModel::onRotinaClicked,
                 onClearSelection = viewModel::onClearSelection,
                 onSelectAll = viewModel::onSelectAll,
-                onDeleteSelectedEvents = viewModel::deleteSelectedEvents,
-                onConfirmDeleteSelectedEvents = viewModel::confirmDeleteSelectedEvents
+                onDeleteSelectedRotinas = viewModel::deleteSelectedRotinas,
+                onConfirmDeleteSelectedRotinas = viewModel::confirmDeleteSelectedRotinas
             )
+        }
+
+        class LoginScreen(navController: NavHostController) {
+
         }
 
         composable(Screen.Templates.route) { 

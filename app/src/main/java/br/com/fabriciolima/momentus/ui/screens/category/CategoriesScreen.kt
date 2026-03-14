@@ -111,7 +111,6 @@ fun CategoriesScreen(
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(uiState.categories) { category ->
-                    // CORREÇÃO: Passando null para a meta, que é o tipo esperado pelo construtor
                     CategoryListItem(
                         item = CategoryWithMeta(category, null),
                         onEdit = { viewModel.onShowEditDialog(category) },

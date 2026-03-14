@@ -96,7 +96,7 @@ fun NewEventDialog(
         if (!isEditMode) {
             horarioInicio = LocalTime.now().withSecond(0).withNano(0)
             horarioTermino = horarioInicio.plusHours(1)
-            Log.d(TAG, "LaunchedEffect: Horário resetado para novo evento. Início: $horarioInicio, Término: $horarioTermino")
+            Log.d(TAG, "LaunchedEffect: Horário resetado para nova rotina. Início: $horarioInicio, Término: $horarioTermino")
         }
     }
 
@@ -167,7 +167,7 @@ fun NewEventDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(if (isEditMode) "Editar Evento" else "Novo Evento", style = MaterialTheme.typography.titleLarge)
+                    Text(if (isEditMode) "Editar Evento" else "Nova Rotina", style = MaterialTheme.typography.titleLarge)
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Fechar")
                     }
@@ -336,7 +336,7 @@ fun NewEventDialog(
                     enabled = isFormValid,
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
-                    Text(if (isEditMode) "Salvar Alterações" else "Criar Evento")
+                    Text(if (isEditMode) "Salvar Alterações" else "Criar Rotina")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {

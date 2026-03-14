@@ -52,7 +52,7 @@ O **Momentus** foi projetado para ser um companheiro de produtividade inteligent
   <img src="screenshots/01-login.png" width="200" alt="Tela de Login">
   <img src="screenshots/02-loading.png" width="200" alt="Tela de Carregamento">
   <img src="screenshots/03-calendar.png" width="200" alt="Tela Principal do Calendário">
-  <img src="screenshots/04-new-event.png" width="200" alt="Criação de Novo Evento">
+  <img src="screenshots/04-new-event.png" width="200" alt="Criação de Nova Rotina">
 </p>
 <p align="center">
   <img src="screenshots/05-navigation-drawer.png" width="200" alt="Menu de Navegação">

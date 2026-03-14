@@ -8,7 +8,7 @@ import java.util.UUID
 
 @Entity(
     tableName = "tabela_itens_template",
-    indices = [Index(value = ["templateId"]), Index(value = ["rotinaId"])],
+    indices = [Index(value = ["templateId"]), Index(value = ["categoryId"])],
     foreignKeys = [ForeignKey(
         entity = Template::class,
         parentColumns = ["id"],
@@ -23,5 +23,5 @@ data class TemplateItem(
     val templateId: String,
     val diaDaSemana: String,
     val horarioInicio: String,
-    val rotinaId: String
+    val categoryId: String
 )

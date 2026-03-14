@@ -71,14 +71,14 @@ fun CalendarScreen(
     onNavigateToAchievements: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
     onMenuClick: () -> Unit,
-    onAddNewEventClicked: () -> Unit,
+    onAddNewRotinaClicked: () -> Unit,
     onDialogDismiss: () -> Unit,
-    onSaveEvent: (String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit,
-    onUpdateEvent: (ItemCronograma, String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit,
+    onSaveRotina: (String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit,
+    onUpdateRotina: (ItemCronograma, String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit,
     onShowDetailClicked: (ItemCronograma) -> Unit,
-    onEditEventClicked: (ItemCronograma) -> Unit,
+    onEditRotinaClicked: (ItemCronograma) -> Unit,
     onConfirmDeleteClicked: (ItemCronograma) -> Unit,
-    onDeleteEvent: (ItemCronograma) -> Unit,
+    onDeleteRotina: (ItemCronograma) -> Unit,
     onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit,
     onErrorShown: () -> Unit,
@@ -88,12 +88,12 @@ fun CalendarScreen(
     onStartUpdate: (com.google.android.play.core.appupdate.AppUpdateInfo) -> Unit,
     onCompleteUpdate: () -> Unit,
     onDismissUpdateDialog: () -> Unit,
-    onEventLongPressed: (String) -> Unit,
-    onEventClicked: (String) -> Unit,
+    onRotinaLongPressed: (String) -> Unit,
+    onRotinaClicked: (String) -> Unit,
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
-    onConfirmDeleteSelectedEvents: () -> Unit,
-    onDeleteSelectedEvents: () -> Unit
+    onConfirmDeleteSelectedRotinas: () -> Unit,
+    onDeleteSelectedRotinas: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -162,39 +162,39 @@ fun CalendarScreen(
     }
 
     when (val dialogState = uiState.dialogState) {
-        is DialogState.AddNewEvent -> {
+        is DialogState.AddNewRotina -> {
             NewEventDialog(
                 eventoParaEditar = null,
                 selectedDate = selectedDate,
                 categories = allCategories,
                 onDismiss = onDialogDismiss,
                 onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
-                    onSaveEvent(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                    onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
                 }
             )
         }
-        is DialogState.EditEvent -> {
+        is DialogState.EditRotina -> {
             NewEventDialog(
-                eventoParaEditar = dialogState.event,
+                eventoParaEditar = dialogState.rotina,
                 selectedDate = selectedDate,
                 categories = allCategories,
                 onDismiss = onDialogDismiss,
                 onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
                     if (item != null) {
-                        onUpdateEvent(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                        onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
                     }
                 }
             )
         }
         is DialogState.ShowDetail -> {
-            val category = uiState.categoriesMap[dialogState.event.categoryId]
+            val category = uiState.categoriesMap[dialogState.rotina.categoryId]
             if (category != null) {
                 EventDetailDialog(
-                    event = dialogState.event,
+                    event = dialogState.rotina,
                     category = category,
                     onDismiss = onDialogDismiss,
-                    onEditClick = { onEditEventClicked(dialogState.event) },
-                    onDeleteClick = { onConfirmDeleteClicked(dialogState.event) }
+                    onEditClick = { onEditRotinaClicked(dialogState.rotina) },
+                    onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) }
                 )
             }
         }
@@ -202,10 +202,10 @@ fun CalendarScreen(
             AlertDialog(
                 onDismissRequest = onDialogDismiss,
                 icon = { Icon(imageVector = Icons.Outlined.Warning, contentDescription = "Aviso de Exclusão") },
-                title = { Text("Excluir Evento") },
-                text = { Text("Tem certeza que deseja excluir o evento \"${dialogState.event.titulo}\"? Essa ação não pode ser desfeita.") },
+                title = { Text("Excluir Rotina") },
+                text = { Text("Tem certeza que deseja excluir a rotina \"${dialogState.rotina.titulo}\"? Essa ação não pode ser desfeita.") },
                 confirmButton = {
-                    Button(onClick = { onDeleteEvent(dialogState.event) }) {
+                    Button(onClick = { onDeleteRotina(dialogState.rotina) }) {
                         Text("Excluir")
                     }
                 },
@@ -220,10 +220,10 @@ fun CalendarScreen(
             AlertDialog(
                 onDismissRequest = onDialogDismiss,
                 icon = { Icon(imageVector = Icons.Outlined.Warning, contentDescription = "Aviso de Exclusão Múltipla") },
-                title = { Text("Excluir Eventos") },
-                text = { Text("Tem certeza que deseja excluir os ${dialogState.count} eventos selecionados? Essa ação não pode ser desfeita.") },
+                title = { Text("Excluir Rotinas") },
+                text = { Text("Tem certeza que deseja excluir as ${dialogState.count} rotinas selecionadas? Essa ação não pode ser desfeita.") },
                 confirmButton = {
-                    Button(onClick = onDeleteSelectedEvents) {
+                    Button(onClick = onDeleteSelectedRotinas) {
                         Text("Excluir")
                     }
                 },
@@ -243,10 +243,10 @@ fun CalendarScreen(
             topBar = {
                  if (uiState.isSelectionModeActive) {
                     SelectionTopAppBar(
-                        selectedCount = uiState.selectedEventIds.size,
+                        selectedCount = uiState.selectedRotinaIds.size,
                         onClearSelection = onClearSelection,
                         onSelectAll = onSelectAll,
-                        onDelete = onConfirmDeleteSelectedEvents
+                        onDelete = onConfirmDeleteSelectedRotinas
                     )
                 } else {
                     TopAppBar(
@@ -322,23 +322,23 @@ fun CalendarScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Calendário", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        text = "Gerencie seus eventos e compromissos",
+                        text = "Gerencie suas rotinas e compromissos",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = onAddNewEventClicked,
+                        onClick = onAddNewRotinaClicked,
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         enabled = !uiState.isLoading && !uiState.isSelectionModeActive
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Evento")
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Rotina")
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Novo Evento", fontSize = 16.sp)
+                            Text("Nova Rotina", fontSize = 16.sp)
                         }
                     }
                     Spacer(modifier = Modifier.height(24.dp))
@@ -356,11 +356,11 @@ fun CalendarScreen(
                         uiState = uiState,
                         selectedDate = selectedDate,
                         eventsForDate = eventsForSelectedDate,
-                        onEventClick = {
-                             if (uiState.isSelectionModeActive) onEventClicked(it.id) else onShowDetailClicked(it)
+                        onRotinaClick = {
+                             if (uiState.isSelectionModeActive) onRotinaClicked(it.id) else onShowDetailClicked(it)
                         },
-                        onEventLongClick = { onEventLongPressed(it.id) },
-                        onAddNewEventClicked = onAddNewEventClicked,
+                        onRotinaLongClick = { onRotinaLongPressed(it.id) },
+                        onAddNewRotinaClicked = onAddNewRotinaClicked,
                         onMarkAsCompleted = onMarkAsCompleted,
                         onUnmarkAsCompleted = onUnmarkAsCompleted
                     )
@@ -390,7 +390,7 @@ fun SelectionTopAppBar(
     onDelete: () -> Unit
 ) {
     TopAppBar(
-        title = { Text("$selectedCount selecionados") },
+        title = { Text("$selectedCount selecionadas") },
         navigationIcon = {
             IconButton(onClick = onClearSelection) {
                 Icon(imageVector = Icons.Default.Close, contentDescription = "Fechar")
@@ -398,10 +398,10 @@ fun SelectionTopAppBar(
         },
         actions = {
             IconButton(onClick = onSelectAll) {
-                Icon(imageVector = Icons.Default.SelectAll, contentDescription = "Selecionar Todos")
+                Icon(imageVector = Icons.Default.SelectAll, contentDescription = "Selecionar Todas")
             }
             IconButton(onClick = onDelete) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = "Excluir Selecionados")
+                Icon(imageVector = Icons.Default.Delete, contentDescription = "Excluir Selecionadas")
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -505,7 +505,7 @@ fun CalendarContent(
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        val localEventsByDate = uiState.allScheduleItems.groupBy {
+        val localRotinasByDate = uiState.allRotinaItems.groupBy {
             it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneOffset.UTC).toLocalDate() }
         }
 
@@ -515,7 +515,7 @@ fun CalendarContent(
                 DayCell(
                     day = day,
                     isSelected = selectedDate == day.date,
-                    localEvents = localEventsByDate[day.date] ?: emptyList(),
+                    localRotinas = localRotinasByDate[day.date] ?: emptyList(),
                     categoriesMap = uiState.categoriesMap,
                     onDateSelected = { onDateSelected(it.date) }
                 )
@@ -560,7 +560,7 @@ fun CalendarHeader(
 fun DayCell(
     day: CalendarDay,
     isSelected: Boolean,
-    localEvents: List<ItemCronograma>,
+    localRotinas: List<ItemCronograma>,
     categoriesMap: Map<String, Category>,
     onDateSelected: (CalendarDay) -> Unit
 ) {
@@ -593,20 +593,20 @@ fun DayCell(
         )
 
         if (isCurrentMonth) {
-            if (localEvents.isNotEmpty()) {
+            if (localRotinas.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.height(8.dp)
                 ) {
-                    localEvents.take(2).forEach { event ->
-                        val category = categoriesMap[event.categoryId]
-                        val eventColor = category?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } }
+                    localRotinas.take(2).forEach { rotina ->
+                        val category = categoriesMap[rotina.categoryId]
+                        val rotinaColor = category?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } }
                             ?: MaterialTheme.colorScheme.secondary
-                        Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
+                        Box(modifier = Modifier.size(6.dp).background(rotinaColor, CircleShape))
                     }
 
-                    val remainingCount = localEvents.size - 2
+                    val remainingCount = localRotinas.size - 2
                     if (remainingCount > 0) {
                         Text(text = "+${remainingCount}", fontSize = 8.sp, color = textColor)
                     }
@@ -684,9 +684,9 @@ fun EventsForDay(
     uiState: CalendarUiState,
     selectedDate: LocalDate,
     eventsForDate: EventsForDate,
-    onEventClick: (ItemCronograma) -> Unit,
-    onEventLongClick: (ItemCronograma) -> Unit,
-    onAddNewEventClicked: () -> Unit,
+    onRotinaClick: (ItemCronograma) -> Unit,
+    onRotinaLongClick: (ItemCronograma) -> Unit,
+    onAddNewRotinaClicked: () -> Unit,
     onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit
 ) {
@@ -701,7 +701,7 @@ fun EventsForDay(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (eventsForDate.localEvents.isEmpty()) {
+        if (eventsForDate.localRotinas.isEmpty()) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -721,44 +721,44 @@ fun EventsForDay(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Você não tem nenhum evento para este dia. Que tal adicionar um?",
+                    text = "Você não tem nenhuma rotina para este dia. Que tal adicionar uma?",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 32.dp)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onAddNewEventClicked, enabled = !uiState.isSelectionModeActive) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Novo Evento")
+                Button(onClick = onAddNewRotinaClicked, enabled = !uiState.isSelectionModeActive) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Nova Rotina")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Adicionar Evento")
+                    Text("Adicionar Rotina")
                 }
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(eventsForDate.localEvents, key = { event -> event.id }) { event ->
-                    val category = uiState.categoriesMap[event.categoryId]
+                items(eventsForDate.localRotinas, key = { rotina -> rotina.id }) { rotina ->
+                    val category = uiState.categoriesMap[rotina.categoryId]
                     if (category != null) {
-                        val isChecked = uiState.completedHabitIds.contains(event.id)
-                        val isSelected = uiState.selectedEventIds.contains(event.id)
+                        val isChecked = uiState.completedHabitIds.contains(rotina.id)
+                        val isSelected = uiState.selectedRotinaIds.contains(rotina.id)
 
                         Card(
                             modifier = Modifier.fillMaxWidth().combinedClickable(
-                                onClick = { onEventClick(event) },
-                                onLongClick = { onEventLongClick(event) }
+                                onClick = { onRotinaClick(rotina) },
+                                onLongClick = { onRotinaLongClick(rotina) }
                             ),
                             colors = if(isSelected) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else CardDefaults.cardColors()
                         ) {
                              EventListItem(
-                                item = event,
+                                item = rotina,
                                 category = category,
                                 isChecked = isChecked,
                                 showCheckbox = uiState.isSelectionModeActive,
                                 isSelected = isSelected,
                                 onCheckedChange = { isNowChecked ->
-                                    if (isNowChecked) onMarkAsCompleted(event.id) else onUnmarkAsCompleted(event.id)
+                                    if (isNowChecked) onMarkAsCompleted(rotina.id) else onUnmarkAsCompleted(rotina.id)
                                 },
-                                onCardClicked = { onEventClick(event) }
+                                onCardClicked = { onRotinaClick(rotina) }
                             )
                         }
                     }

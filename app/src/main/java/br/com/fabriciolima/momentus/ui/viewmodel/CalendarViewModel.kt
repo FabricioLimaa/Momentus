@@ -5,20 +5,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Achievement
 import br.com.fabriciolima.momentus.data.model.Category
-import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.di.VersionCode
-import br.com.fabriciolima.momentus.domain.usecase.DeleteEventUseCase
+import br.com.fabriciolima.momentus.domain.usecase.DeleteRotinaUseCase
 import br.com.fabriciolima.momentus.domain.usecase.MarkHabitAsCompletedUseCase
-import br.com.fabriciolima.momentus.domain.usecase.SaveEventUseCase
+import br.com.fabriciolima.momentus.domain.usecase.SaveRotinaUseCase
 import br.com.fabriciolima.momentus.domain.usecase.UnmarkHabitAsCompletedUseCase
-import br.com.fabriciolima.momentus.domain.usecase.UpdateEventUseCase
+import br.com.fabriciolima.momentus.domain.usecase.UpdateRotinaUseCase
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import br.com.fabriciolima.momentus.util.Result
@@ -51,11 +50,11 @@ import javax.inject.Inject
 
 sealed interface DialogState {
     object Hidden : DialogState
-    data class EditEvent(val event: ItemCronograma) : DialogState
-    data class ShowDetail(val event: ItemCronograma) : DialogState
-    data class ConfirmDelete(val event: ItemCronograma) : DialogState
+    data class EditRotina(val rotina: ItemCronograma) : DialogState
+    data class ShowDetail(val rotina: ItemCronograma) : DialogState
+    data class ConfirmDelete(val rotina: ItemCronograma) : DialogState
     data class ConfirmDeleteMultiple(val count: Int) : DialogState
-    object AddNewEvent : DialogState
+    object AddNewRotina : DialogState
 }
 
 sealed interface LogoutEvent {
@@ -68,12 +67,12 @@ data class GoogleCalendarEvent(
 )
 
 data class EventsForDate(
-    val localEvents: List<ItemCronograma> = emptyList(),
+    val localRotinas: List<ItemCronograma> = emptyList(),
     val googleEvents: List<GoogleCalendarEvent> = emptyList()
 )
 
 data class CalendarUiState(
-    val allScheduleItems: List<ItemCronograma> = emptyList(),
+    val allRotinaItems: List<ItemCronograma> = emptyList(),
     val categoriesMap: Map<String, Category> = emptyMap(),
     val completedHabitIds: Set<String> = emptySet(),
     val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
@@ -88,13 +87,13 @@ data class CalendarUiState(
     val dialogState: DialogState = DialogState.Hidden,
     val isLoading: Boolean = false,
     val isSelectionModeActive: Boolean = false,
-    val selectedEventIds: Set<String> = emptySet()
+    val selectedRotinaIds: Set<String> = emptySet()
 )
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
-    private val eventoRepository: EventoRepository,
+    private val rotinaRepository: RotinaRepository,
     private val templateRepository: TemplateRepository,
     private val userRepository: UserRepository,
     private val gamificationRepository: GamificationRepository,
@@ -105,9 +104,9 @@ class CalendarViewModel @Inject constructor(
     private val application: Application,
     private val markHabitAsCompletedUseCase: MarkHabitAsCompletedUseCase,
     private val unmarkHabitAsCompletedUseCase: UnmarkHabitAsCompletedUseCase,
-    private val saveEventUseCase: SaveEventUseCase,
-    private val updateEventUseCase: UpdateEventUseCase,
-    private val deleteEventUseCase: DeleteEventUseCase,
+    private val saveRotinaUseCase: SaveRotinaUseCase,
+    private val updateRotinaUseCase: UpdateRotinaUseCase,
+    private val deleteRotinaUseCase: DeleteRotinaUseCase,
     @VersionCode private val currentVersionCode: Int
 ) : ViewModel() {
 
@@ -128,7 +127,7 @@ class CalendarViewModel @Inject constructor(
         _uiState,
         _selectedDate
     ) { state, date ->
-        val localEvents = state.allScheduleItems.filter {
+        val localRotinas = state.allRotinaItems.filter {
             val itemDate = it.data
             itemDate != null && Instant.ofEpochMilli(itemDate).atZone(ZoneOffset.UTC).toLocalDate() == date
         }
@@ -136,7 +135,7 @@ class CalendarViewModel @Inject constructor(
             val instant = Instant.ofEpochMilli(event.start.value)
             instant.atZone(ZoneOffset.UTC).toLocalDate() == date
         }
-        EventsForDate(localEvents, googleEvents)
+        EventsForDate(localRotinas, googleEvents)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -158,15 +157,15 @@ class CalendarViewModel @Inject constructor(
     private fun startFirebaseListeners() {
         viewModelScope.launch {
             categoryRepository.startListeningForChanges()
-            eventoRepository.startListeningForChanges()
+            rotinaRepository.startListeningForChanges()
             templateRepository.startListeningForChanges()
             categoryRepository.syncAllDataToLocal()
         }
     }
 
     private fun collectData() {
-        eventoRepository.todosOsItensDoCronograma.onEach { items ->
-            _uiState.update { it.copy(allScheduleItems = items) }
+        rotinaRepository.todosOsItensDaRotina.onEach { items ->
+            _uiState.update { it.copy(allRotinaItems = items) }
         }.launchIn(viewModelScope).also { jobs.add(it) }
 
         categoryRepository.allCategoriesWithMetas.onEach { categoriesWithMetas ->
@@ -192,62 +191,62 @@ class CalendarViewModel @Inject constructor(
 
     // --- Multiple Selection Logic ---
 
-    fun onEventLongPressed(eventId: String) {
+    fun onRotinaLongPressed(rotinaId: String) {
         _uiState.update {
             it.copy(
                 isSelectionModeActive = true,
-                selectedEventIds = it.selectedEventIds + eventId
+                selectedRotinaIds = it.selectedRotinaIds + rotinaId
             )
         }
     }
 
-    fun onEventClicked(eventId: String) {
+    fun onRotinaClicked(rotinaId: String) {
         _uiState.update { currentState ->
-            val newSelectedIds = if (currentState.selectedEventIds.contains(eventId)) {
-                currentState.selectedEventIds - eventId
+            val newSelectedIds = if (currentState.selectedRotinaIds.contains(rotinaId)) {
+                currentState.selectedRotinaIds - rotinaId
             } else {
-                currentState.selectedEventIds + eventId
+                currentState.selectedRotinaIds + rotinaId
             }
             currentState.copy(
-                selectedEventIds = newSelectedIds,
+                selectedRotinaIds = newSelectedIds,
                 isSelectionModeActive = newSelectedIds.isNotEmpty()
             )
         }
     }
 
     fun onClearSelection() {
-        _uiState.update { it.copy(isSelectionModeActive = false, selectedEventIds = emptySet()) }
+        _uiState.update { it.copy(isSelectionModeActive = false, selectedRotinaIds = emptySet()) }
     }
 
     fun onSelectAll() {
         _uiState.update { currentState ->
-            val allVisibleEventIds = eventsForSelectedDate.value.localEvents.map { it.id }.toSet()
-            currentState.copy(selectedEventIds = allVisibleEventIds)
+            val allVisibleRotinaIds = eventsForSelectedDate.value.localRotinas.map { it.id }.toSet()
+            currentState.copy(selectedRotinaIds = allVisibleRotinaIds)
         }
     }
 
-    fun confirmDeleteSelectedEvents() {
-        _uiState.update { it.copy(dialogState = DialogState.ConfirmDeleteMultiple(it.selectedEventIds.size)) }
+    fun confirmDeleteSelectedRotinas() {
+        _uiState.update { it.copy(dialogState = DialogState.ConfirmDeleteMultiple(it.selectedRotinaIds.size)) }
     }
 
-    fun deleteSelectedEvents() {
+    fun deleteSelectedRotinas() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, dialogState = DialogState.Hidden) }
             try {
-                val idsToDelete = _uiState.value.selectedEventIds
+                val idsToDelete = _uiState.value.selectedRotinaIds
                 if (idsToDelete.isNotEmpty()) {
-                    eventoRepository.deleteEventsByIds(idsToDelete)
+                    rotinaRepository.deleteRotinasByIds(idsToDelete)
                     _uiState.update {
                         it.copy(
-                            successMessage = "${idsToDelete.size} eventos excluídos.",
+                            successMessage = "${idsToDelete.size} rotinas excluídas.",
                             isSelectionModeActive = false,
-                            selectedEventIds = emptySet()
+                            selectedRotinaIds = emptySet()
                         )
                     }
                     WidgetUpdater.requestUpdate(application)
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Falha ao excluir eventos.") }
+                _uiState.update { it.copy(error = "Falha ao excluir rotinas.") }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -312,7 +311,7 @@ class CalendarViewModel @Inject constructor(
         jobs.forEach { it.cancel() }
         jobs.clear()
         categoryRepository.stopListeningForChanges()
-        eventoRepository.stopListeningForChanges()
+        rotinaRepository.stopListeningForChanges()
         templateRepository.stopListeningForChanges()
     }
 
@@ -322,7 +321,7 @@ class CalendarViewModel @Inject constructor(
             try {
                 stopAllDataCollection()
 
-                eventoRepository.clear()
+                rotinaRepository.clear()
                 categoryRepository.clearAllLocalData()
                 templateRepository.clear()
                 gamificationRepository.clear()
@@ -348,20 +347,20 @@ class CalendarViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    fun onAddNewEventClicked() {
-        _uiState.value = _uiState.value.copy(dialogState = DialogState.AddNewEvent)
+    fun onAddNewRotinaClicked() {
+        _uiState.value = _uiState.value.copy(dialogState = DialogState.AddNewRotina)
     }
 
-    fun onEditEventClicked(event: ItemCronograma) {
-        _uiState.value = _uiState.value.copy(dialogState = DialogState.EditEvent(event))
+    fun onEditRotinaClicked(rotina: ItemCronograma) {
+        _uiState.value = _uiState.value.copy(dialogState = DialogState.EditRotina(rotina))
     }
 
-    fun onShowDetailClicked(event: ItemCronograma) {
-        _uiState.value = _uiState.value.copy(dialogState = DialogState.ShowDetail(event))
+    fun onShowDetailClicked(rotina: ItemCronograma) {
+        _uiState.value = _uiState.value.copy(dialogState = DialogState.ShowDetail(rotina))
     }
 
-    fun onConfirmDeleteClicked(event: ItemCronograma) {
-        _uiState.value = _uiState.value.copy(dialogState = DialogState.ConfirmDelete(event))
+    fun onConfirmDeleteClicked(rotina: ItemCronograma) {
+        _uiState.value = _uiState.value.copy(dialogState = DialogState.ConfirmDelete(rotina))
     }
 
     fun onDialogDismiss() {
@@ -372,23 +371,23 @@ class CalendarViewModel @Inject constructor(
         _selectedDate.value = date
     }
 
-    fun showEventDetails(eventId: String) {
+    fun showRotinaDetails(rotinaId: String) {
         viewModelScope.launch {
-            val event = eventoRepository.getItemCronograma(eventId)
-            if (event != null) {
-                val eventDateLong = event.data
-                if (eventDateLong != null) {
-                    val eventDate = Instant.ofEpochMilli(eventDateLong).atZone(ZoneOffset.UTC).toLocalDate()
-                    selectDate(eventDate)
+            val rotina = rotinaRepository.getItemCronograma(rotinaId)
+            if (rotina != null) {
+                val rotinaDateLong = rotina.data
+                if (rotinaDateLong != null) {
+                    val rotinaDate = Instant.ofEpochMilli(rotinaDateLong).atZone(ZoneOffset.UTC).toLocalDate()
+                    selectDate(rotinaDate)
                 }
                 _uiState.update { currentState ->
-                    currentState.copy(dialogState = DialogState.ShowDetail(event))
+                    currentState.copy(dialogState = DialogState.ShowDetail(rotina))
                 }
             }
         }
     }
 
-    fun saveSingleEvent(
+    fun saveSingleRotina(
         titulo: String,
         descricao: String?,
         data: LocalDate,
@@ -399,12 +398,12 @@ class CalendarViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val result = saveEventUseCase(titulo, descricao, data, horarioInicio, horarioTermino, category, salvarNoGoogle)
+            val result = saveRotinaUseCase(titulo, descricao, data, horarioInicio, horarioTermino, category, salvarNoGoogle)
             _uiState.update { it.copy(isLoading = false) }
 
             when (result) {
                 is Result.Success -> {
-                    _uiState.update { it.copy(successMessage = "Evento criado com sucesso!", dialogState = DialogState.Hidden) }
+                    _uiState.update { it.copy(successMessage = "Rotina criada com sucesso!", dialogState = DialogState.Hidden) }
                     if (salvarNoGoogle) fetchGoogleCalendarEvents()
                 }
                 is Result.Error -> {
@@ -414,7 +413,7 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    fun updateEvent(
+    fun updateRotina(
         item: ItemCronograma,
         novoTitulo: String,
         novaDescricao: String?,
@@ -426,12 +425,12 @@ class CalendarViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
              _uiState.update { it.copy(isLoading = true) }
-            val result = updateEventUseCase(item, novoTitulo, novaDescricao, novaData, novoHorarioInicio, novoHorarioTermino, novaCategory, sincronizarComGoogle)
+            val result = updateRotinaUseCase(item, novoTitulo, novaDescricao, novaData, novoHorarioInicio, novoHorarioTermino, novaCategory, sincronizarComGoogle)
             _uiState.update { it.copy(isLoading = false) }
 
             when(result) {
                 is Result.Success -> {
-                     _uiState.update { it.copy(successMessage = "Evento atualizado com sucesso!", dialogState = DialogState.Hidden) }
+                     _uiState.update { it.copy(successMessage = "Rotina atualizada com sucesso!", dialogState = DialogState.Hidden) }
                     if(sincronizarComGoogle) fetchGoogleCalendarEvents()
                      WidgetUpdater.requestUpdate(application)
                 }
@@ -442,7 +441,7 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    fun deleteEvent(item: ItemCronograma) {
+    fun deleteRotina(item: ItemCronograma) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -450,7 +449,7 @@ class CalendarViewModel @Inject constructor(
                 when (val result = categoryRepository.deleteCompleteEvent(item)) {
                     is Result.Success -> {
                         fetchGoogleCalendarEvents()
-                        _uiState.value = _uiState.value.copy(successMessage = "Evento excluído com sucesso!", dialogState = DialogState.Hidden)
+                        _uiState.value = _uiState.value.copy(successMessage = "Rotina excluída com sucesso!", dialogState = DialogState.Hidden)
                         WidgetUpdater.requestUpdate(application)
                     }
                     is Result.Error -> {
@@ -469,21 +468,21 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    fun deleteEventsByIds(ids: Set<String>) {
+    fun deleteRotinasByIds(ids: Set<String>) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                eventoRepository.deleteEventsByIds(ids)
+                rotinaRepository.deleteRotinasByIds(ids)
                 _uiState.update {
                     it.copy(
-                        successMessage = "${ids.size} eventos excluídos.",
+                        successMessage = "${ids.size} rotinas excluídas.",
                         isSelectionModeActive = false,
-                        selectedEventIds = emptySet()
+                        selectedRotinaIds = emptySet()
                     )
                 }
                 WidgetUpdater.requestUpdate(application)
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Falha ao excluir eventos.") }
+                _uiState.update { it.copy(error = "Falha ao excluir rotinas.") }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }

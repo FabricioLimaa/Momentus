@@ -150,7 +150,7 @@ class GoogleCalendarManager @Inject constructor(
         }
     }
 
-    // Insere um novo evento
+    // Insere um nova rotina
     override suspend fun insertEvent(item: ItemCronograma): Result<Event?> = withContext(Dispatchers.IO) {
         try {
             if (calendar == null) {

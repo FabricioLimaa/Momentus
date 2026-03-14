@@ -191,7 +191,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
             )
             Image(
                 provider = ImageProvider(R.drawable.ic_add),
-                contentDescription = "Adicionar novo evento",
+                contentDescription = "Adicionar nova rotina",
                 colorFilter = ColorFilter.tint(primaryTextColor),
                 modifier = GlanceModifier.size(36.dp).clickable(
                     actionStartActivity(

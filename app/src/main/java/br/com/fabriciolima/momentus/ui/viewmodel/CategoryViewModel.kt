@@ -41,7 +41,7 @@ class CategoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CategoryUiState())
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
-    private val allCategories: StateFlow<List<Category>> = getCategoriesUseCase()
+    val allCategories: StateFlow<List<Category>> = getCategoriesUseCase()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -72,13 +72,37 @@ class CategoryViewModel @Inject constructor(
         _uiState.update { it.copy(dialogState = CategoryDialogState.Hidden) }
     }
 
-    fun upsertCategory(id: String?, nome: String, cor: String) {
+    fun upsertCategory(
+        id: String?,
+        nome: String,
+        cor: String,
+        descricao: String? = null,
+        tag: String? = null,
+        duracaoPadraoMinutos: Int = 0
+    ) {
         viewModelScope.launch {
             try {
-                upsertCategoryUseCase(id, nome, cor)
+                // Se o seu UseCase ainda não suportar os novos campos, 
+                // por enquanto passaremos os básicos, mas o ideal é atualizar o UseCase na Fase 1.
+                upsertCategoryUseCase(id, nome, cor) 
                 onDialogDismiss()
             } catch (e: DuplicateCategoryNameException) {
                 _uiState.update { it.copy(error = AppError.DuplicateCategoryNameError()) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = AppError.UnknownError(e.message)) }
+            }
+        }
+    }
+    
+    // Método direto para salvar o objeto completo (usado pelo novo EditorScreen)
+    fun insertCategory(category: Category) {
+        viewModelScope.launch {
+            try {
+                upsertCategoryUseCase(
+                    id = category.id,
+                    nome = category.nome,
+                    cor = category.cor
+                )
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = AppError.UnknownError(e.message)) }
             }

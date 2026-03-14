@@ -48,7 +48,7 @@ interface ItemCronogramaDao {
 
     @Query(
         """
-        SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, c.nome as nomeRotina, c.cor as corRotina, 
+        SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, c.nome as categoryName, c.cor as categoryColor, 
         CASE WHEN thc.itemCronogramaId IS NOT NULL THEN 1 ELSE 0 END as isCompleted 
         FROM tabela_itens_cronograma tic 
         JOIN categories c ON tic.categoryId = c.id 
@@ -81,7 +81,7 @@ data class WidgetEventItem(
     val horarioInicio: String,
     val horarioTermino: String,
     val descricao: String?,
-    val nomeRotina: String,
-    val corRotina: String,
+    val categoryName: String,
+    val categoryColor: String,
     val isCompleted: Boolean
 )

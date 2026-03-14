@@ -2,7 +2,7 @@
     <string name="app_name">Momentus</string>
     <string name="widget_header_today">Momentus - Hoje</string>
 
-    <string name="widget_add_new_event">Adicionar novo evento</string>
+    <string name="widget_add_new_event">Adicionar nova rotina</string>
 
     <string name="widget_refresh">Atualizar widget</string>
 

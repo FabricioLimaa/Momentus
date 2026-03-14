@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
@@ -14,6 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -23,11 +25,10 @@ val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
 class SplashViewModel @Inject constructor(
     private val auth: FirebaseAuth,
     private val userRepository: UserRepository,
-    private val categoryRepository: CategoryRepository, // Corrigido
+    private val categoryRepository: CategoryRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    // Expondo a mensagem de sincronização para a UI
     val syncMessage = categoryRepository.syncMessage
 
     enum class UserStatus {
@@ -50,7 +51,8 @@ class SplashViewModel @Inject constructor(
         return if (auth.currentUser == null) {
             UserStatus.NOT_LOGGED_IN
         } else {
-            categoryRepository.syncAllDataToLocal() // Inicia a sincronização
+            // DISPARO ASSÍNCRONO: Não aguardamos a sincronização para decidir a rota.
+            // O CalendarViewModel já cuidará da sincronização ao iniciar.
             if (userRepository.hasAcceptedTerms()) {
                 UserStatus.LOGGED_IN
             } else {

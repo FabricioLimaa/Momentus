@@ -74,15 +74,15 @@ fun CreateTemplateScreen(
                 )
             }
 
-            // Botão para adicionar um novo evento
+            // Botão para adicionar um nova rotina
             item {
                 OutlinedButton(
-                    onClick = { /* TODO: Abrir diálogo para adicionar evento */ },
+                    onClick = { /* TODO: Abrir diálogo para adicionar rotina */ },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Adicionar Evento")
+                    Text("Adicionar Rotina")
                 }
             }
 

@@ -112,8 +112,8 @@ object WidgetUpdater {
                 id = item.id,
                 title = item.titulo,
                 timeRange = "${timeFormatter.format(horarioInicio)} - ${timeFormatter.format(horarioTermino)}",
-                categoryName = item.nomeRotina,
-                categoryColor = item.corRotina,
+                categoryName = item.categoryName,
+                categoryColor = item.categoryColor,
                 isPast = now.isAfter(horarioTermino),
                 isCompleted = item.isCompleted // Adicionado
             )

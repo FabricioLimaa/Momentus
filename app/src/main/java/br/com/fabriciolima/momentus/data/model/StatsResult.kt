@@ -7,11 +7,11 @@ import androidx.room.ColumnInfo
  * O Room pode preencher objetos deste tipo diretamente a partir de uma consulta SQL complexa.
  */
 data class StatsResult(
-    @ColumnInfo(name = "nome_rotina")
-    val nomeRotina: String,
+    @ColumnInfo(name = "category_name")
+    val categoryName: String,
 
-    @ColumnInfo(name = "cor_rotina")
-    val corRotina: String,
+    @ColumnInfo(name = "category_color")
+    val categoryColor: String,
 
     @ColumnInfo(name = "total_minutos")
     val totalMinutos: Long

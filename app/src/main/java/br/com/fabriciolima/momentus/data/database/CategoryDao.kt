@@ -25,7 +25,7 @@ interface CategoryDao {
     @Query("DELETE FROM categories")
     suspend fun clear()
 
-    @Query("SELECT * FROM categories LEFT JOIN tabela_metas ON categories.id = tabela_metas.categoryId ORDER BY nome ASC") // Corrigido
+    @Query("SELECT * FROM categories LEFT JOIN tabela_metas ON categories.id = tabela_metas.categoryId ORDER BY nome ASC")
     fun getCategoriesWithMetas(): Flow<List<CategoryWithMeta>>
 
     /**
@@ -42,8 +42,8 @@ interface CategoryDao {
 
     @Query("""
         SELECT
-            c.nome AS nome_rotina,
-            c.cor AS cor_rotina,
+            c.nome AS category_name,
+            c.cor AS category_color,
             SUM( (strftime('%s', i.horarioTermino) - strftime('%s', i.horarioInicio)) / 60 ) AS total_minutos
         FROM
             tabela_itens_cronograma AS i

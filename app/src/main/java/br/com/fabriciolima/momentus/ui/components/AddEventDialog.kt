@@ -30,7 +30,7 @@ import androidx.compose.ui.window.Dialog
 import br.com.fabriciolima.momentus.data.model.Category
 
 /**
- * Diálogo genérico para adicionar um novo evento.
+ * Diálogo genérico para adicionar um nova rotina.
  * Pode ser usado tanto para eventos únicos quanto para eventos de template.
  */
 @OptIn(ExperimentalMaterial3Api::class)
