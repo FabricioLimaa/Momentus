@@ -26,6 +26,7 @@ playServicesAuth = "20.7.0"
 room = "2.6.1"
 googleGmsServices = "4.4.2"
 workManager = "2.9.0"
+lottie = "6.7.1"
 
 [libraries]
 # Dependencies for the Android App
@@ -64,6 +65,9 @@ composeReorderable = { module = "org.burnoutcrew.composereorderable:reorderable"
 coilCompose = { module = "io.coil-kt:coil-compose", version = "2.5.0" }
 kizitonwoseCalendarCompose = { module = "com.kizitonwose.calendar:compose", version = "2.5.1" }
 
+# Lottie
+lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
+
 # Room
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
@@ -91,13 +95,6 @@ android-desugar = { group = "com.android.tools", name = "desugar_jdk_libs", vers
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-#firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
-#firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
-#firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
-#firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
-#firebase-inappmessaging-display-ktx = { group = "com.google.firebase", name = "firebase-in-app-messaging-display-ktx", version.ref = "firebaseInAppMessaging" }
-#firebase-appcheck-ktx = { group = "com.google.firebase", name = "firebase-appcheck-ktx" }
-#firebase-appcheck-playintegrity = { group = "com.google.firebase", name = "firebase-appcheck-playintegrity" }
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlin" }
 playServicesAuth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 

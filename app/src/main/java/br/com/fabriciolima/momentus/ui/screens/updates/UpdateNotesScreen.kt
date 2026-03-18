@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,56 +27,74 @@ fun UpdateNotesScreen(
                 title = { Text("Novidades da Versão") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 }
             )
         }
-    ) {
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(it)
+                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("Versão 1.1.01 (22 de Janeiro de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Versão 1.2.0 (Março de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Esta atualização foca em usabilidade e polimento da interface, tornando a gestão da sua agenda ainda mais rápida e agradável.", style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(12.dp))
+            Text("Esta versão marca uma grande evolução na arquitetura e experiência do Momentus, trazendo mais fluidez e foco na sua produtividade.", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Text("🗑️ Exclusão Múltipla de Eventos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🔄 De Eventos para Rotinas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Agora você pode excluir vários eventos de uma só vez. Pressione e segure um item para iniciar o modo de seleção, escolha os eventos e limpe sua agenda com um único toque.",
+                "Refatoramos todo o aplicativo para usar o termo 'Rotinas', alinhando a interface com o propósito de criar hábitos consistentes e duradouros.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("🎨 Polimento Visual e de Usabilidade", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🔥 Sistema de Streaks (Sequências)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "O checkbox para concluir e selecionar tarefas agora é o mesmo, localizado à esquerda, proporcionando uma experiência consistente. Além disso, a barra de status agora se adapta à cor do modo de seleção.",
+                "Acompanhe sua consistência diária diretamente na tela principal. Não deixe a chama apagar e mantenha sua sequência de produtividade ativa!",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("🧹 Interface Mais Limpa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("✨ Celebração de Sucesso", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Para uma visualização mais focada, removemos a descrição do evento diretamente da lista principal. Os detalhes ainda estão a um clique de distância.",
+                "Adicionamos animações vibrantes ao marcar uma rotina como concluída. Sinta a satisfação de cada tarefa completada com um novo feedback visual.",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("📱 Pronto para o Android 15", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "O Momentus agora é totalmente compatível com a exibição de ponta a ponta (Edge-to-Edge) e as novas APIs do Android 15, garantindo uma interface moderna e imersiva.",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("🗑️ Gestão Avançada", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Exclusão múltipla de rotinas e melhorias significativas na organização por categorias, permitindo uma gestão de tempo ainda mais ágil.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(24.dp))
 
             Text("Recursos Anteriores", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("🔔 Notificações de Início e Término com sons personalizados.", style = MaterialTheme.typography.bodyLarge)
+            Text("🔔 Notificações Inteligentes com sons personalizados.", style = MaterialTheme.typography.bodyLarge)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("🚀 Melhorias de estabilidade e performance no Widget.", style = MaterialTheme.typography.bodyLarge)
+            Text("🚀 Sincronização resiliente com Firestore e suporte a Widgets interativos.", style = MaterialTheme.typography.bodyLarge)
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

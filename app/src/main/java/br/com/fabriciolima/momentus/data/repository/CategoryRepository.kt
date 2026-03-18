@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -49,9 +50,10 @@ open class CategoryRepository @Inject constructor(
     private val habitoConcluidoDao: HabitoConcluidoDao,
     private val itemCronogramaDao: ItemCronogramaDao,
     private val templateRepository: TemplateRepository,
-    private val eventoRepository: EventoRepository,
+    private val rotinaRepository: RotinaRepository,
+    private val userRepository: UserRepository,
     private val gamificationRepository: GamificationRepository,
-    private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase, // Adicionado
+    private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase,
     private val googleCalendarSource: GoogleCalendarSource,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
@@ -70,14 +72,20 @@ open class CategoryRepository @Inject constructor(
     val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao.getIdsConcluidos()
     open val stats: Flow<List<StatsResult>> = categoryDao.getStats()
 
-    val currentStreak: Flow<Int> = habitoConcluidoDao.getAllCompletionDates().map { calculateStreak(it) }
+    val currentStreak: Flow<Int> = habitoConcluidoDao.getAllCompletionDates()
+        .map { calculateStreak(it) }
+        .onEach { streak ->
+            CoroutineScope(dispatcher).launch {
+                userRepository.updateStreak(streak)
+            }
+        }
 
     private val userId: String?
         get() = auth.currentUser?.uid
 
     fun startListeningForChanges() {
         val userId = this.userId ?: return
-        if (categoriesListener != null) return // Evita múltiplos listeners
+        if (categoriesListener != null) return
 
         _syncStatus.value = SyncStatus.SYNCING
 
@@ -92,77 +100,37 @@ open class CategoryRepository @Inject constructor(
             snapshots?.toObjects<Category>()?.let {
                 CoroutineScope(dispatcher).launch {
                     categoryDao.insertAll(it)
-                    Log.d(TAG, "${it.size} categorias sincronizadas em tempo real.")
                 }
             }
         }
 
         templateRepository.startListeningForChanges()
-        eventoRepository.startListeningForChanges()
+        rotinaRepository.startListeningForChanges()
     }
 
     fun stopListeningForChanges() {
         categoriesListener?.remove()
         categoriesListener = null
         templateRepository.stopListeningForChanges()
-        eventoRepository.stopListeningForChanges()
+        rotinaRepository.stopListeningForChanges()
         _syncStatus.value = SyncStatus.OFFLINE
     }
 
     suspend fun syncAllDataToLocal() {
         _syncStatus.value = SyncStatus.SYNCING
         try {
-            _syncMessage.value = "Verificando dados iniciais..."
-            ensureDefaultCategoryExists()
-            _syncMessage.value = "Sincronizando conquistas..."
-            gamificationRepository.syncUnlockedAchievements()
+            _syncMessage.value = "Sincronizando rotinas..."
+            rotinaRepository.syncRotinas()
             _syncMessage.value = "Sincronizando categorias..."
             syncCategories()
             _syncMessage.value = "Sincronizando templates..."
             templateRepository.syncTemplates()
-            _syncMessage.value = "Sincronizando eventos..."
-            eventoRepository.syncEventos()
-            _syncMessage.value = "Sincronizando hábitos concluídos..."
-            syncCompletedHabits()
             _syncMessage.value = "Sincronização concluída!"
             _syncStatus.value = SyncStatus.CONNECTED
         } catch (e: Exception) {
-            Log.e(TAG, "Erro durante a sincronização geral.", e)
+            Log.e(TAG, "Erro durante a sincronização.", e)
             _syncMessage.value = "Falha na sincronização."
             _syncStatus.value = SyncStatus.OFFLINE
-        }
-    }
-
-    private suspend fun syncCompletedHabits() = withContext(dispatcher) {
-        val currentUserId = userId ?: return@withContext
-        Log.d(TAG, "[SYNC] Iniciando sincronização de hábitos concluídos.")
-        try {
-            val collectionRef = firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
-            val cloudHabits = collectionRef.get().await().toObjects<HabitoConcluido>()
-            
-            if (cloudHabits.isNotEmpty()) {
-                habitoConcluidoDao.clear() 
-                cloudHabits.forEach { habitoConcluidoDao.insert(it) }
-                Log.d(TAG, "[SYNC] ${cloudHabits.size} hábitos concluídos foram baixados da nuvem para o Room.")
-            } else {
-                Log.d(TAG, "[SYNC] Nenhum hábito concluído encontrado na nuvem para sincronizar.")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "[SYNC] Erro ao sincronizar hábitos concluídos.", e)
-            throw e
-        }
-    }
-
-    private suspend fun ensureDefaultCategoryExists() {
-        val defaultCategory = Category(
-            id = "default-outros",
-            nome = "Outros",
-            cor = "#808080"
-        )
-
-        val existing = categoryDao.getById(defaultCategory.id)
-        if (existing == null) {
-            insertCategory(defaultCategory)
         }
     }
 
@@ -170,52 +138,17 @@ open class CategoryRepository @Inject constructor(
         val currentUserId = userId ?: return@withContext
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection("categories")
-            val localCategoriesMap = categoryDao.getAllSync().associateBy { it.id }
-            val cloudCategoriesMap = collectionRef.get().await().toObjects<Category>().associateBy { it.id }
-
-            val itemsToUpload = localCategoriesMap.filter { (id, local) ->
-                val cloudItem = cloudCategoriesMap[id]
-                when {
-                    cloudItem == null -> true
-                    local.lastUpdated == null -> false
-                    cloudItem.lastUpdated == null -> true
-                    else -> local.lastUpdated.after(cloudItem.lastUpdated)
-                }
-            }.values
-
-            val itemsToDownload = cloudCategoriesMap.filter { (id, cloud) ->
-                val localItem = localCategoriesMap[id]
-                when {
-                    localItem == null -> true
-                    cloud.lastUpdated == null -> false
-                    localItem.lastUpdated == null -> true
-                    else -> cloud.lastUpdated.after(localItem.lastUpdated)
-                }
-            }.values
-
-            if (itemsToUpload.isNotEmpty()) {
-                val batch = firestore.batch()
-                itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
-                batch.commit().await()
-                Log.d(TAG, "${itemsToUpload.size} categorias locais enviadas para a nuvem.")
-            }
-
-            if (itemsToDownload.isNotEmpty()) {
-                categoryDao.insertAll(itemsToDownload.toList())
-                Log.d(TAG, "${itemsToDownload.size} categorias da nuvem sincronizadas para o banco local.")
-            }
-
+            val cloudCategories = collectionRef.get().await().toObjects<Category>()
+            categoryDao.insertAll(cloudCategories)
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao sincronizar categorias.", e)
-            throw e
         }
     }
 
     suspend fun clearAllLocalData() = withContext(dispatcher) {
-        Log.w(TAG, "Limpando todos os dados locais do banco de dados.")
         categoryDao.clear()
         templateRepository.clear()
-        eventoRepository.clear()
+        rotinaRepository.clear()
         metaDao.clear()
         habitoConcluidoDao.clear()
     }
@@ -228,135 +161,64 @@ open class CategoryRepository @Inject constructor(
         return categoryDao.getAll()
     }
 
-    fun getAllCompletionDates(): Flow<List<Long>> {
-        return habitoConcluidoDao.getAllCompletionDates()
-    }
-
-    fun getStatsSummary(since: Long): Flow<List<StatsSummary>> {
-        return habitoConcluidoDao.getConcluidosCountByCategory(since)
-    }
-
-    fun getSchedulableEventsForCategory(categoryId: String, since: Long): Flow<List<ItemCronograma>> {
-        return itemCronogramaDao.getSchedulableEventsForCategory(categoryId, since)
-    }
-
     open suspend fun insertCategory(category: Category) = withContext(dispatcher) {
-        val currentUserId = userId ?: run {
-            Log.w(TAG, "Tentativa de inserir categoria sem usuário logado.")
-            return@withContext
-        }
-
-        val categoriesCollection = firestore.collection("users").document(currentUserId).collection("categories")
-
-        Log.d(TAG, "Inserindo/Atualizando categoria: ID=${category.id}, Nome=${category.nome}")
+        val currentUserId = userId ?: return@withContext
         categoryDao.insert(category)
-        categoriesCollection.document(category.id).set(category)
-            .addOnSuccessListener { Log.d(TAG, "Categoria ${category.id} salva com sucesso no Firestore.") }
-            .addOnFailureListener { e -> Log.w(TAG, "Erro ao salvar categoria ${category.id} no Firestore.", e) }
+        firestore.collection("users").document(currentUserId).collection("categories").document(category.id).set(category)
     }
 
     open suspend fun deleteCategory(category: Category) {
-        Log.d(TAG, "Deletando categoria: ID=${category.id}, Nome=${category.nome}")
         categoryDao.delete(category)
         userId?.let {
-            firestore.collection("users").document(it).collection("categories").document(category.id)
-                .delete()
-                .addOnSuccessListener { Log.d(TAG, "Categoria ${category.id} deletada com sucesso do Firestore.") }
-                .addOnFailureListener { e -> Log.w(TAG, "Erro ao deletar categoria ${category.id} do Firestore.", e) }
+            firestore.collection("users").document(it).collection("categories").document(category.id).delete()
         }
-    }
-
-    fun getMetaForCategory(categoryId: String): Flow<Meta?> {
-        return metaDao.getMetaForCategory(categoryId)
-    }
-
-    suspend fun saveMeta(meta: Meta) {
-        metaDao.insertOrUpdate(meta)
     }
 
     suspend fun markHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
-        Log.d(TAG, "[HABIT_FLOW] 1. markHabitAsCompleted acionado para o ID: $itemCronogramaId")
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
-        
         habitoConcluidoDao.insert(habito)
-        Log.d(TAG, "[HABIT_FLOW] 2. Hábito salvo no Room.")
-
-        // Aciona a verificação de conquistas com os dados mais recentes
         checkAchievements()
 
-        val currentUserId = userId
-        if (currentUserId == null) {
-            Log.w(TAG, "[FIREBASE] Usuário não logado, não salvará na nuvem.")
-            return@withContext
-        }
-
+        val currentUserId = userId ?: return@withContext
         firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
             .document(itemCronogramaId)
             .set(habito)
-            .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Hábito $itemCronogramaId salvo com sucesso.") }
-            .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar hábito $itemCronogramaId.", e) }
     }
 
     private suspend fun checkAchievements() {
-        Log.d(TAG, "[HABIT_FLOW] 3. checkAchievements chamado.")
         val completionDatesMillis = habitoConcluidoDao.getAllCompletionDatesSync()
         val totalCompleted = completionDatesMillis.size
         val streakCount = calculateStreak(completionDatesMillis)
-        Log.d(TAG, "[HABIT_FLOW] 4. Dados para verificação: totalCompleted=$totalCompleted, streakCount=$streakCount")
-        
         checkAndUnlockAchievementsUseCase(streakCount, totalCompleted)
     }
 
     private fun calculateStreak(completionDatesMillis: List<Long>): Int {
         if (completionDatesMillis.isEmpty()) return 0
-
         val completionDates = completionDatesMillis
             .map { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
-            .distinct()
-            .sorted()
-
+            .distinct().sorted()
         val today = LocalDate.now()
         val yesterday = today.minusDays(1)
-
-        if (completionDates.last() != today && completionDates.last() != yesterday) {
-            return 0
-        }
-
+        if (completionDates.last() != today && completionDates.last() != yesterday) return 0
         var currentStreak = 0
         var expectedDate: LocalDate? = null
-
         for (date in completionDates.reversed()) { 
-            if (expectedDate == null) { 
-                currentStreak = 1
-                expectedDate = date.minusDays(1)
-            } else if (date == expectedDate) { 
-                currentStreak++
-                expectedDate = date.minusDays(1)
-            } else {
-                break
-            }
+            if (expectedDate == null) { currentStreak = 1; expectedDate = date.minusDays(1) }
+            else if (date == expectedDate) { currentStreak++; expectedDate = date.minusDays(1) }
+            else break
         }
-
         return currentStreak
     }
 
     suspend fun unmarkHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
-        Log.d(TAG, "Iniciando desmarcação de hábito como concluído para o id: $itemCronogramaId")
-
         habitoConcluidoDao.delete(itemCronogramaId)
-        Log.d(TAG, "Hábito $itemCronogramaId removido do Room.")
-
-        val currentUserId = userId
-        if (currentUserId == null) {
-            Log.w(TAG, "Usuário não logado. A conclusão do hábito não será removida da nuvem.")
-            return@withContext
-        }
-
+        val currentUserId = userId ?: return@withContext
         firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
-            .document(itemCronogramaId)
-            .delete()
-            .addOnSuccessListener { Log.d(TAG, "Hábito $itemCronogramaId removido com sucesso do Firestore.") }
-            .addOnFailureListener { e -> Log.w(TAG, "Falha ao remover hábito $itemCronogramaId do Firestore.", e) }
+            .document(itemCronogramaId).delete()
+    }
+
+    suspend fun saveMeta(meta: Meta) {
+        metaDao.insertOrUpdate(meta)
     }
 
     suspend fun saveEventToGoogle(
@@ -372,25 +234,22 @@ open class CategoryRepository @Inject constructor(
         try {
             val result = googleCalendarSource.updateEvent(item, cor)
             if (result is Result.Success) {
-                eventoRepository.insertItemCronograma(item.copy(googleCalendarEventId = result.data))
+                rotinaRepository.insertItemCronograma(item.copy(googleCalendarEventId = result.data))
             }
             result
-        } catch (e: Exception) {
-            Result.Error(Exception("Falha ao atualizar evento.", e))
-        }
+        } catch (e: Exception) { Result.Error(e) }
     }
 
     suspend fun deleteCompleteEvent(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
         try {
             item.googleCalendarEventId?.let { googleCalendarSource.deleteEvent(it) }
-            eventoRepository.excluirEventoCompleto(item)
+            rotinaRepository.excluirRotinaCompleta(item)
             Result.Success(Unit)
-        } catch (e: Exception) {
-            Result.Error(Exception("Falha ao excluir evento.", e))
-        }
+        } catch (e: Exception) { Result.Error(e) }
     }
 
-    suspend fun fetchGoogleCalendarEvents(): Result<List<GoogleCalendarEvent>> {
-        return googleCalendarSource.fetchEvents()
-    }
+    suspend fun fetchGoogleCalendarEvents(): Result<List<GoogleCalendarEvent>> = googleCalendarSource.fetchEvents()
+    fun getStatsSummary(since: Long): Flow<List<StatsSummary>> = habitoConcluidoDao.getConcluidosCountByCategory(since)
+    fun getSchedulableEventsForCategory(id: String, s: Long): Flow<List<ItemCronograma>> = itemCronogramaDao.getSchedulableEventsForCategory(id, s)
+    fun getAllCompletionDates(): Flow<List<Long>> = habitoConcluidoDao.getAllCompletionDates()
 }

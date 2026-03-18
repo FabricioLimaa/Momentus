@@ -12,8 +12,9 @@ data class UserData(
     @set:PropertyName("display_name")
     var displayName: String? = null,
     var email: String? = null,
-    var points: Int = 0
+    var points: Int = 0,
+    var streak: Int = 0
 ) {
     // Construtor sem argumentos para o Firestore
-    constructor() : this(null, null, 0)
+    constructor() : this(null, null, 0, 0)
 }

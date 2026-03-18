@@ -49,7 +49,6 @@ class UserRepository @Inject constructor(
         val userDocRef = firestore.collection("users").document(currentUserId)
         val listenerRegistration = userDocRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                // CORREÇÃO: Ignora erro de permissão negada (comum durante logout) para evitar crash
                 if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
                     Log.w(TAG, "Permissão negada ao acessar dados do usuário. Provavelmente deslogado.")
                     trySend(null)
@@ -92,6 +91,14 @@ class UserRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Falha ao criar ou verificar documento do usuário no Firestore.", e)
+        }
+    }
+
+    suspend fun updateStreak(newStreak: Int) = withContext(dispatcher) {
+        userId?.let {
+            val userDocRef = firestore.collection("users").document(it)
+            userDocRef.update("streak", newStreak).await()
+            Log.d(TAG, "Streak atualizado na nuvem: $newStreak")
         }
     }
 

@@ -10,7 +10,7 @@ import br.com.fabriciolima.momentus.data.model.SharedTemplate
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.ui.components.EventFormData
 import br.com.fabriciolima.momentus.util.Result
@@ -53,7 +53,7 @@ data class TemplateUiState(
 class TemplateViewModel @Inject constructor(
     private val templateRepository: TemplateRepository,
     private val categoryRepository: CategoryRepository,
-    private val eventoRepository: EventoRepository,
+    private val rotinaRepository: RotinaRepository,
     private val application: Application
 ) : ViewModel() {
 
@@ -67,7 +67,6 @@ class TemplateViewModel @Inject constructor(
                 templateRepository.todosOsTemplatesComEventos,
                 categoryRepository.getAllCategories()
             ) { templates, categories ->
-                // CORREÇÃO: Garante que cada template na lista seja único e que seus eventos internos também não sejam duplicados visualmente
                 val processedTemplates = templates.distinctBy { it.template.id }.map { templateComEventos ->
                     templateComEventos.copy(
                         eventos = templateComEventos.eventos.distinctBy { "${it.titulo}-${it.horarioInicioString}" }
@@ -141,7 +140,7 @@ class TemplateViewModel @Inject constructor(
                 }
 
                 templateRepository.insertTemplate(newTemplate)
-                eventoRepository.insertAll(newEventos)
+                rotinaRepository.insertAll(newEventos)
 
                 onResult(Result.Success(Unit))
                 _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
@@ -182,7 +181,7 @@ class TemplateViewModel @Inject constructor(
                     templateRepository.saveTemplateWithEvents(template, eventos)
                 } else {
                     templateRepository.insertTemplate(template)
-                    eventoRepository.insertAll(eventos)
+                    rotinaRepository.insertAll(eventos)
                 }
 
                 onResult(Result.Success(Unit))
@@ -200,7 +199,7 @@ class TemplateViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                eventoRepository.deleteEventsByTemplateId(template.id)
+                rotinaRepository.deleteRotinasByTemplateId(template.id)
                 templateRepository.deleteTemplate(template)
                 _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
             } catch (e: Exception) {
@@ -245,7 +244,7 @@ class TemplateViewModel @Inject constructor(
                         }
                     }
 
-                    eventoRepository.insertAll(novosEventos)
+                    rotinaRepository.insertAll(novosEventos)
                     WidgetUpdater.requestUpdate(application)
                     _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
                     onResult(Result.Success(Unit))

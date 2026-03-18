@@ -8,7 +8,7 @@ import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.MetaDao
 import br.com.fabriciolima.momentus.data.database.TemplateDao
 import br.com.fabriciolima.momentus.data.database.CategoryDao
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
@@ -55,23 +55,23 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideTemplateRepository(
-        @ApplicationContext context: Context, // Adicionado
+        @ApplicationContext context: Context,
         templateDao: TemplateDao,
-        eventoRepository: EventoRepository,
+        rotinaRepository: RotinaRepository,
         checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase,
         @IoDispatcher dispatcher: CoroutineDispatcher
     ): TemplateRepository {
-        return TemplateRepository(context, templateDao, eventoRepository, checkAndUnlockAchievementsUseCase, dispatcher)
+        return TemplateRepository(context, templateDao, rotinaRepository, checkAndUnlockAchievementsUseCase, dispatcher)
     }
 
     @Provides
     @Singleton
-    fun provideEventoRepository(
+    fun provideRotinaRepository(
         itemCronogramaDao: ItemCronogramaDao,
         @IoDispatcher dispatcher: CoroutineDispatcher,
         @ApplicationContext context: Context
-    ): EventoRepository {
-        return EventoRepository(itemCronogramaDao, dispatcher, context)
+    ): RotinaRepository {
+        return RotinaRepository(itemCronogramaDao, dispatcher, context)
     }
 
     @Provides
@@ -82,7 +82,8 @@ object RepositoryModule {
         habitoConcluidoDao: HabitoConcluidoDao,
         itemCronogramaDao: ItemCronogramaDao,
         templateRepository: TemplateRepository,
-        eventoRepository: EventoRepository,
+        rotinaRepository: RotinaRepository,
+        userRepository: UserRepository,
         gamificationRepository: GamificationRepository,
         checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase,
         googleCalendarSource: GoogleCalendarSource,
@@ -94,7 +95,8 @@ object RepositoryModule {
             habitoConcluidoDao,
             itemCronogramaDao,
             templateRepository,
-            eventoRepository,
+            rotinaRepository,
+            userRepository,
             gamificationRepository,
             checkAndUnlockAchievementsUseCase,
             googleCalendarSource,

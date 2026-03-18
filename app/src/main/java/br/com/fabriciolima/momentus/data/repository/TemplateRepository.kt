@@ -30,7 +30,7 @@ private const val TAG = "TemplateRepository"
 open class TemplateRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val templateDao: TemplateDao,
-    private val eventoRepository: EventoRepository,
+    private val rotinaRepository: RotinaRepository, // Atualizado: EventoRepository -> RotinaRepository
     private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase, 
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
@@ -100,12 +100,12 @@ open class TemplateRepository @Inject constructor(
         // 1. Atualiza o template
         templateDao.insert(updatedTemplate)
         
-        // 2. Remove TODOS os eventos antigos associados a este template antes de inserir os novos
-        eventoRepository.deleteEventsByTemplateId(updatedTemplate.id)
+        // 2. Remove TODAS as rotinas antigas associadas a este template antes de inserir as novas
+        rotinaRepository.deleteRotinasByTemplateId(updatedTemplate.id)
         
-        // 3. Garante que os novos eventos não tenham IDs duplicados e sejam únicos por horário
+        // 3. Garante que as novas rotinas não tenham IDs duplicados e sejam únicas por título e horário
         val uniqueEvents = eventos.distinctBy { "${it.titulo}-${it.horarioInicioString}" }
-        eventoRepository.insertAll(uniqueEvents)
+        rotinaRepository.insertAll(uniqueEvents)
 
         checkTemplateAchievements()
 
@@ -115,7 +115,7 @@ open class TemplateRepository @Inject constructor(
     }
 
     suspend fun deleteTemplate(template: Template) {
-        eventoRepository.deleteEventsByTemplateId(template.id)
+        rotinaRepository.deleteRotinasByTemplateId(template.id)
         templateDao.delete(template)
         userId?.let {
             firestore.collection("users").document(it).collection("templates").document(template.id).delete()

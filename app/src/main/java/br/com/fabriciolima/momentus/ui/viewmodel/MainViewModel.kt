@@ -36,8 +36,8 @@ class MainViewModel @Inject constructor(
     )
 
     val uiState: StateFlow<MainUiState> = combine(
-        userRepository.userData, // Flow<UserData?>
-        categoryRepository.currentStreak // Flow<Int>
+        userRepository.userData,
+        categoryRepository.currentStreak
     ) { userData, streak ->
         MainUiState(
             points = userData?.points ?: 0,
@@ -50,23 +50,14 @@ class MainViewModel @Inject constructor(
     )
 
 
-    /**
-     * Insere ou atualiza uma categoria no banco de dados.
-     */
     fun insertCategory(category: Category) = viewModelScope.launch {
         categoryRepository.insertCategory(category)
     }
 
-    /**
-     * Deleta uma categoria do banco de dados.
-     */
     fun deleteCategory(category: Category) = viewModelScope.launch {
         categoryRepository.deleteCategory(category)
     }
 
-    /**
-     * Insere ou atualiza uma meta no banco de dados.
-     */
     fun saveMeta(meta: Meta) = viewModelScope.launch {
         categoryRepository.saveMeta(meta)
     }

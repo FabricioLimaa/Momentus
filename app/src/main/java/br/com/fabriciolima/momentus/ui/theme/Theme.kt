@@ -69,8 +69,10 @@ fun MomentusTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.surface.toArgb()
+            // Android 15 (API 35+) ignora setStatusBarColor e força edge-to-edge.
+            // Mantemos apenas a configuração da aparência dos ícones (claro/escuro).
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

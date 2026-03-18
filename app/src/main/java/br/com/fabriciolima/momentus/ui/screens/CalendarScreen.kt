@@ -37,6 +37,7 @@ import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.ui.components.EventDetailDialog
 import br.com.fabriciolima.momentus.ui.components.EventListItem
 import br.com.fabriciolima.momentus.ui.components.NewEventDialog
+import br.com.fabriciolima.momentus.ui.components.SuccessCelebration
 import br.com.fabriciolima.momentus.ui.components.UpdateAvailableDialog
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
@@ -96,6 +97,7 @@ fun CalendarScreen(
     onDeleteSelectedRotinas: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var showSuccessCelebration by remember { mutableStateOf(false) }
 
     val view = LocalView.current
     val darkTheme = isSystemInDarkTheme()
@@ -361,7 +363,10 @@ fun CalendarScreen(
                         },
                         onRotinaLongClick = { onRotinaLongPressed(it.id) },
                         onAddNewRotinaClicked = onAddNewRotinaClicked,
-                        onMarkAsCompleted = onMarkAsCompleted,
+                        onMarkAsCompleted = { id ->
+                            onMarkAsCompleted(id)
+                            showSuccessCelebration = true
+                        },
                         onUnmarkAsCompleted = onUnmarkAsCompleted
                     )
                 }
@@ -377,6 +382,10 @@ fun CalendarScreen(
             ) {
                 CircularProgressIndicator()
             }
+        }
+
+        if (showSuccessCelebration) {
+            SuccessCelebration(onFinished = { showSuccessCelebration = false })
         }
     }
 }
