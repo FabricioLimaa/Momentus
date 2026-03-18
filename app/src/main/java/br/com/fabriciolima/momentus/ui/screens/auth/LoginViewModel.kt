@@ -30,7 +30,7 @@ import javax.inject.Inject
 data class LoginUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val userPreferences: UserPreferences = UserPreferences(email = "", rememberMe = false)
+    val userPreferences: UserPreferences = UserPreferences(email = "", rememberMe = false, lastAnimationDate = 0L)
 )
 
 sealed interface NavigationEvent {

@@ -12,11 +12,20 @@ interface HabitoConcluidoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(habito: HabitoConcluido)
 
+    @Query("SELECT * FROM tabela_habitos_concluidos ORDER BY dataConclusao ASC")
+    suspend fun getAllSync(): List<HabitoConcluido>
+
     @Query("DELETE FROM tabela_habitos_concluidos WHERE itemCronogramaId = :itemCronogramaId")
     suspend fun delete(itemCronogramaId: String)
 
+    @Query("DELETE FROM tabela_habitos_concluidos WHERE itemCronogramaId IN (:ids)")
+    suspend fun deleteByIds(ids: Set<String>)
+
     @Query("SELECT itemCronogramaId FROM tabela_habitos_concluidos")
     fun getIdsConcluidos(): Flow<List<String>>
+
+    @Query("SELECT itemCronogramaId FROM tabela_habitos_concluidos WHERE dataConclusao BETWEEN :startTime AND :endTime")
+    suspend fun getCompletedHabitIdsForDateRange(startTime: Long, endTime: Long): List<String>
 
     @Query("SELECT dataConclusao FROM tabela_habitos_concluidos ORDER BY dataConclusao ASC")
     fun getAllCompletionDates(): Flow<List<Long>>

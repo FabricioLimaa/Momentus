@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import br.com.fabriciolima.momentus.data.database.HabitoConcluidoDao
 import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
@@ -31,6 +32,7 @@ private const val TAG = "RotinaRepository"
 @Singleton
 open class RotinaRepository @Inject constructor(
     private val itemCronogramaDao: ItemCronogramaDao,
+    private val habitoConcluidoDao: HabitoConcluidoDao,
     @IoDispatcher private val dispatcher: CoroutineDispatcher,
     @ApplicationContext private val context: Context
 ) {
@@ -153,7 +155,7 @@ open class RotinaRepository @Inject constructor(
         }
         triggerWidgetUpdate()
     }
-    
+
     suspend fun insertAll(items: List<ItemCronograma>) {
         Log.d(TAG, "Inserindo ${items.size} rotinas em lote.")
         itemCronogramaDao.insertAll(items)
@@ -175,7 +177,7 @@ open class RotinaRepository @Inject constructor(
         itemCronogramaDao.updateAll(items)
         userId?.let { userId ->
             val batch = firestore.batch()
-            items.forEach { 
+            items.forEach {
                 val docRef = firestore.collection("users").document(userId).collection("rotinas").document(it.id)
                 batch.set(docRef, it)
             }
@@ -189,6 +191,7 @@ open class RotinaRepository @Inject constructor(
     suspend fun excluirRotinaCompleta(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
         Log.d(TAG, "Excluindo rotina: ID=${item.id}")
         try {
+            habitoConcluidoDao.delete(item.id)
             itemCronogramaDao.delete(item)
             userId?.let {
                 firestore.collection("users").document(it).collection("rotinas").document(item.id)
@@ -206,6 +209,7 @@ open class RotinaRepository @Inject constructor(
     suspend fun deleteRotinasByIds(ids: Set<String>) = withContext(dispatcher) {
         if (ids.isEmpty()) return@withContext
         Log.d(TAG, "Excluindo ${ids.size} rotinas em lote.")
+        habitoConcluidoDao.deleteByIds(ids)
         itemCronogramaDao.deleteByIds(ids)
         userId?.let { currentUserId ->
             val batch = firestore.batch()
@@ -221,8 +225,12 @@ open class RotinaRepository @Inject constructor(
 
     suspend fun deleteRotinasByTemplateId(templateId: String) = withContext(dispatcher) {
         Log.d(TAG, "Deletando rotinas do DB local para templateId: $templateId")
-        itemCronogramaDao.deleteByTemplateId(templateId)
-        
+        val idsToDelete = itemCronogramaDao.getIdsByTemplateId(templateId).toSet()
+        if (idsToDelete.isNotEmpty()) {
+            habitoConcluidoDao.deleteByIds(idsToDelete)
+            itemCronogramaDao.deleteByTemplateId(templateId)
+        }
+
         userId?.let {
             val collectionRef = firestore.collection("users").document(it).collection("rotinas")
             val query = collectionRef.whereEqualTo("templateId", templateId)
@@ -237,9 +245,13 @@ open class RotinaRepository @Inject constructor(
         triggerWidgetUpdate()
     }
 
-    suspend fun deleteRotinasByCategoryId(categoryId: String) {
+    suspend fun deleteRotinasByCategoryId(categoryId: String) = withContext(dispatcher){
         Log.d(TAG, "Deletando rotinas por categoryId: $categoryId")
-        itemCronogramaDao.deleteByCategoryId(categoryId)
+        val idsToDelete = itemCronogramaDao.getIdsByCategoryId(categoryId).toSet()
+        if(idsToDelete.isNotEmpty()){
+            habitoConcluidoDao.deleteByIds(idsToDelete)
+            itemCronogramaDao.deleteByCategoryId(categoryId)
+        }
         triggerWidgetUpdate()
     }
 
@@ -254,6 +266,7 @@ open class RotinaRepository @Inject constructor(
     }
     suspend fun clear() = withContext(dispatcher){
         Log.d(TAG, "Limpando todos os eventos do banco de dados local.")
+        habitoConcluidoDao.clear()
         itemCronogramaDao.clear()
         triggerWidgetUpdate()
     }

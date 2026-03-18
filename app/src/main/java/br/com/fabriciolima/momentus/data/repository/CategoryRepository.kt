@@ -33,8 +33,10 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -83,6 +85,41 @@ open class CategoryRepository @Inject constructor(
     private val userId: String?
         get() = auth.currentUser?.uid
 
+    suspend fun getStreakCalculationDetails(): String = withContext(dispatcher) {
+        val completedHabits = habitoConcluidoDao.getAllSync()
+        if (completedHabits.isEmpty()) {
+            return@withContext "Nenhum hábito concluído encontrado no banco de dados local."
+        }
+
+        val details = StringBuilder("--- Detalhes do Cálculo de Streak ---\n")
+        details.append("Total de Conclusões Encontradas: ${completedHabits.size}\n\n")
+
+        val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+        completedHabits.forEach { habit ->
+            val dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(habit.dataConclusao), ZoneId.systemDefault())
+            details.append("- ID da Rotina: ${habit.itemCronogramaId}\n")
+            details.append("  Data de Conclusão: ${dateTime.format(formatter)}\n")
+        }
+
+        val timestamps = completedHabits.map { it.dataConclusao }
+        val streakResult = calculateStreak(timestamps)
+
+        details.append("\nResultado do Cálculo de Streak: $streakResult")
+        details.append("\n--- Fim dos Detalhes ---")
+
+        return@withContext details.toString()
+    }
+
+    suspend fun getCompletedRotinasForDate(date: LocalDate): List<ItemCronograma> = withContext(dispatcher) {
+        val startOfDay = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val endOfDay = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+        val completedIds = habitoConcluidoDao.getCompletedHabitIdsForDateRange(startOfDay, endOfDay)
+        if (completedIds.isEmpty()) {
+            return@withContext emptyList()
+        }
+        return@withContext itemCronogramaDao.getItemsByIds(completedIds)
+    }
+
     fun startListeningForChanges() {
         val userId = this.userId ?: return
         if (categoriesListener != null) return
@@ -119,6 +156,8 @@ open class CategoryRepository @Inject constructor(
     suspend fun syncAllDataToLocal() {
         _syncStatus.value = SyncStatus.SYNCING
         try {
+            _syncMessage.value = "Sincronizando hábitos concluídos..."
+            syncCompletedHabits()
             _syncMessage.value = "Sincronizando rotinas..."
             rotinaRepository.syncRotinas()
             _syncMessage.value = "Sincronizando categorias..."
@@ -142,6 +181,17 @@ open class CategoryRepository @Inject constructor(
             categoryDao.insertAll(cloudCategories)
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao sincronizar categorias.", e)
+        }
+    }
+
+    private suspend fun syncCompletedHabits() = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
+        try {
+            val collectionRef = firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
+            val cloudHabits = collectionRef.get().await().toObjects<HabitoConcluido>()
+            cloudHabits.forEach { habitoConcluidoDao.insert(it) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao sincronizar hábitos concluídos.", e)
         }
     }
 

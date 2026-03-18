@@ -68,10 +68,11 @@ object RepositoryModule {
     @Singleton
     fun provideRotinaRepository(
         itemCronogramaDao: ItemCronogramaDao,
+        habitoConcluidoDao: HabitoConcluidoDao,
         @IoDispatcher dispatcher: CoroutineDispatcher,
         @ApplicationContext context: Context
     ): RotinaRepository {
-        return RotinaRepository(itemCronogramaDao, dispatcher, context)
+        return RotinaRepository(itemCronogramaDao, habitoConcluidoDao, dispatcher, context)
     }
 
     @Provides

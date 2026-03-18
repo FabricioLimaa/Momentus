@@ -460,7 +460,7 @@ fun CalendarContent(
     val calendarState = rememberCalendarState(
         startMonth = startMonth,
         endMonth = endMonth,
-        firstVisibleMonth = YearMonth.from(selectedDate),
+        firstVisibleMonth = remember { YearMonth.from(selectedDate) },
         firstDayOfWeek = daysOfWeek.first()
     )
 

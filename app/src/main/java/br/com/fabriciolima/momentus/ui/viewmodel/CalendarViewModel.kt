@@ -8,9 +8,10 @@ import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.GamificationRepository
+import br.com.fabriciolima.momentus.data.repository.RotinaRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
+import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.di.VersionCode
 import br.com.fabriciolima.momentus.domain.usecase.DeleteRotinaUseCase
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -45,6 +47,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import javax.inject.Inject
 
@@ -96,6 +99,7 @@ class CalendarViewModel @Inject constructor(
     private val rotinaRepository: RotinaRepository,
     private val templateRepository: TemplateRepository,
     private val userRepository: UserRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val gamificationRepository: GamificationRepository,
     private val alarmScheduler: AlarmScheduler,
     private val inAppUpdateManager: InAppUpdateManager,
@@ -118,6 +122,9 @@ class CalendarViewModel @Inject constructor(
 
     private val _logoutEvent = MutableSharedFlow<LogoutEvent>()
     val logoutEvent = _logoutEvent.asSharedFlow()
+
+    private val _showCompletionAnimation = MutableSharedFlow<Unit>()
+    val showCompletionAnimation = _showCompletionAnimation.asSharedFlow()
 
     private val jobs = mutableListOf<Job>()
 
@@ -144,11 +151,11 @@ class CalendarViewModel @Inject constructor(
 
     init {
         collectData()
-        
+
         listenForNewAchievements()
         checkIfNeedToShowUpdateBadge()
         listenForUpdateProgress()
-        
+
         if (auth.currentUser != null) {
             startFirebaseListeners()
         }
@@ -465,6 +472,15 @@ class CalendarViewModel @Inject constructor(
     fun markHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
             markHabitAsCompletedUseCase(itemCronogramaId)
+
+            val lastAnimationDate = userPreferencesRepository.userPreferencesFlow.first().lastAnimationDate
+            val today = LocalDate.now()
+            val lastDate = Instant.ofEpochMilli(lastAnimationDate).atZone(ZoneId.systemDefault()).toLocalDate()
+
+            if (lastDate != today) {
+                _showCompletionAnimation.emit(Unit)
+                userPreferencesRepository.updateLastAnimationDate(System.currentTimeMillis())
+            }
         }
     }
 

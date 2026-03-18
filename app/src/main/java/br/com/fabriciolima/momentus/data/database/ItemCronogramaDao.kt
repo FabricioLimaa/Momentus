@@ -34,14 +34,25 @@ interface ItemCronogramaDao {
     @Query("SELECT * FROM tabela_itens_cronograma")
     fun getAllSync(): List<ItemCronograma>
 
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE id IN (:ids)")
+    suspend fun getItemsByIds(ids: List<String>): List<ItemCronograma>
+
     @Query("SELECT * FROM tabela_itens_cronograma WHERE diaDaSemana = :dayOfWeek")
     fun getItemsByDayOfWeek(dayOfWeek: String): Flow<List<ItemCronograma>>
 
     @Query("SELECT * FROM tabela_itens_cronograma WHERE id = :itemId")
     suspend fun getItemById(itemId: String): ItemCronograma?
 
+    @Query("SELECT id FROM tabela_itens_cronograma WHERE templateId = :templateId")
+    suspend fun getIdsByTemplateId(templateId: String): List<String>
+
     @Query("DELETE FROM tabela_itens_cronograma WHERE templateId = :templateId")
     suspend fun deleteByTemplateId(templateId: String)
+
+
+
+    @Query("SELECT id FROM tabela_itens_cronograma WHERE categoryId = :categoryId")
+    suspend fun getIdsByCategoryId(categoryId: String): List<String>
 
     @Query("DELETE FROM tabela_itens_cronograma WHERE categoryId = :categoryId")
     suspend fun deleteByCategoryId(categoryId: String)
