@@ -154,8 +154,14 @@ open class CategoryRepository @Inject constructor(
     }
 
     suspend fun syncAllDataToLocal() {
+        if (_syncStatus.value != SyncStatus.OFFLINE) {
+            Log.d(TAG, "Sincronização já está em andamento ou conectada. Ignorando nova chamada.")
+            return
+        }
         _syncStatus.value = SyncStatus.SYNCING
         try {
+            _syncMessage.value = "Sincronizando conquistas..."
+            gamificationRepository.syncUnlockedAchievements()
             _syncMessage.value = "Sincronizando hábitos concluídos..."
             syncCompletedHabits()
             _syncMessage.value = "Sincronizando rotinas..."
@@ -237,7 +243,11 @@ open class CategoryRepository @Inject constructor(
 
     private suspend fun checkAchievements() {
         val completionDatesMillis = habitoConcluidoDao.getAllCompletionDatesSync()
-        val totalCompleted = completionDatesMillis.size
+        val distinctCompletionDates = completionDatesMillis
+            .map { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+            .distinct()
+
+        val totalCompleted = distinctCompletionDates.size
         val streakCount = calculateStreak(completionDatesMillis)
         checkAndUnlockAchievementsUseCase(streakCount, totalCompleted)
     }
@@ -252,7 +262,7 @@ open class CategoryRepository @Inject constructor(
         if (completionDates.last() != today && completionDates.last() != yesterday) return 0
         var currentStreak = 0
         var expectedDate: LocalDate? = null
-        for (date in completionDates.reversed()) { 
+        for (date in completionDates.reversed()) {
             if (expectedDate == null) { currentStreak = 1; expectedDate = date.minusDays(1) }
             else if (date == expectedDate) { currentStreak++; expectedDate = date.minusDays(1) }
             else break

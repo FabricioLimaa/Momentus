@@ -12,6 +12,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -32,6 +33,8 @@ class GamificationRepository @Inject constructor(
     private val _newlyUnlockedAchievement = MutableSharedFlow<Achievement>()
     val newlyUnlockedAchievement = _newlyUnlockedAchievement.asSharedFlow()
 
+    private val _syncStatus = MutableStateFlow(SyncStatus.OFFLINE)
+
     private val userId: String?
         get() = auth.currentUser?.uid
 
@@ -42,6 +45,7 @@ class GamificationRepository @Inject constructor(
     suspend fun clear() = withContext(dispatcher) {
         Log.d(TAG, "Limpando todas as conquistas desbloqueadas do banco de dados local.")
         unlockedAchievementDao.clear()
+        _syncStatus.value = SyncStatus.OFFLINE
     }
 
     suspend fun unlockAchievement(achievementId: String, points: Int) = withContext(dispatcher) {
@@ -72,30 +76,32 @@ class GamificationRepository @Inject constructor(
     }
 
     suspend fun syncUnlockedAchievements() = withContext(dispatcher) {
+        if (_syncStatus.value != SyncStatus.OFFLINE) {
+            Log.d(TAG, "[SYNC] Sincronização de conquistas já está em andamento ou conectada. Ignorando.")
+            return@withContext
+        }
+        _syncStatus.value = SyncStatus.SYNCING
+        
         val currentUserId = userId ?: return@withContext
         Log.d(TAG, "[SYNC] Iniciando sincronização de conquistas desbloqueadas.")
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection("unlocked_achievements")
             
-            // 1. Obter dados locais e da nuvem
             val localAchievements = unlockedAchievementDao.getAllIdsSync().toSet()
             val cloudAchievements = collectionRef.get().await().toObjects<UnlockedAchievement>()
             val cloudAchievementMap = cloudAchievements.associateBy { it.achievementId }
 
-            // 2. Sincronizar da Nuvem para o Local (Download)
             val achievementsToDownload = cloudAchievements.filter { it.achievementId !in localAchievements }
             if (achievementsToDownload.isNotEmpty()) {
                 achievementsToDownload.forEach { unlockedAchievementDao.insert(it) }
                 Log.d(TAG, "[SYNC] Baixadas ${achievementsToDownload.size} novas conquistas da nuvem.")
             }
 
-            // 3. Sincronizar do Local para a Nuvem (Upload)
             val achievementsToUpload = localAchievements.filter { it !in cloudAchievementMap.keys }
             if (achievementsToUpload.isNotEmpty()) {
                 val batch = firestore.batch()
                 achievementsToUpload.forEach { achievementId ->
                     val docRef = collectionRef.document(achievementId)
-                    // Assumimos que a data é a atual se foi criada offline. O ideal seria ter a data no DAO.
                     batch.set(docRef, UnlockedAchievement(achievementId, Date()))
                 }
                 batch.commit().await()
@@ -105,9 +111,10 @@ class GamificationRepository @Inject constructor(
             if (achievementsToDownload.isEmpty() && achievementsToUpload.isEmpty()) {
                  Log.d(TAG, "[SYNC] Conquistas já estão sincronizadas.")
             }
-
+            _syncStatus.value = SyncStatus.CONNECTED
         } catch (e: Exception) {
             Log.e(TAG, "[SYNC] Erro ao sincronizar conquistas desbloqueadas.", e)
+            _syncStatus.value = SyncStatus.OFFLINE
             throw e
         }
     }

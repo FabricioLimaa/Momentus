@@ -96,9 +96,18 @@ class UserRepository @Inject constructor(
 
     suspend fun updateStreak(newStreak: Int) = withContext(dispatcher) {
         userId?.let {
-            val userDocRef = firestore.collection("users").document(it)
-            userDocRef.update("streak", newStreak).await()
-            Log.d(TAG, "Streak atualizado na nuvem: $newStreak")
+            try {
+                val userDocRef = firestore.collection("users").document(it)
+                val document = userDocRef.get().await()
+                val currentStreak = document.getLong("streak")?.toInt() ?: 0
+
+                if (newStreak != currentStreak) {
+                    userDocRef.update("streak", newStreak).await()
+                    Log.d(TAG, "Streak atualizado na nuvem: $newStreak")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Falha ao atualizar streak na nuvem.", e)
+            }
         }
     }
 

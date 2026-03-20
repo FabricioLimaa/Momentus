@@ -149,6 +149,7 @@ fun AppNavHost(
                 eventsForSelectedDate = eventsForSelectedDate,
                 installStatus = installStatus,
                 account = googleAccount,
+                showCompletionAnimation = viewModel.showCompletionAnimation,
                 onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                 onDateSelected = viewModel::selectDate,
                 onMenuClick = onMenuClick,

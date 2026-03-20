@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,19 +22,22 @@ fun SuccessCelebration(
 
     // Escolhe o arquivo Lottie com base no tema
     val lottieResId = if (isDarkTheme) {
-        R.raw.success_dark // Certifique-se de ter um arquivo 'success_dark.lottie' ou .json em res/raw
+        R.raw.success_dark
     } else {
-        R.raw.success_light // Certifique-se de ter um arquivo 'success_light.lottie' ou .json em res/raw
+        R.raw.success_light
     }
 
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(lottieResId))
+    
     val progress by animateLottieCompositionAsState(
         composition = composition,
         iterations = 1
     )
 
-    if (progress == 1f) {
-        onFinished()
+    LaunchedEffect(progress) {
+        if (progress == 1f) {
+            onFinished()
+        }
     }
 
     Box(

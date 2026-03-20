@@ -49,6 +49,7 @@ import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.DayPosition
 import com.kizitonwose.calendar.core.daysOfWeek
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
@@ -68,6 +69,7 @@ fun CalendarScreen(
     allCategories: List<Category>,
     eventsForSelectedDate: EventsForDate,
     installStatus: Int,
+    showCompletionAnimation: Flow<Unit>,
     account: GoogleSignInAccount?,
     onNavigateToAchievements: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
@@ -114,6 +116,12 @@ fun CalendarScreen(
                 window.statusBarColor = surfaceColor
                  WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
             }
+        }
+    }
+
+    LaunchedEffect(key1 = showCompletionAnimation) {
+        showCompletionAnimation.collect {
+            showSuccessCelebration = true
         }
     }
 
@@ -363,10 +371,7 @@ fun CalendarScreen(
                         },
                         onRotinaLongClick = { onRotinaLongPressed(it.id) },
                         onAddNewRotinaClicked = onAddNewRotinaClicked,
-                        onMarkAsCompleted = { id ->
-                            onMarkAsCompleted(id)
-                            showSuccessCelebration = true
-                        },
+                        onMarkAsCompleted = onMarkAsCompleted,
                         onUnmarkAsCompleted = onUnmarkAsCompleted
                     )
                 }
@@ -782,7 +787,7 @@ fun getStreakColor(streakCount: Int): Color {
     return when {
         streakCount >= 30 -> Color(0xFF6A1B9A) // Roxo
         streakCount >= 7 -> Color(0xFFD32F2F) // Vermelho
-        streakCount > 3 -> Color(0xFFFFA000) // Laranja
+        streakCount >= 3 -> Color(0xFFFFA000) // Laranja
         else -> Color.Gray
     }
 }

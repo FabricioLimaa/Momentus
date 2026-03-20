@@ -164,8 +164,6 @@ class CalendarViewModel @Inject constructor(
     private fun startFirebaseListeners() {
         viewModelScope.launch {
             categoryRepository.startListeningForChanges()
-            rotinaRepository.startListeningForChanges()
-            templateRepository.startListeningForChanges()
             categoryRepository.syncAllDataToLocal()
         }
     }
@@ -318,8 +316,6 @@ class CalendarViewModel @Inject constructor(
         jobs.forEach { it.cancel() }
         jobs.clear()
         categoryRepository.stopListeningForChanges()
-        rotinaRepository.stopListeningForChanges()
-        templateRepository.stopListeningForChanges()
     }
 
     fun logout() {
