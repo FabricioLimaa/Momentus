@@ -79,6 +79,10 @@ open class TemplateRepository @Inject constructor(
         return templateDao.getTemplateComEventos(templateId)
     }
 
+    suspend fun getTemplatesCount(): Int = withContext(dispatcher) {
+        return@withContext templateDao.getCountSync()
+    }
+
     suspend fun insertTemplate(template: Template) = withContext(dispatcher) {
         templateDao.insert(template)
         checkTemplateAchievements()

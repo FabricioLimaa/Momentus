@@ -24,7 +24,9 @@ import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -69,6 +71,9 @@ open class CategoryRepository @Inject constructor(
 
     private val _syncMessage = MutableStateFlow("Preparando...")
     val syncMessage = _syncMessage.asStateFlow()
+
+    private val _initialSyncCompleted = MutableSharedFlow<Unit>()
+    val initialSyncCompleted = _initialSyncCompleted.asSharedFlow()
 
     open val allCategoriesWithMetas: Flow<List<CategoryWithMeta>> = categoryDao.getCategoriesWithMetas()
     val idsHabitosConcluidos: Flow<List<String>> = habitoConcluidoDao.getIdsConcluidos()
@@ -122,8 +127,10 @@ open class CategoryRepository @Inject constructor(
 
     fun startListeningForChanges() {
         val userId = this.userId ?: return
-        if (categoriesListener != null) return
-
+        if (categoriesListener != null) {
+            return
+        }
+        Log.d(TAG, "[SYNC_DIAGNOSTIC] startListeningForChanges: Alterando status para SYNCING")
         _syncStatus.value = SyncStatus.SYNCING
 
         val categoriesCollection = firestore.collection("users").document(userId).collection("categories")
@@ -133,6 +140,7 @@ open class CategoryRepository @Inject constructor(
                 _syncStatus.value = SyncStatus.OFFLINE
                 return@addSnapshotListener
             }
+            Log.d(TAG, "[SYNC_DIAGNOSTIC] Listener de categorias ativo. Alterando status para CONNECTED")
             _syncStatus.value = SyncStatus.CONNECTED
             snapshots?.toObjects<Category>()?.let {
                 CoroutineScope(dispatcher).launch {
@@ -154,11 +162,13 @@ open class CategoryRepository @Inject constructor(
     }
 
     suspend fun syncAllDataToLocal() {
+        Log.d(TAG, "[SYNC_DIAGNOSTIC] Tentando executar syncAllDataToLocal. Status atual: ${_syncStatus.value}")
         if (_syncStatus.value != SyncStatus.OFFLINE) {
-            Log.d(TAG, "Sincronização já está em andamento ou conectada. Ignorando nova chamada.")
+            Log.d(TAG, "[SYNC_DIAGNOSTIC] Sincronização já está em andamento ou conectada. Ignorando nova chamada.")
             return
         }
         _syncStatus.value = SyncStatus.SYNCING
+        Log.d(TAG, "[ACHIEVEMENT_FLOW] 1. Iniciando sincronização geral de dados.")
         try {
             _syncMessage.value = "Sincronizando conquistas..."
             gamificationRepository.syncUnlockedAchievements()
@@ -172,6 +182,8 @@ open class CategoryRepository @Inject constructor(
             templateRepository.syncTemplates()
             _syncMessage.value = "Sincronização concluída!"
             _syncStatus.value = SyncStatus.CONNECTED
+            Log.d(TAG, "[ACHIEVEMENT_FLOW] 2. Sincronização concluída. Emitindo evento para verificação de conquistas.")
+            _initialSyncCompleted.emit(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Erro durante a sincronização.", e)
             _syncMessage.value = "Falha na sincronização."
@@ -233,7 +245,7 @@ open class CategoryRepository @Inject constructor(
     suspend fun markHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
         habitoConcluidoDao.insert(habito)
-        checkAchievements()
+        checkAchievements() // Chamada movida de volta para cá para verificações em tempo real
 
         val currentUserId = userId ?: return@withContext
         firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
@@ -241,7 +253,7 @@ open class CategoryRepository @Inject constructor(
             .set(habito)
     }
 
-    private suspend fun checkAchievements() {
+    suspend fun checkAchievements() = withContext(dispatcher) {
         val completionDatesMillis = habitoConcluidoDao.getAllCompletionDatesSync()
         val distinctCompletionDates = completionDatesMillis
             .map { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
@@ -249,7 +261,8 @@ open class CategoryRepository @Inject constructor(
 
         val totalCompleted = distinctCompletionDates.size
         val streakCount = calculateStreak(completionDatesMillis)
-        checkAndUnlockAchievementsUseCase(streakCount, totalCompleted)
+        val totalTemplates = templateRepository.getTemplatesCount()
+        checkAndUnlockAchievementsUseCase(streakCount, totalCompleted, totalTemplates)
     }
 
     private fun calculateStreak(completionDatesMillis: List<Long>): Int {

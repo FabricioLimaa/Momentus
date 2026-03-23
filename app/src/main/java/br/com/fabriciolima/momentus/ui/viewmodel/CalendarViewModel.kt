@@ -1,6 +1,7 @@
 package br.com.fabriciolima.momentus.ui.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Achievement
@@ -50,6 +51,8 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import javax.inject.Inject
+
+private const val TAG = "CalendarViewModel"
 
 sealed interface DialogState {
     object Hidden : DialogState
@@ -150,21 +153,41 @@ class CalendarViewModel @Inject constructor(
     )
 
     init {
+        Log.d(TAG, "ViewModel inicializado. Iniciando coleta de dados e listeners.")
         collectData()
-
         listenForNewAchievements()
         checkIfNeedToShowUpdateBadge()
         listenForUpdateProgress()
-
-        if (auth.currentUser != null) {
-            startFirebaseListeners()
-        }
+        startFirebaseListeners()
     }
 
     private fun startFirebaseListeners() {
         viewModelScope.launch {
-            categoryRepository.startListeningForChanges()
+            if (auth.currentUser == null) {
+                Log.w(TAG, "Usuário não logado. Sincronização e listeners adiados.")
+                return@launch
+            }
+            listenForSyncCompletion()
+            // Primeiro, sincroniza todos os dados que podem ter mudado enquanto o app estava fechado.
             categoryRepository.syncAllDataToLocal()
+            // Só depois, começa a ouvir por mudanças em tempo real.
+            categoryRepository.startListeningForChanges()
+        }
+    }
+
+    private fun listenForSyncCompletion() {
+        categoryRepository.initialSyncCompleted
+            .onEach {
+                Log.d(TAG, "[ACHIEVEMENT_FLOW] 3. Evento de sincronização concluída recebido.")
+                runInitialAchievementCheck()
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun runInitialAchievementCheck() {
+        viewModelScope.launch {
+            Log.d(TAG, "[ACHIEVEMENT_FLOW] 4. Disparando verificação inicial de conquistas.")
+            categoryRepository.checkAchievements()
         }
     }
 
@@ -316,6 +339,7 @@ class CalendarViewModel @Inject constructor(
         jobs.forEach { it.cancel() }
         jobs.clear()
         categoryRepository.stopListeningForChanges()
+        gamificationRepository.stopListening()
     }
 
     fun logout() {

@@ -42,6 +42,10 @@ class GamificationRepository @Inject constructor(
 
     fun getUnlockedAchievementIdsSync(): List<String> = unlockedAchievementDao.getAllIdsSync()
 
+    fun stopListening() {
+        _syncStatus.value = SyncStatus.OFFLINE
+    }
+
     suspend fun clear() = withContext(dispatcher) {
         Log.d(TAG, "Limpando todas as conquistas desbloqueadas do banco de dados local.")
         unlockedAchievementDao.clear()
@@ -82,13 +86,26 @@ class GamificationRepository @Inject constructor(
         }
         _syncStatus.value = SyncStatus.SYNCING
         
-        val currentUserId = userId ?: return@withContext
-        Log.d(TAG, "[SYNC] Iniciando sincronização de conquistas desbloqueadas.")
+        val currentUserId = userId ?: run {
+            _syncStatus.value = SyncStatus.OFFLINE
+            return@withContext
+        }
+        Log.d(TAG, "[SYNC_DIAGNOSTIC] Iniciando sincronização de conquistas para o usuário: $currentUserId")
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection("unlocked_achievements")
             
+            // Log de Diagnóstico
+            val snapshot = collectionRef.get().await()
+            Log.d(TAG, "[SYNC_DIAGNOSTIC] Firebase query executada. Documentos encontrados: ${snapshot.size()}. Vazio: ${snapshot.isEmpty}")
+            snapshot.documents.forEach { doc ->
+                Log.d(TAG, "[SYNC_DIAGNOSTIC] Documento: ID=${doc.id}, Dados=${doc.data}")
+            }
+
+            val cloudAchievements = snapshot.toObjects<UnlockedAchievement>()
+            Log.d(TAG, "[SYNC_DIAGNOSTIC] Documentos convertidos para objetos: ${cloudAchievements.size} objetos.")
+
+
             val localAchievements = unlockedAchievementDao.getAllIdsSync().toSet()
-            val cloudAchievements = collectionRef.get().await().toObjects<UnlockedAchievement>()
             val cloudAchievementMap = cloudAchievements.associateBy { it.achievementId }
 
             val achievementsToDownload = cloudAchievements.filter { it.achievementId !in localAchievements }
@@ -113,7 +130,7 @@ class GamificationRepository @Inject constructor(
             }
             _syncStatus.value = SyncStatus.CONNECTED
         } catch (e: Exception) {
-            Log.e(TAG, "[SYNC] Erro ao sincronizar conquistas desbloqueadas.", e)
+            Log.e(TAG, "[SYNC_DIAGNOSTIC] Erro CRÍTICO ao sincronizar conquistas desbloqueadas.", e)
             _syncStatus.value = SyncStatus.OFFLINE
             throw e
         }

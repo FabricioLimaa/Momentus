@@ -43,7 +43,7 @@ fun UpdateNotesScreen(
             Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("Versão 1.2.1 (Março de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+            Text("Versão 1.2.1 (Março de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
             Text("Foco total em estabilidade e performance! Esta versão corrige bugs importantes e otimiza o funcionamento interno do app para uma experiência mais fluida e confiável.", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(16.dp))
