@@ -10,16 +10,16 @@ import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.GamificationRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.di.VersionCode
-import br.com.fabriciolima.momentus.domain.usecase.DeleteRotinaUseCase
+import br.com.fabriciolima.momentus.domain.usecase.DeleteScheduleItemUseCase
 import br.com.fabriciolima.momentus.domain.usecase.MarkHabitAsCompletedUseCase
-import br.com.fabriciolima.momentus.domain.usecase.SaveRotinaUseCase
+import br.com.fabriciolima.momentus.domain.usecase.SaveScheduleItemUseCase
 import br.com.fabriciolima.momentus.domain.usecase.UnmarkHabitAsCompletedUseCase
-import br.com.fabriciolima.momentus.domain.usecase.UpdateRotinaUseCase
+import br.com.fabriciolima.momentus.domain.usecase.UpdateScheduleItemUseCase
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import br.com.fabriciolima.momentus.util.Result
@@ -78,7 +78,7 @@ data class EventsForDate(
 )
 
 data class CalendarUiState(
-    val allRotinaItems: List<ItemCronograma> = emptyList(),
+    val allScheduleItems: List<ItemCronograma> = emptyList(),
     val categoriesMap: Map<String, Category> = emptyMap(),
     val completedHabitIds: Set<String> = emptySet(),
     val googleCalendarEvents: List<GoogleCalendarEvent> = emptyList(),
@@ -99,7 +99,7 @@ data class CalendarUiState(
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
-    private val rotinaRepository: RotinaRepository,
+    private val scheduleRepository: ScheduleRepository,
     private val templateRepository: TemplateRepository,
     private val userRepository: UserRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -111,9 +111,9 @@ class CalendarViewModel @Inject constructor(
     private val application: Application,
     private val markHabitAsCompletedUseCase: MarkHabitAsCompletedUseCase,
     private val unmarkHabitAsCompletedUseCase: UnmarkHabitAsCompletedUseCase,
-    private val saveRotinaUseCase: SaveRotinaUseCase,
-    private val updateRotinaUseCase: UpdateRotinaUseCase,
-    private val deleteRotinaUseCase: DeleteRotinaUseCase,
+    private val saveScheduleItemUseCase: SaveScheduleItemUseCase,
+    private val updateScheduleItemUseCase: UpdateScheduleItemUseCase,
+    private val deleteScheduleItemUseCase: DeleteScheduleItemUseCase,
     @VersionCode private val currentVersionCode: Int
 ) : ViewModel() {
 
@@ -137,7 +137,7 @@ class CalendarViewModel @Inject constructor(
         _uiState,
         _selectedDate
     ) { state, date ->
-        val localRotinas = state.allRotinaItems.filter {
+        val localRotinas = state.allScheduleItems.filter {
             val itemDate = it.data
             itemDate != null && Instant.ofEpochMilli(itemDate).atZone(ZoneOffset.UTC).toLocalDate() == date
         }
@@ -155,6 +155,7 @@ class CalendarViewModel @Inject constructor(
     init {
         Log.d(TAG, "ViewModel inicializado. Iniciando coleta de dados e listeners.")
         collectData()
+        listenForSyncCompletion()
         listenForNewAchievements()
         checkIfNeedToShowUpdateBadge()
         listenForUpdateProgress()
@@ -192,8 +193,8 @@ class CalendarViewModel @Inject constructor(
     }
 
     private fun collectData() {
-        rotinaRepository.todosOsItensDaRotina.onEach { items ->
-            _uiState.update { it.copy(allRotinaItems = items) }
+        scheduleRepository.allScheduleItems.onEach { items ->
+            _uiState.update { it.copy(allScheduleItems = items) }
         }.launchIn(viewModelScope).also { jobs.add(it) }
 
         categoryRepository.allCategoriesWithMetas.onEach { categoriesWithMetas ->
@@ -263,7 +264,7 @@ class CalendarViewModel @Inject constructor(
             try {
                 val idsToDelete = _uiState.value.selectedRotinaIds
                 if (idsToDelete.isNotEmpty()) {
-                    rotinaRepository.deleteRotinasByIds(idsToDelete)
+                    scheduleRepository.deleteItemsByIds(idsToDelete)
                     _uiState.update {
                         it.copy(
                             successMessage = "${idsToDelete.size} rotinas excluídas.",
@@ -348,7 +349,7 @@ class CalendarViewModel @Inject constructor(
             try {
                 stopAllDataCollection()
 
-                rotinaRepository.clear()
+                scheduleRepository.clear()
                 categoryRepository.clearAllLocalData()
                 templateRepository.clear()
                 gamificationRepository.clear()
@@ -400,7 +401,7 @@ class CalendarViewModel @Inject constructor(
 
     fun showRotinaDetails(rotinaId: String) {
         viewModelScope.launch {
-            val rotina = rotinaRepository.getItemCronograma(rotinaId)
+            val rotina = scheduleRepository.getItemById(rotinaId)
             if (rotina != null) {
                 val rotinaDateLong = rotina.data
                 if (rotinaDateLong != null) {
@@ -425,7 +426,7 @@ class CalendarViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val result = saveRotinaUseCase(titulo, descricao, data, horarioInicio, horarioTermino, category, salvarNoGoogle)
+            val result = saveScheduleItemUseCase(titulo, descricao, data, horarioInicio, horarioTermino, category, salvarNoGoogle)
             _uiState.update { it.copy(isLoading = false) }
 
             when (result) {
@@ -452,7 +453,7 @@ class CalendarViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
              _uiState.update { it.copy(isLoading = true) }
-            val result = updateRotinaUseCase(item, novoTitulo, novaDescricao, novaData, novoHorarioInicio, novoHorarioTermino, novaCategory, sincronizarComGoogle)
+            val result = updateScheduleItemUseCase(item, novoTitulo, novaDescricao, novaData, novoHorarioInicio, novoHorarioTermino, novaCategory, sincronizarComGoogle)
             _uiState.update { it.copy(isLoading = false) }
 
             when(result) {
@@ -473,7 +474,7 @@ class CalendarViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 alarmScheduler.cancel(item)
-                when (val result = categoryRepository.deleteCompleteEvent(item)) {
+                when (val result = deleteScheduleItemUseCase(item)) {
                     is Result.Success -> {
                         fetchGoogleCalendarEvents()
                         _uiState.value = _uiState.value.copy(successMessage = "Rotina excluída com sucesso!", dialogState = DialogState.Hidden)
@@ -508,7 +509,7 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                rotinaRepository.deleteRotinasByIds(ids)
+                scheduleRepository.deleteItemsByIds(ids)
                 _uiState.update {
                     it.copy(
                         successMessage = "${ids.size} rotinas excluídas.",

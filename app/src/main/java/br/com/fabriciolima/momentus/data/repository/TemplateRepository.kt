@@ -30,7 +30,7 @@ private const val TAG = "TemplateRepository"
 open class TemplateRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val templateDao: TemplateDao,
-    private val rotinaRepository: RotinaRepository, // Atualizado: EventoRepository -> RotinaRepository
+    private val scheduleRepository: ScheduleRepository,
     private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase, 
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
@@ -100,16 +100,15 @@ open class TemplateRepository @Inject constructor(
     suspend fun saveTemplateWithEvents(template: Template, eventos: List<ItemCronograma>) = withContext(dispatcher) {
         val updatedTemplate = template.copy(lastUpdated = Date())
 
-        // --- CORREÇÃO DE DUPLICAÇÃO ---
         // 1. Atualiza o template
         templateDao.insert(updatedTemplate)
         
-        // 2. Remove TODAS as rotinas antigas associadas a este template antes de inserir as novas
-        rotinaRepository.deleteRotinasByTemplateId(updatedTemplate.id)
+        // 2. Remove as tarefas antigas associadas a este template
+        scheduleRepository.deleteItemsByTemplateId(updatedTemplate.id)
         
-        // 3. Garante que as novas rotinas não tenham IDs duplicados e sejam únicas por título e horário
+        // 3. Insere as novas tarefas
         val uniqueEvents = eventos.distinctBy { "${it.titulo}-${it.horarioInicioString}" }
-        rotinaRepository.insertAll(uniqueEvents)
+        scheduleRepository.insertAllItems(uniqueEvents)
 
         checkTemplateAchievements()
 
@@ -119,7 +118,7 @@ open class TemplateRepository @Inject constructor(
     }
 
     suspend fun deleteTemplate(template: Template) {
-        rotinaRepository.deleteRotinasByTemplateId(template.id)
+        scheduleRepository.deleteItemsByTemplateId(template.id)
         templateDao.delete(template)
         userId?.let {
             firestore.collection("users").document(it).collection("templates").document(template.id).delete()

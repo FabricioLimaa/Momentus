@@ -3,7 +3,7 @@ package br.com.fabriciolima.momentus.domain.usecase
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
 import java.time.LocalDate
@@ -11,8 +11,8 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import javax.inject.Inject
 
-class UpdateRotinaUseCase @Inject constructor(
-    private val rotinaRepository: RotinaRepository,
+class UpdateScheduleItemUseCase @Inject constructor(
+    private val scheduleRepository: ScheduleRepository,
     private val categoryRepository: CategoryRepository,
     private val alarmScheduler: AlarmScheduler
 ) {
@@ -45,10 +45,10 @@ class UpdateRotinaUseCase @Inject constructor(
                 return result
             }
         } else {
-            rotinaRepository.insertItemCronograma(updatedItem)
+            scheduleRepository.insertItem(updatedItem)
         }
 
-        // Reagenda o alarme para a rotina atualizada
+        // Reagenda o alarme para a tarefa atualizada
         alarmScheduler.schedule(updatedItem)
 
         return Result.Success(Unit)

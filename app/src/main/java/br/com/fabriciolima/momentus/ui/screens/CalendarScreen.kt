@@ -366,10 +366,10 @@ fun CalendarScreen(
                         uiState = uiState,
                         selectedDate = selectedDate,
                         eventsForDate = eventsForSelectedDate,
-                        onRotinaClick = {
-                             if (uiState.isSelectionModeActive) onRotinaClicked(it.id) else onShowDetailClicked(it)
+                        onRotinaClick = { item ->
+                             if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
                         },
-                        onRotinaLongClick = { onRotinaLongPressed(it.id) },
+                        onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
                         onAddNewRotinaClicked = onAddNewRotinaClicked,
                         onMarkAsCompleted = onMarkAsCompleted,
                         onUnmarkAsCompleted = onUnmarkAsCompleted
@@ -519,7 +519,7 @@ fun CalendarContent(
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        val localRotinasByDate = uiState.allRotinaItems.groupBy {
+        val localScheduleByDate = uiState.allScheduleItems.groupBy {
             it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneOffset.UTC).toLocalDate() }
         }
 
@@ -529,7 +529,7 @@ fun CalendarContent(
                 DayCell(
                     day = day,
                     isSelected = selectedDate == day.date,
-                    localRotinas = localRotinasByDate[day.date] ?: emptyList(),
+                    localRotinas = localScheduleByDate[day.date] ?: emptyList(),
                     categoriesMap = uiState.categoriesMap,
                     onDateSelected = { onDateSelected(it.date) }
                 )

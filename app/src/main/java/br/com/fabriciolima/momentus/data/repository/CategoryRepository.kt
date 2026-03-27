@@ -54,7 +54,7 @@ open class CategoryRepository @Inject constructor(
     private val habitoConcluidoDao: HabitoConcluidoDao,
     private val itemCronogramaDao: ItemCronogramaDao,
     private val templateRepository: TemplateRepository,
-    private val rotinaRepository: RotinaRepository,
+    private val scheduleRepository: ScheduleRepository,
     private val userRepository: UserRepository,
     private val gamificationRepository: GamificationRepository,
     private val checkAndUnlockAchievementsUseCase: CheckAndUnlockAchievementsUseCase,
@@ -150,14 +150,14 @@ open class CategoryRepository @Inject constructor(
         }
 
         templateRepository.startListeningForChanges()
-        rotinaRepository.startListeningForChanges()
+        scheduleRepository.startListeningForChanges()
     }
 
     fun stopListeningForChanges() {
         categoriesListener?.remove()
         categoriesListener = null
         templateRepository.stopListeningForChanges()
-        rotinaRepository.stopListeningForChanges()
+        scheduleRepository.stopListeningForChanges()
         _syncStatus.value = SyncStatus.OFFLINE
     }
 
@@ -174,8 +174,8 @@ open class CategoryRepository @Inject constructor(
             gamificationRepository.syncUnlockedAchievements()
             _syncMessage.value = "Sincronizando hábitos concluídos..."
             syncCompletedHabits()
-            _syncMessage.value = "Sincronizando rotinas..."
-            rotinaRepository.syncRotinas()
+            _syncMessage.value = "Sincronizando cronograma..."
+            scheduleRepository.syncSchedule()
             _syncMessage.value = "Sincronizando categorias..."
             syncCategories()
             _syncMessage.value = "Sincronizando templates..."
@@ -216,7 +216,7 @@ open class CategoryRepository @Inject constructor(
     suspend fun clearAllLocalData() = withContext(dispatcher) {
         categoryDao.clear()
         templateRepository.clear()
-        rotinaRepository.clear()
+        scheduleRepository.clear()
         metaDao.clear()
         habitoConcluidoDao.clear()
     }
@@ -245,7 +245,7 @@ open class CategoryRepository @Inject constructor(
     suspend fun markHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
         val habito = HabitoConcluido(itemCronogramaId = itemCronogramaId, dataConclusao = System.currentTimeMillis())
         habitoConcluidoDao.insert(habito)
-        checkAchievements() // Chamada movida de volta para cá para verificações em tempo real
+        checkAchievements()
 
         val currentUserId = userId ?: return@withContext
         firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
@@ -307,7 +307,7 @@ open class CategoryRepository @Inject constructor(
         try {
             val result = googleCalendarSource.updateEvent(item, cor)
             if (result is Result.Success) {
-                rotinaRepository.insertItemCronograma(item.copy(googleCalendarEventId = result.data))
+                scheduleRepository.insertItem(item.copy(googleCalendarEventId = result.data))
             }
             result
         } catch (e: Exception) { Result.Error(e) }
@@ -316,7 +316,7 @@ open class CategoryRepository @Inject constructor(
     suspend fun deleteCompleteEvent(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
         try {
             item.googleCalendarEventId?.let { googleCalendarSource.deleteEvent(it) }
-            rotinaRepository.excluirRotinaCompleta(item)
+            scheduleRepository.deleteScheduleItem(item)
             Result.Success(Unit)
         } catch (e: Exception) { Result.Error(e) }
     }

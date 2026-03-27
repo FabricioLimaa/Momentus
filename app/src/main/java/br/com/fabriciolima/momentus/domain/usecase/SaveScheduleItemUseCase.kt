@@ -4,7 +4,7 @@ import android.app.Application
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.RotinaRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
@@ -13,8 +13,8 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import javax.inject.Inject
 
-class SaveRotinaUseCase @Inject constructor(
-    private val rotinaRepository: RotinaRepository,
+class SaveScheduleItemUseCase @Inject constructor(
+    private val scheduleRepository: ScheduleRepository,
     private val categoryRepository: CategoryRepository,
     private val alarmScheduler: AlarmScheduler,
     private val application: Application
@@ -53,7 +53,7 @@ class SaveRotinaUseCase @Inject constructor(
             googleCalendarEventId = googleEventId
         )
 
-        rotinaRepository.insertItemCronograma(newItem)
+        scheduleRepository.insertItem(newItem)
         alarmScheduler.schedule(newItem)
         WidgetUpdater.requestUpdate(application)
 

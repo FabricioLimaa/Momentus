@@ -46,9 +46,6 @@
             android:name=".ui.screens.ReminderActivity"
             android:exported="false"
             android:theme="@style/Theme.Momentus.Dialog" />
-        <activity android:name=".ui.screens.CreateTemplateActivity" android:exported="false" />
-        <activity android:name=".ui.screens.EditorRotinaComposeActivity" android:exported="false" />
-        <activity android:name=".ui.screens.TemplateDetailActivity" android:exported="false" />
 
         <service
             android:name=".services.MyFirebaseMessagingService"
