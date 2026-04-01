@@ -11,6 +11,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -76,21 +77,26 @@ class UserRepository @Inject constructor(
         }
     }
 
+    /**
+     * Cria ou atualiza o perfil do usuário no Firestore com base no FirebaseUser atual.
+     * Usa SetOptions.merge() para não apagar campos existentes (como pontos e streaks).
+     */
     suspend fun createOrUpdateUser(firebaseUser: FirebaseUser) = withContext(dispatcher) {
         val userDocRef = firestore.collection("users").document(firebaseUser.uid)
         try {
-            val document = userDocRef.get().await()
-            if (!document.exists()) {
-                Log.d(TAG, "Documento de usuário não encontrado para UID: ${firebaseUser.uid}. Criando novo documento.")
-                val newUser = UserData(
-                    displayName = firebaseUser.displayName,
-                    email = firebaseUser.email
-                )
-                userDocRef.set(newUser).await()
-                 Log.i(TAG, "Novo documento de usuário criado com sucesso no Firestore.")
+            Log.d(TAG, "Sincronizando perfil para UID: ${firebaseUser.uid}")
+            
+            // Dados básicos que devem estar sempre atualizados
+            val profileUpdates = mutableMapOf<String, Any?>()
+            firebaseUser.displayName?.let { profileUpdates["display_name"] = it }
+            firebaseUser.email?.let { profileUpdates["email"] = it }
+
+            if (profileUpdates.isNotEmpty()) {
+                userDocRef.set(profileUpdates, SetOptions.merge()).await()
+                Log.i(TAG, "Perfil do usuário sincronizado com sucesso no Firestore.")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Falha ao criar ou verificar documento do usuário no Firestore.", e)
+            Log.e(TAG, "Falha ao sincronizar perfil do usuário no Firestore.", e)
         }
     }
 
