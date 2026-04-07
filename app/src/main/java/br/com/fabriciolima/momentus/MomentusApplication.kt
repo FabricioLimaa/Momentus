@@ -9,9 +9,12 @@ import android.net.Uri
 import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import br.com.fabriciolima.momentus.data.worker.SyncWorker
 import br.com.fabriciolima.momentus.widget.WidgetUpdateWorker
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -49,6 +52,7 @@ class MomentusApplication : Application(), Configuration.Provider {
         }
 
         setupWidgetUpdateWorker()
+        setupSyncWorker()
         createNotificationChannels()
     }
 
@@ -59,6 +63,24 @@ class MomentusApplication : Application(), Configuration.Provider {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             WidgetUpdateWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
+    }
+
+    private fun setupSyncWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val workRequest = PeriodicWorkRequestBuilder<SyncWorker>(
+            6, TimeUnit.HOURS // Sincronização a cada 6 horas
+        )
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            SyncWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )

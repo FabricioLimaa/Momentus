@@ -23,6 +23,7 @@ import br.com.fabriciolima.momentus.domain.usecase.UpdateScheduleItemUseCase
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import br.com.fabriciolima.momentus.util.Result
+import br.com.fabriciolima.momentus.util.SyncManager
 import br.com.fabriciolima.momentus.util.UpdateProgress
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -106,6 +107,7 @@ class CalendarViewModel @Inject constructor(
     private val gamificationRepository: GamificationRepository,
     private val alarmScheduler: AlarmScheduler,
     private val inAppUpdateManager: InAppUpdateManager,
+    private val syncManager: SyncManager,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
     private val application: Application,
@@ -273,6 +275,7 @@ class CalendarViewModel @Inject constructor(
                         )
                     }
                     WidgetUpdater.requestUpdate(application)
+                    syncManager.enqueueSync() // Sincronização imediata garantida
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Falha ao excluir rotinas.") }
@@ -433,6 +436,7 @@ class CalendarViewModel @Inject constructor(
                 is Result.Success -> {
                     _uiState.update { it.copy(successMessage = "Rotina criada com sucesso!", dialogState = DialogState.Hidden) }
                     if (salvarNoGoogle) fetchGoogleCalendarEvents()
+                    syncManager.enqueueSync() // Sincronização imediata garantida
                 }
                 is Result.Error -> {
                     _uiState.update { it.copy(error = result.exception.message) }
@@ -461,6 +465,7 @@ class CalendarViewModel @Inject constructor(
                      _uiState.update { it.copy(successMessage = "Rotina atualizada com sucesso!", dialogState = DialogState.Hidden) }
                     if(sincronizarComGoogle) fetchGoogleCalendarEvents()
                      WidgetUpdater.requestUpdate(application)
+                     syncManager.enqueueSync() // Sincronização imediata garantida
                 }
                 is Result.Error -> {
                     _uiState.update { it.copy(error = result.exception.message) }
@@ -479,6 +484,7 @@ class CalendarViewModel @Inject constructor(
                         fetchGoogleCalendarEvents()
                         _uiState.value = _uiState.value.copy(successMessage = "Rotina excluída com sucesso!", dialogState = DialogState.Hidden)
                         WidgetUpdater.requestUpdate(application)
+                        syncManager.enqueueSync() // Sincronização imediata garantida
                     }
                     is Result.Error -> {
                         _uiState.value = _uiState.value.copy(error = result.exception.message)
@@ -502,6 +508,7 @@ class CalendarViewModel @Inject constructor(
                 _showCompletionAnimation.emit(Unit)
                 userPreferencesRepository.updateLastAnimationDate(System.currentTimeMillis())
             }
+            syncManager.enqueueSync() // Sincronização imediata garantida
         }
     }
 
@@ -518,6 +525,7 @@ class CalendarViewModel @Inject constructor(
                     )
                 }
                 WidgetUpdater.requestUpdate(application)
+                syncManager.enqueueSync() // Sincronização imediata garantida
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Falha ao excluir rotinas.") }
             } finally {
@@ -529,6 +537,7 @@ class CalendarViewModel @Inject constructor(
     fun unmarkHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
             unmarkHabitAsCompletedUseCase(itemCronogramaId)
+            syncManager.enqueueSync() // Sincronização imediata garantida
         }
     }
 

@@ -28,6 +28,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "ScheduleRepository"
+private const val EVENTS_COLLECTION = "eventos"
 
 @Singleton
 open class ScheduleRepository @Inject constructor(
@@ -60,7 +61,7 @@ open class ScheduleRepository @Inject constructor(
         Log.d(TAG, "Iniciando listener do cronograma. UID: $currentUserId")
         if (currentUserId == null || scheduleListener != null) return
 
-        val scheduleCollection = firestore.collection("users").document(currentUserId).collection("rotinas")
+        val scheduleCollection = firestore.collection("users").document(currentUserId).collection(EVENTS_COLLECTION)
         scheduleListener = scheduleCollection.addSnapshotListener { snapshots, e ->
             if (e != null) {
                 Log.w(TAG, "Erro ao escutar mudanças no cronograma.", e)
@@ -81,19 +82,25 @@ open class ScheduleRepository @Inject constructor(
         scheduleListener = null
     }
 
-    suspend fun syncSchedule() = withContext(dispatcher) {
-        val currentUserId = userId ?: return@withContext
+    /**
+     * Sincronização bidirecional do Cronograma.
+     * Retorna Result.Success se concluído, ou Result.Error em falha.
+     */
+    suspend fun syncSchedule(): Result<Unit> = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext Result.Error(Exception("Usuário não logado"))
 
         try {
-            val collectionRef = firestore.collection("users").document(currentUserId).collection("rotinas")
+            val collectionRef = firestore.collection("users").document(currentUserId).collection(EVENTS_COLLECTION)
             val localItems = itemCronogramaDao.getAllSync().associateBy { it.id }
             val cloudItems = collectionRef.get().await().toObjects<ItemCronograma>().associateBy { it.id }
 
+            // 1. Itens para subir (Local mais novo ou novo no local)
             val itemsToUpload = localItems.filter { (id, local) ->
                 val cloud = cloudItems[id]
                 cloud == null || (local.lastUpdated != null && cloud.lastUpdated != null && local.lastUpdated!!.after(cloud.lastUpdated))
             }.values
 
+            // 2. Itens para baixar (Nuvem mais nova ou novo na nuvem)
             val itemsToDownload = cloudItems.filter { (id, cloud) ->
                 val local = localItems[id]
                 local == null || (cloud.lastUpdated != null && local.lastUpdated != null && cloud.lastUpdated!!.after(local.lastUpdated))
@@ -103,15 +110,19 @@ open class ScheduleRepository @Inject constructor(
                 val batch = firestore.batch()
                 itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
                 batch.commit().await()
+                Log.d(TAG, "Sync: Upload de ${itemsToUpload.size} itens concluído.")
             }
 
             if (itemsToDownload.isNotEmpty()) {
                 itemCronogramaDao.insertAll(itemsToDownload.toList())
+                Log.d(TAG, "Sync: Download de ${itemsToDownload.size} itens concluído.")
                 triggerWidgetUpdate()
             }
 
+            Result.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao sincronizar cronograma.", e)
+            Result.Error(e)
         }
     }
 
@@ -126,7 +137,7 @@ open class ScheduleRepository @Inject constructor(
     suspend fun insertItem(item: ItemCronograma) {
         itemCronogramaDao.insert(item)
         userId?.let {
-            firestore.collection("users").document(it).collection("rotinas").document(item.id).set(item)
+            firestore.collection("users").document(it).collection(EVENTS_COLLECTION).document(item.id).set(item)
         }
         triggerWidgetUpdate()
     }
@@ -135,7 +146,7 @@ open class ScheduleRepository @Inject constructor(
         itemCronogramaDao.insertAll(items)
         userId?.let { userId ->
             val batch = firestore.batch()
-            val collection = firestore.collection("users").document(userId).collection("rotinas")
+            val collection = firestore.collection("users").document(userId).collection(EVENTS_COLLECTION)
             items.forEach { batch.set(collection.document(it.id), it) }
             batch.commit().await()
         }
@@ -146,7 +157,7 @@ open class ScheduleRepository @Inject constructor(
         itemCronogramaDao.updateAll(items)
         userId?.let { userId ->
             val batch = firestore.batch()
-            val collection = firestore.collection("users").document(userId).collection("rotinas")
+            val collection = firestore.collection("users").document(userId).collection(EVENTS_COLLECTION)
             items.forEach { batch.set(collection.document(it.id), it) }
             batch.commit().await()
         }
@@ -158,7 +169,7 @@ open class ScheduleRepository @Inject constructor(
             habitoConcluidoDao.delete(item.id)
             itemCronogramaDao.delete(item)
             userId?.let {
-                firestore.collection("users").document(it).collection("rotinas").document(item.id).delete()
+                firestore.collection("users").document(it).collection(EVENTS_COLLECTION).document(item.id).delete()
             }
             triggerWidgetUpdate()
             Result.Success(Unit)
@@ -173,7 +184,7 @@ open class ScheduleRepository @Inject constructor(
         itemCronogramaDao.deleteByIds(ids)
         userId?.let { userId ->
             val batch = firestore.batch()
-            val collection = firestore.collection("users").document(userId).collection("rotinas")
+            val collection = firestore.collection("users").document(userId).collection(EVENTS_COLLECTION)
             ids.forEach { batch.delete(collection.document(it)) }
             batch.commit().await()
         }

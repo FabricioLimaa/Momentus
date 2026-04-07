@@ -161,11 +161,11 @@ open class CategoryRepository @Inject constructor(
         _syncStatus.value = SyncStatus.OFFLINE
     }
 
-    suspend fun syncAllDataToLocal() {
+    suspend fun syncAllDataToLocal(): Result<Unit> = withContext(dispatcher) {
         Log.d(TAG, "[SYNC_DIAGNOSTIC] Tentando executar syncAllDataToLocal. Status atual: ${_syncStatus.value}")
         if (_syncStatus.value != SyncStatus.OFFLINE) {
             Log.d(TAG, "[SYNC_DIAGNOSTIC] Sincronização já está em andamento ou conectada. Ignorando nova chamada.")
-            return
+            return@withContext Result.Success(Unit)
         }
         _syncStatus.value = SyncStatus.SYNCING
         Log.d(TAG, "[ACHIEVEMENT_FLOW] 1. Iniciando sincronização geral de dados.")
@@ -184,25 +184,54 @@ open class CategoryRepository @Inject constructor(
             _syncStatus.value = SyncStatus.CONNECTED
             Log.d(TAG, "[ACHIEVEMENT_FLOW] 2. Sincronização concluída. Emitindo evento para verificação de conquistas.")
             _initialSyncCompleted.emit(Unit)
+            Result.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Erro durante a sincronização.", e)
             _syncMessage.value = "Falha na sincronização."
             _syncStatus.value = SyncStatus.OFFLINE
+            Result.Error(e)
         }
     }
 
-    private suspend fun syncCategories() = withContext(dispatcher) {
+    /**
+     * Sincronização bidirecional de categorias.
+     */
+    suspend fun syncCategories() = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection("categories")
-            val cloudCategories = collectionRef.get().await().toObjects<Category>()
-            categoryDao.insertAll(cloudCategories)
+            val localCategories = categoryDao.getAllSync().associateBy { it.id }
+            val cloudCategories = collectionRef.get().await().toObjects<Category>().associateBy { it.id }
+
+            // 1. Enviar categorias locais novas ou mais recentes
+            val itemsToUpload = localCategories.filter { (id, local) ->
+                val cloud = cloudCategories[id]
+                cloud == null || (local.lastUpdated != null && cloud.lastUpdated != null && local.lastUpdated!!.after(cloud.lastUpdated))
+            }.values
+
+            // 2. Baixar categorias da nuvem novas ou mais recentes
+            val itemsToDownload = cloudCategories.filter { (id, cloud) ->
+                val local = localCategories[id]
+                local == null || (cloud.lastUpdated != null && local.lastUpdated != null && cloud.lastUpdated!!.after(local.lastUpdated))
+            }.values
+
+            if (itemsToUpload.isNotEmpty()) {
+                val batch = firestore.batch()
+                itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
+                batch.commit().await()
+                Log.d(TAG, "Sync: Upload de ${itemsToUpload.size} categorias concluído.")
+            }
+
+            if (itemsToDownload.isNotEmpty()) {
+                categoryDao.insertAll(itemsToDownload.toList())
+                Log.d(TAG, "Sync: Download de ${itemsToDownload.size} categorias concluído.")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao sincronizar categorias.", e)
         }
     }
 
-    private suspend fun syncCompletedHabits() = withContext(dispatcher) {
+    suspend fun syncCompletedHabits() = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
