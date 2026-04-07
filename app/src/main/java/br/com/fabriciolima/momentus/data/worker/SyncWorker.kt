@@ -18,12 +18,12 @@ private const val TAG = "SyncWorker"
 
 @HiltWorker
 class SyncWorker @AssistedInject constructor(
-    @Assisted private val appContext: Context,
-    @Assisted params: WorkerParameters,
+    @Assisted context: Context,
+    @Assisted workerParams: WorkerParameters,
     private val categoryRepository: CategoryRepository,
     private val scheduleRepository: ScheduleRepository,
     private val gamificationRepository: GamificationRepository
-) : CoroutineWorker(appContext, params) {
+) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result = coroutineScope {
         Log.d(TAG, "[SYNC_ENGINE] Iniciando tarefa de sincronização em segundo plano.")
@@ -35,9 +35,13 @@ class SyncWorker @AssistedInject constructor(
             val achievementSync = async { gamificationRepository.syncUnlockedAchievements() }
 
             // Aguarda a conclusão de todas as tarefas e verifica os resultados
-            val results = listOf(categorySync.await(), scheduleSync.await(), achievementSync.await())
+            val categoryResult = categorySync.await()
+            val scheduleResult = scheduleSync.await()
+            val achievementResult = achievementSync.await()
             
-            val hasError = results.any { it is br.com.fabriciolima.momentus.util.Result.Error }
+            val hasError = categoryResult is br.com.fabriciolima.momentus.util.Result.Error ||
+                           scheduleResult is br.com.fabriciolima.momentus.util.Result.Error ||
+                           achievementResult is br.com.fabriciolima.momentus.util.Result.Error
 
             if (hasError) {
                 Log.w(TAG, "[SYNC_ENGINE] Sincronização parcial com erros. Solicitando retentativa.")
@@ -46,7 +50,7 @@ class SyncWorker @AssistedInject constructor(
                 Log.i(TAG, "[SYNC_ENGINE] Sincronização concluída com sucesso. Atualizando Widget.")
                 
                 // Gatilho do Widget: Garante que os dados baixados apareçam na Home Screen
-                WidgetUpdater.requestUpdate(appContext)
+                WidgetUpdater.requestUpdate(applicationContext)
                 
                 Result.success()
             }

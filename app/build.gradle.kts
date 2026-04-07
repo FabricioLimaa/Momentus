@@ -120,7 +120,8 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.androidx.hilt.work) // Adicionado para integração com WorkManager
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler) // ADICIONADO: Processador para o Worker do Hilt
 
     // Play Core & In-App Updates
     implementation("com.google.android.play:app-update-ktx:2.1.0")

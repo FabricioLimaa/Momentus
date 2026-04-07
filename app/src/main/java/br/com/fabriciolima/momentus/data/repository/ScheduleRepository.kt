@@ -54,7 +54,11 @@ open class ScheduleRepository @Inject constructor(
     private val userId: String?
         get() = auth.currentUser?.uid
 
-    val allScheduleItems: Flow<List<ItemCronograma>> = itemCronogramaDao.getAllItems()
+    // Propriedade compatível com EventoRepository
+    val todosOsItensDoCronograma: Flow<List<ItemCronograma>> = itemCronogramaDao.getAllItems()
+    
+    // Propriedade oficial do ScheduleRepository
+    val allScheduleItems: Flow<List<ItemCronograma>> = todosOsItensDoCronograma
 
     fun startListeningForChanges() {
         val currentUserId = this.userId
@@ -84,7 +88,6 @@ open class ScheduleRepository @Inject constructor(
 
     /**
      * Sincronização bidirecional do Cronograma.
-     * Retorna Result.Success se concluído, ou Result.Error em falha.
      */
     suspend fun syncSchedule(): Result<Unit> = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext Result.Error(Exception("Usuário não logado"))
@@ -94,13 +97,11 @@ open class ScheduleRepository @Inject constructor(
             val localItems = itemCronogramaDao.getAllSync().associateBy { it.id }
             val cloudItems = collectionRef.get().await().toObjects<ItemCronograma>().associateBy { it.id }
 
-            // 1. Itens para subir (Local mais novo ou novo no local)
             val itemsToUpload = localItems.filter { (id, local) ->
                 val cloud = cloudItems[id]
                 cloud == null || (local.lastUpdated != null && cloud.lastUpdated != null && local.lastUpdated!!.after(cloud.lastUpdated))
             }.values
 
-            // 2. Itens para baixar (Nuvem mais nova ou novo na nuvem)
             val itemsToDownload = cloudItems.filter { (id, cloud) ->
                 val local = localItems[id]
                 local == null || (cloud.lastUpdated != null && local.lastUpdated != null && cloud.lastUpdated!!.after(local.lastUpdated))
@@ -110,12 +111,10 @@ open class ScheduleRepository @Inject constructor(
                 val batch = firestore.batch()
                 itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
                 batch.commit().await()
-                Log.d(TAG, "Sync: Upload de ${itemsToUpload.size} itens concluído.")
             }
 
             if (itemsToDownload.isNotEmpty()) {
                 itemCronogramaDao.insertAll(itemsToDownload.toList())
-                Log.d(TAG, "Sync: Download de ${itemsToDownload.size} itens concluído.")
                 triggerWidgetUpdate()
             }
 
@@ -126,13 +125,22 @@ open class ScheduleRepository @Inject constructor(
         }
     }
 
+    // Método compatível com EventoRepository
+    suspend fun syncEventos() = syncSchedule()
+
     fun getItemsForDay(day: String): Flow<List<ItemCronograma>> {
         return itemCronogramaDao.getItemsByDayOfWeek(day)
     }
 
+    // Método compatível com EventoRepository
+    fun getItensDoDia(dia: String) = getItemsForDay(dia)
+
     suspend fun getItemById(itemId: String): ItemCronograma? {
         return itemCronogramaDao.getItemById(itemId)
     }
+
+    // Método compatível com EventoRepository
+    suspend fun getItemCronograma(itemId: String) = getItemById(itemId)
 
     suspend fun insertItem(item: ItemCronograma) {
         itemCronogramaDao.insert(item)
@@ -141,6 +149,9 @@ open class ScheduleRepository @Inject constructor(
         }
         triggerWidgetUpdate()
     }
+
+    // Método compatível com EventoRepository
+    suspend fun insertItemCronograma(item: ItemCronograma) = insertItem(item)
 
     suspend fun insertAllItems(items: List<ItemCronograma>) {
         itemCronogramaDao.insertAll(items)
@@ -152,6 +163,9 @@ open class ScheduleRepository @Inject constructor(
         }
         triggerWidgetUpdate()
     }
+    
+    // Método compatível com EventoRepository
+    suspend fun insertAll(items: List<ItemCronograma>) = insertAllItems(items)
 
     suspend fun updateItems(items: List<ItemCronograma>) {
         itemCronogramaDao.updateAll(items)
@@ -163,6 +177,9 @@ open class ScheduleRepository @Inject constructor(
         }
         triggerWidgetUpdate()
     }
+
+    // Método compatível com EventoRepository
+    suspend fun updateItensCronograma(items: List<ItemCronograma>) = updateItems(items)
 
     suspend fun deleteScheduleItem(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
         try {
@@ -178,6 +195,9 @@ open class ScheduleRepository @Inject constructor(
         }
     }
 
+    // Método compatível com EventoRepository
+    suspend fun excluirEventoCompleto(item: ItemCronograma) = deleteScheduleItem(item)
+
     suspend fun deleteItemsByIds(ids: Set<String>) = withContext(dispatcher) {
         if (ids.isEmpty()) return@withContext
         habitoConcluidoDao.deleteByIds(ids)
@@ -191,6 +211,9 @@ open class ScheduleRepository @Inject constructor(
         triggerWidgetUpdate()
     }
 
+    // Método compatível com EventoRepository
+    suspend fun deleteEventsByIds(ids: Set<String>) = deleteItemsByIds(ids)
+
     suspend fun deleteItemsByTemplateId(templateId: String) = withContext(dispatcher) {
         val idsToDelete = itemCronogramaDao.getIdsByTemplateId(templateId).toSet()
         if (idsToDelete.isNotEmpty()) {
@@ -198,12 +221,18 @@ open class ScheduleRepository @Inject constructor(
         }
     }
 
+    // Método compatível com EventoRepository
+    suspend fun deleteEventsByTemplateId(templateId: String) = deleteItemsByTemplateId(templateId)
+
     suspend fun deleteItemsByCategoryId(categoryId: String) = withContext(dispatcher) {
         val idsToDelete = itemCronogramaDao.getIdsByCategoryId(categoryId).toSet()
         if (idsToDelete.isNotEmpty()) {
             deleteItemsByIds(idsToDelete)
         }
     }
+
+    // Método compatível com EventoRepository
+    suspend fun deleteEventsByCategoryId(categoryId: String) = deleteItemsByCategoryId(categoryId)
 
     fun getWidgetEvents(data: LocalDate, allowedCategoryIds: Set<String>): List<WidgetEventItem> {
         if (allowedCategoryIds.isEmpty()) return emptyList()

@@ -9,7 +9,7 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -44,7 +44,7 @@ object WidgetUpdater {
         try {
             val entryPoint = EntryPointAccessors.fromApplication(context, WidgetUpdateEntryPoint::class.java)
             val categoryRepository = entryPoint.categoryRepository()
-            val eventoRepository = entryPoint.eventoRepository()
+            val scheduleRepository = entryPoint.scheduleRepository()
 
             val allCategories = withContext(Dispatchers.IO) { categoryRepository.getAllCategoriesSync() }
             val allCategoryIds = allCategories.map { it.id }.toSet()
@@ -55,7 +55,7 @@ object WidgetUpdater {
             Log.d(TAG, "Categorias permitidas para este widget: ${allowedCategoryIds.size}")
 
             val widgetItems = withContext(Dispatchers.IO) {
-                eventoRepository.getWidgetEvents(LocalDate.now(), allowedCategoryIds.ifEmpty { allCategoryIds })
+                scheduleRepository.getWidgetEvents(LocalDate.now(), allowedCategoryIds.ifEmpty { allCategoryIds })
             }
             Log.d(TAG, "Itens encontrados no repositório para o widget: ${widgetItems.size}")
 
@@ -115,7 +115,7 @@ object WidgetUpdater {
                 categoryName = item.categoryName,
                 categoryColor = item.categoryColor,
                 isPast = now.isAfter(horarioTermino),
-                isCompleted = item.isCompleted // Adicionado
+                isCompleted = item.isCompleted
             )
         }
     }

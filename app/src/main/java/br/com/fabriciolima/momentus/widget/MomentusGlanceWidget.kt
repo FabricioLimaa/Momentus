@@ -47,7 +47,7 @@ import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
 import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import br.com.fabriciolima.momentus.ui.screens.MainActivity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -93,7 +93,7 @@ private val isCompletedParam = ActionParameters.Key<Boolean>("isCompleted")
 @InstallIn(SingletonComponent::class)
 interface WidgetUpdateEntryPoint {
     fun categoryRepository(): CategoryRepository
-    fun eventoRepository(): EventoRepository
+    fun scheduleRepository(): ScheduleRepository
 }
 
 
@@ -257,6 +257,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
                 )
             )
             Spacer(GlanceModifier.width(8.dp))
+            @Suppress("DEPRECATION")
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
                     text = event.title.ifBlank { "(Sem título)" },
