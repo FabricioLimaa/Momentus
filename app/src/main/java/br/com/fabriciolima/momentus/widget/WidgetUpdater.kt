@@ -54,8 +54,9 @@ object WidgetUpdater {
             val allowedCategoryIds = prefs[EventWidgetStateKeys.configuredRotinasKey] ?: allCategoryIds
             Log.d(TAG, "Categorias permitidas para este widget: ${allowedCategoryIds.size}")
 
+            val today = LocalDate.now()
             val widgetItems = withContext(Dispatchers.IO) {
-                scheduleRepository.getWidgetEvents(LocalDate.now(), allowedCategoryIds.ifEmpty { allCategoryIds })
+                scheduleRepository.getWidgetEvents(today, allowedCategoryIds.ifEmpty { allCategoryIds })
             }
             Log.d(TAG, "Itens encontrados no repositório para o widget: ${widgetItems.size}")
 

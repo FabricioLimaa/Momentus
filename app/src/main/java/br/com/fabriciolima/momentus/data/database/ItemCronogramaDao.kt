@@ -49,14 +49,16 @@ interface ItemCronogramaDao {
     @Query("DELETE FROM tabela_itens_cronograma WHERE templateId = :templateId")
     suspend fun deleteByTemplateId(templateId: String)
 
-
-
     @Query("SELECT id FROM tabela_itens_cronograma WHERE categoryId = :categoryId")
     suspend fun getIdsByCategoryId(categoryId: String): List<String>
 
     @Query("DELETE FROM tabela_itens_cronograma WHERE categoryId = :categoryId")
     suspend fun deleteByCategoryId(categoryId: String)
 
+    /**
+     * Consulta otimizada para o Widget.
+     * Utiliza parâmetros de tempo explícitos para melhorar a performance dos índices.
+     */
     @Query(
         """
         SELECT tic.id, tic.titulo, tic.horarioInicio, tic.horarioTermino, tic.descricao, c.nome as categoryName, c.cor as categoryColor, 
@@ -64,13 +66,18 @@ interface ItemCronogramaDao {
         FROM tabela_itens_cronograma tic 
         JOIN categories c ON tic.categoryId = c.id 
         LEFT JOIN tabela_habitos_concluidos thc ON tic.id = thc.itemCronogramaId 
-        AND date(thc.dataConclusao / 1000, 'unixepoch', 'localtime') = date('now', 'localtime') 
+        AND thc.dataConclusao BETWEEN :startOfDayMillis AND :endOfDayMillis
         WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) 
         AND tic.categoryId IN (:allowedCategoryIds) 
         ORDER BY tic.horarioInicio ASC
         """
     )
-    fun getWidgetEventItems(startOfDayMillis: Long, endOfDayMillis: Long, dayOfWeekName: String, allowedCategoryIds: Set<String>): List<WidgetEventItem>
+    fun getWidgetEventItems(
+        startOfDayMillis: Long, 
+        endOfDayMillis: Long, 
+        dayOfWeekName: String, 
+        allowedCategoryIds: Set<String>
+    ): List<WidgetEventItem>
 
     @Query("DELETE FROM tabela_itens_cronograma")
     suspend fun clear()
