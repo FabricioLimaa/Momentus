@@ -2,6 +2,7 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.util.Result
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
@@ -30,7 +31,7 @@ class ForgotPasswordViewModel @Inject constructor(
                         is FirebaseAuthInvalidUserException -> "Nenhuma conta encontrada com este e-mail."
                         else -> "Falha ao enviar e-mail de recuperação. Tente novamente."
                     }
-                    viewModelScope.launch { _resetPasswordResult.emit(Result.Error(Exception(message))) }
+                    viewModelScope.launch { _resetPasswordResult.emit(Result.Error(AppError.AuthError(message))) }
                 }
         }
     }

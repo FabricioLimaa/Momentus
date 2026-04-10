@@ -7,8 +7,9 @@ import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateEvent
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,8 +27,8 @@ import javax.inject.Inject
 class CreateTemplateViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val templateRepository: TemplateRepository,
-    private val eventoRepository: EventoRepository,
-    private val alarmScheduler: AlarmScheduler // Adicionado
+    private val scheduleRepository: ScheduleRepository,
+    private val alarmScheduler: AlarmScheduler
 ) : ViewModel() {
 
     private val _events = MutableStateFlow<List<TemplateEvent>>(emptyList())
@@ -59,7 +60,7 @@ class CreateTemplateViewModel @Inject constructor(
     fun saveTemplate(onResult: (Result<Unit>) -> Unit) {
         val name = _templateName.value
         if (name.isBlank()) {
-            onResult(Result.Error(Exception("O nome do template não pode estar vazio.")))
+            onResult(Result.Error(AppError.EmptyNameError))
             return
         }
 
@@ -73,20 +74,20 @@ class CreateTemplateViewModel @Inject constructor(
                         titulo = eventUI.titulo,
                         descricao = eventUI.descricao,
                         data = null,
-                        diaDaSemana = null, // Lógica de dia da semana precisa ser adicionada aqui
+                        diaDaSemana = null, 
                         horarioInicio = LocalTime.parse(eventUI.horarioInicio),
                         horarioTermino = LocalTime.parse(eventUI.horarioTermino),
                         categoryId = eventUI.categoria.id,
                         templateId = newTemplate.id
                     )
-                    eventoRepository.insertItemCronograma(eventDB)
-                    alarmScheduler.schedule(eventDB) // Adicionado
+                    scheduleRepository.insertItem(eventDB)
+                    alarmScheduler.schedule(eventDB)
                 }
                 _templateName.value = ""
                 _events.value = emptyList()
                 onResult(Result.Success(Unit))
             } catch (e: Exception) {
-                onResult(Result.Error(e))
+                onResult(Result.Error(AppError.UnknownError(e)))
             }
         }
     }

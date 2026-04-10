@@ -15,6 +15,7 @@ import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.di.VersionCode
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.domain.usecase.DeleteScheduleItemUseCase
 import br.com.fabriciolima.momentus.domain.usecase.MarkHabitAsCompletedUseCase
 import br.com.fabriciolima.momentus.domain.usecase.SaveScheduleItemUseCase
@@ -89,7 +90,7 @@ data class CalendarUiState(
     val updateInfo: AppUpdateInfo? = null,
     val showUpdateBadge: Boolean = false,
     val updateProgress: UpdateProgress? = null,
-    val error: String? = null,
+    val error: AppError? = null,
     val successMessage: String? = null,
     val dialogState: DialogState = DialogState.Hidden,
     val isLoading: Boolean = false,
@@ -278,7 +279,7 @@ class CalendarViewModel @Inject constructor(
                     syncManager.enqueueSync() // Sincronização imediata garantida
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Falha ao excluir rotinas.") }
+                _uiState.update { it.copy(error = AppError.UnknownError(e)) }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -363,7 +364,7 @@ class CalendarViewModel @Inject constructor(
                 _logoutEvent.emit(LogoutEvent.Success)
 
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Falha ao fazer logout: ${e.message}") }
+                _uiState.update { it.copy(error = AppError.UnknownError(e)) }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -439,7 +440,7 @@ class CalendarViewModel @Inject constructor(
                     syncManager.enqueueSync() // Sincronização imediata garantida
                 }
                 is Result.Error -> {
-                    _uiState.update { it.copy(error = result.exception.message) }
+                    _uiState.update { it.copy(error = result.error) }
                 }
             }
         }
@@ -468,7 +469,7 @@ class CalendarViewModel @Inject constructor(
                      syncManager.enqueueSync() // Sincronização imediata garantida
                 }
                 is Result.Error -> {
-                    _uiState.update { it.copy(error = result.exception.message) }
+                    _uiState.update { it.copy(error = result.error) }
                 }
             }
         }
@@ -487,7 +488,7 @@ class CalendarViewModel @Inject constructor(
                         syncManager.enqueueSync() // Sincronização imediata garantida
                     }
                     is Result.Error -> {
-                        _uiState.value = _uiState.value.copy(error = result.exception.message)
+                        _uiState.value = _uiState.value.copy(error = result.error)
                     }
                 }
             } finally {
@@ -527,7 +528,7 @@ class CalendarViewModel @Inject constructor(
                 WidgetUpdater.requestUpdate(application)
                 syncManager.enqueueSync() // Sincronização imediata garantida
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Falha ao excluir rotinas.") }
+                _uiState.update { it.copy(error = AppError.UnknownError(e)) }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -546,7 +547,7 @@ class CalendarViewModel @Inject constructor(
             val result = categoryRepository.fetchGoogleCalendarEvents()
             when (result) {
                 is Result.Success -> _uiState.value = _uiState.value.copy(googleCalendarEvents = result.data, error = null)
-                is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.exception.message)
+                is Result.Error -> _uiState.value = _uiState.value.copy(googleCalendarEvents = emptyList(), error = result.error)
             }
         }
     }

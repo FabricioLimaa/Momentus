@@ -49,7 +49,9 @@ fun CreateTemplateRoute(
                         onNavigateBack()
                     }
                     is Result.Error -> {
-                        Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                        val error = result.error
+                        val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                     }
                 }
             }

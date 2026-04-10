@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -100,6 +101,7 @@ fun CalendarScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showSuccessCelebration by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val view = LocalView.current
     val darkTheme = isSystemInDarkTheme()
@@ -158,8 +160,9 @@ fun CalendarScreen(
     }
 
     LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(message = it)
+        uiState.error?.let { error ->
+            val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
+            snackbarHostState.showSnackbar(message = message)
             onErrorShown()
         }
     }

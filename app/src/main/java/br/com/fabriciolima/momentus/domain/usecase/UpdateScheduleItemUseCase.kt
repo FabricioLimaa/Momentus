@@ -4,6 +4,7 @@ import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
 import java.time.LocalDate
@@ -27,7 +28,7 @@ class UpdateScheduleItemUseCase @Inject constructor(
         syncWithGoogle: Boolean
     ): Result<Unit> {
         if (newEndTime.isBefore(newStartTime) || newEndTime == newStartTime) {
-            return Result.Error(IllegalArgumentException("O horário de término deve ser depois do início."))
+            return Result.Error(AppError.InvalidTimeError)
         }
 
         val updatedItem = item.copy(
@@ -39,18 +40,22 @@ class UpdateScheduleItemUseCase @Inject constructor(
             categoryId = newCategory.id
         )
 
-        if (syncWithGoogle) {
-            val result = categoryRepository.updateCompleteEvent(updatedItem, newCategory.cor)
-            if (result is Result.Error) {
-                return result
+        try {
+            if (syncWithGoogle) {
+                val result = categoryRepository.updateCompleteEvent(updatedItem, newCategory.cor)
+                if (result is Result.Error) {
+                    return result
+                }
+            } else {
+                scheduleRepository.insertItem(updatedItem)
             }
-        } else {
-            scheduleRepository.insertItem(updatedItem)
+
+            // Reagenda o alarme para a tarefa atualizada
+            alarmScheduler.schedule(updatedItem)
+
+            return Result.Success(Unit)
+        } catch (e: Exception) {
+            return Result.Error(AppError.UnknownError(e))
         }
-
-        // Reagenda o alarme para a tarefa atualizada
-        alarmScheduler.schedule(updatedItem)
-
-        return Result.Success(Unit)
     }
 }

@@ -56,9 +56,12 @@ fun TemplatesScreen(
     val context = LocalContext.current
 
     LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.onErrorShown()
+        uiState.error?.let { error ->
+            val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
+            scope.launch {
+                snackbarHostState.showSnackbar(message)
+                viewModel.onErrorShown()
+            }
         }
     }
 
@@ -74,7 +77,9 @@ fun TemplatesScreen(
                                 scope.launch { snackbarHostState.showSnackbar("Template salvo com sucesso!") }
                             }
                             is Result.Error -> {
-                                Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                                val error = result.error
+                                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                             }
                         }
                     }
@@ -91,7 +96,9 @@ fun TemplatesScreen(
                                 scope.launch { snackbarHostState.showSnackbar("Template importado com sucesso!") }
                             }
                             is Result.Error -> {
-                                scope.launch { snackbarHostState.showSnackbar(result.exception.message ?: "Erro desconhecido") }
+                                val error = result.error
+                                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao importar"
+                                scope.launch { snackbarHostState.showSnackbar(message) }
                             }
                         }
                     }
@@ -110,7 +117,9 @@ fun TemplatesScreen(
                                 scope.launch { snackbarHostState.showSnackbar("Template atualizado com sucesso!") }
                             }
                             is Result.Error -> {
-                                Toast.makeText(context, result.exception.message, Toast.LENGTH_LONG).show()
+                                val error = result.error
+                                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                             }
                         }
                     }
@@ -138,8 +147,15 @@ fun TemplatesScreen(
                 onDismiss = viewModel::onDialogDismiss,
                 onConfirm = { dates, saveToGoogle ->
                     viewModel.applyTemplateToDates(dialogState.template.template.id, dates, saveToGoogle) { result ->
-                        if (result is Result.Success) {
-                            scope.launch { snackbarHostState.showSnackbar("Template aplicado com sucesso!") }
+                        when (result) {
+                            is Result.Success -> {
+                                scope.launch { snackbarHostState.showSnackbar("Template aplicado com sucesso!") }
+                            }
+                            is Result.Error -> {
+                                val error = result.error
+                                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao aplicar"
+                                scope.launch { snackbarHostState.showSnackbar(message) }
+                            }
                         }
                     }
                 }
@@ -316,7 +332,7 @@ fun TemplateCard(
             }
 
             if (!isSyncing) {
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     templateComEventos.eventos.sortedBy { it.horarioInicio }.forEach { evento ->
@@ -441,7 +457,7 @@ fun CreateTemplateDialog(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             if (index < eventForms.lastIndex) {
-                                Divider()
+                                HorizontalDivider()
                             }
                         }
                         item {

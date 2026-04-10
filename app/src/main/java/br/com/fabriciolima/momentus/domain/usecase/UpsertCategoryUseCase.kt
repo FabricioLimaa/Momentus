@@ -2,7 +2,8 @@ package br.com.fabriciolima.momentus.domain.usecase
 
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.domain.exception.DuplicateCategoryNameException
+import br.com.fabriciolima.momentus.domain.error.AppError
+import br.com.fabriciolima.momentus.util.Result
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 import javax.inject.Inject
@@ -10,12 +11,12 @@ import javax.inject.Inject
 class UpsertCategoryUseCase @Inject constructor(
     private val categoryRepository: CategoryRepository
 ) {
-    suspend operator fun invoke(id: String?, nome: String, cor: String) {
+    suspend operator fun invoke(id: String?, nome: String, cor: String): Result<Unit> {
         val currentCategories = categoryRepository.allCategoriesWithMetas.first().map { it.category }
         val isDuplicate = currentCategories.any { it.nome.equals(nome, ignoreCase = true) && it.id != id }
 
         if (isDuplicate) {
-            throw DuplicateCategoryNameException()
+            return Result.Error(AppError.DuplicateCategoryNameError(nome))
         }
 
         val category = Category(
@@ -25,6 +26,12 @@ class UpsertCategoryUseCase @Inject constructor(
             descricao = null,
             tag = null
         )
-        categoryRepository.insertCategory(category)
+        
+        return try {
+            categoryRepository.insertCategory(category)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(AppError.UnknownError(e))
+        }
     }
 }

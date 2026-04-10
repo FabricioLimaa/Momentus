@@ -5,6 +5,7 @@ import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
@@ -30,7 +31,7 @@ class SaveScheduleItemUseCase @Inject constructor(
         saveToGoogle: Boolean
     ): Result<Unit> {
         if (endTime.isBefore(startTime) || endTime == startTime) {
-            return Result.Error(IllegalArgumentException("O horário de término deve ser depois do início."))
+            return Result.Error(AppError.InvalidTimeError)
         }
 
         var googleEventId: String? = null

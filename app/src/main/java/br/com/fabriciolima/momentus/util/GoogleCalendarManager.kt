@@ -3,7 +3,8 @@ package br.com.fabriciolima.momentus.util
 import android.content.Context
 import android.util.Log
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
+import br.com.fabriciolima.momentus.domain.error.AppError
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.javanet.NetHttpTransport
@@ -28,7 +29,6 @@ import javax.inject.Singleton
 
 /**
  * Interface para abstrair a implementação do GoogleCalendarManager.
- * Facilita a injeção de dependência e os testes.
  */
 interface IGoogleCalendarManager {
     fun syncEventsToCalendar()
@@ -44,7 +44,7 @@ interface IGoogleCalendarManager {
 @Singleton
 class GoogleCalendarManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val eventoRepository: EventoRepository // MUDANÇA: Injetar o repositório correto
+    private val scheduleRepository: ScheduleRepository 
 ) : IGoogleCalendarManager {
 
     private val calendar: Calendar? by lazy {
@@ -63,10 +63,9 @@ class GoogleCalendarManager @Inject constructor(
             .build()
     }
 
-    // Sincroniza todos os eventos da semana (baseado no Room) para o Google Calendar
     override fun syncEventsToCalendar() {
         if (calendar == null) {
-            Log.w("CalendarSync", "Não foi possível obter o serviço de calendário. O usuário está logado?")
+            Log.w("CalendarSync", "Não foi possível obter o serviço de calendário.")
             return
         }
 
@@ -74,27 +73,23 @@ class GoogleCalendarManager @Inject constructor(
             val diasDaSemana = listOf("SEG", "TER", "QUA", "QUI", "SEX", "SAB", "DOM")
 
             try {
-                // 1. Pega todos os eventos do Google Calendar
-                val calendarEvents = getCalendarEvents()
-                if (calendarEvents is Result.Error) {
-                    Log.e("CalendarSync", "Erro ao buscar eventos do Google Calendar", calendarEvents.exception)
+                val calendarEventsResult = getCalendarEvents()
+                if (calendarEventsResult is Result.Error) {
+                    Log.e("CalendarSync", "Erro ao buscar eventos: ${calendarEventsResult.error}")
                     return@launch
                 }
 
-                val eventsMap = (calendarEvents as Result.Success).data?.items?.associateBy { it.id }.orEmpty()
+                val eventsMap = (calendarEventsResult as Result.Success).data?.items?.associateBy { it.id }.orEmpty()
 
-                // 2. Itera sobre os eventos do Room e os sincroniza
                 diasDaSemana.forEach { dia ->
-                    val roomEvents = eventoRepository.getItensDoDia(dia).first()
+                    val roomEvents = scheduleRepository.getItemsForDay(dia).first()
 
                     roomEvents.forEach { roomEvent ->
                         val eventId = roomEvent.googleCalendarEventId
 
                         if (eventId != null && eventsMap.containsKey(eventId)) {
-                            // Evento existe, atualiza
                             updateEvent(roomEvent)
                         } else {
-                            // Evento não existe, insere
                             insertEvent(roomEvent)
                         }
                     }
@@ -102,12 +97,11 @@ class GoogleCalendarManager @Inject constructor(
                 Log.i("CalendarSync", "Sincronização com Google Calendar concluída.")
 
             } catch (e: Exception) {
-                Log.e("CalendarSync", "Falha na sincronização com o Google Calendar", e)
+                Log.e("CalendarSync", "Falha na sincronização", e)
             }
         }
     }
 
-    // Busca eventos do Google Calendar
     override suspend fun getCalendarEvents(): Result<Events?> = withContext(Dispatchers.IO) {
         try {
             val now = DateTime(System.currentTimeMillis())
@@ -119,15 +113,14 @@ class GoogleCalendarManager @Inject constructor(
                 ?.execute()
             Result.Success(events)
         } catch (e: IOException) {
-            Result.Error(e)
+            Result.Error(AppError.SyncError)
         }
     }
 
-    // Atualiza um evento existente
     override suspend fun updateEvent(item: ItemCronograma): Result<Event?> = withContext(Dispatchers.IO) {
         try {
             if (calendar == null || item.googleCalendarEventId.isNullOrEmpty()) {
-                return@withContext Result.Error(IllegalStateException("Serviço de calendário ou ID do evento nulos."))
+                return@withContext Result.Error(AppError.UnknownError(IllegalStateException("Serviço ou ID nulos.")))
             }
 
             val event = calendar!!.events().get("primary", item.googleCalendarEventId).execute()
@@ -136,43 +129,40 @@ class GoogleCalendarManager @Inject constructor(
             val result = calendar!!.events().update("primary", event.id, updatedEvent).execute()
             Result.Success(result)
         } catch (e: Exception) {
-            Result.Error(e)
+            Result.Error(AppError.UnknownError(e))
         }
     }
 
-    // Deleta um evento
     override suspend fun deleteEvent(eventId: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             calendar?.events()?.delete("primary", eventId)?.execute()
             Result.Success(Unit)
         } catch (e: Exception) {
-            Result.Error(e)
+            Result.Error(AppError.UnknownError(e))
         }
     }
 
-    // Insere um nova rotina
     override suspend fun insertEvent(item: ItemCronograma): Result<Event?> = withContext(Dispatchers.IO) {
         try {
             if (calendar == null) {
-                return@withContext Result.Error(IllegalStateException("Serviço de calendário nulo."))
+                return@withContext Result.Error(AppError.AuthRequiredError)
             }
             val newEvent = configureEvent(Event(), item)
             val createdEvent = calendar!!.events().insert("primary", newEvent).execute()
             Result.Success(createdEvent)
         } catch (e: Exception) {
-            Result.Error(e)
+            Result.Error(AppError.UnknownError(e))
         }
     }
 
     private fun configureEvent(event: Event, item: ItemCronograma): Event {
         val data = LocalDate.now()
-        val startDateTime = data.atTime(item.horarioInicio).atZone(ZoneId.systemDefault()).toInstant()
-        val endDateTime = data.atTime(item.horarioTermino).atZone(ZoneId.systemDefault()).toInstant()
+        val zoneId = ZoneId.systemDefault()
+        val startDateTime = data.atTime(item.horarioInicio).atZone(zoneId).toInstant()
+        val endDateTime = data.atTime(item.horarioTermino).atZone(zoneId).toInstant()
 
         event.summary = item.titulo
         event.description = item.descricao
-        // TODO: Implementar recorrência para eventos de template
-        // event.recurrence = listOf("RRULE:FREQ=WEEKLY;BYDAY=${item.diaDaSemana}")
         event.start = com.google.api.services.calendar.model.EventDateTime().setDateTime(DateTime(startDateTime.toEpochMilli()))
         event.end = com.google.api.services.calendar.model.EventDateTime().setDateTime(DateTime(endDateTime.toEpochMilli()))
 

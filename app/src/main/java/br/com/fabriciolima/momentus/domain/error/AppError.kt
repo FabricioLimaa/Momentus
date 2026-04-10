@@ -4,27 +4,39 @@ import androidx.annotation.StringRes
 import br.com.fabriciolima.momentus.R
 
 /**
- * Uma interface selada para representar erros de forma tipada em todo o aplicativo.
- * Isso permite que a UI reaja de forma diferente a cada tipo de erro.
+ * Interface selada para representar erros de forma tipada.
+ * Permite que a UI reaja de forma específica a cada falha (ex: botão de retry para rede).
  */
-sealed interface AppError {
-    val message: String? // Para erros dinâmicos vindos de APIs, etc.
-    @get:StringRes
-    val messageResId: Int? // Para mensagens de erro estáticas definidas em strings.xml
-
-    /**
-     * Um erro específico para quando o usuário tenta criar uma categoria com um nome que já existe.
-     */
+sealed class AppError(
+    val message: String? = null,
+    @StringRes val messageResId: Int? = null
+) {
+    // --- Erros de Domínio/Negócio ---
     data class DuplicateCategoryNameError(
-        override val message: String? = null,
-        @StringRes override val messageResId: Int? = R.string.error_duplicate_category_name
-    ) : AppError
+        val name: String
+    ) : AppError(messageResId = R.string.error_duplicate_category_name)
 
+    object InvalidTimeError : AppError(messageResId = R.string.error_invalid_time)
+    
+    object EmptyNameError : AppError(messageResId = R.string.error_empty_name)
+
+    // --- Erros de Rede/Sincronização ---
+    object NetworkError : AppError(messageResId = R.string.error_no_internet)
+    object SyncError : AppError(messageResId = R.string.error_sync_failed)
+
+    // --- Erros de Autenticação/Segurança ---
+    object AuthRequiredError : AppError(messageResId = R.string.error_auth_required)
+    object SessionExpiredError : AppError(messageResId = R.string.error_session_expired)
+    object ApiKeyError : AppError(messageResId = R.string.error_api_key_expired)
+    
     /**
-     * Um erro genérico para qualquer outra exceção não tratada especificamente.
+     * Erro genérico de autenticação com mensagem personalizada.
      */
-    data class UnknownError(
-        override val message: String?,
-        @StringRes override val messageResId: Int? = null
-    ) : AppError
+    data class AuthError(val errorMessage: String) : AppError(message = errorMessage)
+
+    // --- Erros de Integração Externa (Google Calendar) ---
+    object GoogleCalendarPermissionError : AppError(messageResId = R.string.error_google_calendar_permission)
+
+    // --- Erros Genéricos ---
+    data class UnknownError(val throwable: Throwable) : AppError(message = throwable.message)
 }

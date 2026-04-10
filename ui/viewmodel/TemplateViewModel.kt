@@ -250,7 +250,7 @@ class TemplateViewModel @Inject constructor(
                     _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
                     onResult(Result.Success(Unit))
                 } else {
-                    onResult(Result.Error(AppError.UnknownError(Exception("Template não encontrado."))))
+                    onResult(Result.Error(AppError.UnknownError(IllegalStateException("Template não encontrado."))))
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = AppError.UnknownError(e)) }

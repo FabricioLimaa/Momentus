@@ -14,6 +14,7 @@ import br.com.fabriciolima.momentus.data.model.Meta
 import br.com.fabriciolima.momentus.data.model.StatsResult
 import br.com.fabriciolima.momentus.data.source.GoogleCalendarSource
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.domain.usecase.CheckAndUnlockAchievementsUseCase
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.Result
@@ -189,7 +190,7 @@ open class CategoryRepository @Inject constructor(
             Log.e(TAG, "Erro durante a sincronização.", e)
             _syncMessage.value = "Falha na sincronização."
             _syncStatus.value = SyncStatus.OFFLINE
-            Result.Error(e)
+            Result.Error(AppError.SyncError)
         }
     }
 
@@ -339,7 +340,7 @@ open class CategoryRepository @Inject constructor(
                 scheduleRepository.insertItem(item.copy(googleCalendarEventId = result.data))
             }
             result
-        } catch (e: Exception) { Result.Error(e) }
+        } catch (e: Exception) { Result.Error(AppError.UnknownError(e)) }
     }
 
     suspend fun deleteCompleteEvent(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
@@ -347,7 +348,7 @@ open class CategoryRepository @Inject constructor(
             item.googleCalendarEventId?.let { googleCalendarSource.deleteEvent(it) }
             scheduleRepository.deleteScheduleItem(item)
             Result.Success(Unit)
-        } catch (e: Exception) { Result.Error(e) }
+        } catch (e: Exception) { Result.Error(AppError.UnknownError(e)) }
     }
 
     suspend fun fetchGoogleCalendarEvents(): Result<List<GoogleCalendarEvent>> = googleCalendarSource.fetchEvents()

@@ -9,6 +9,20 @@
     <string name="widget_no_events">Nenhum evento para hoje.</string>
     <string name="widget_description">Acompanhe seus eventos do dia diretamente na tela inicial.</string>
 
-    <!-- Erros -->
+    <!-- Erros de Domínio -->
     <string name="error_duplicate_category_name">Já existe uma categoria com este nome.</string>
+    <string name="error_invalid_time">O horário de término deve ser depois do início.</string>
+    <string name="error_empty_name">O nome não pode estar vazio.</string>
+
+    <!-- Erros de Rede e Sincronização -->
+    <string name="error_no_internet">Sem conexão com a internet. Verifique sua rede.</string>
+    <string name="error_sync_failed">Falha ao sincronizar com a nuvem. Tentaremos novamente em breve.</string>
+
+    <!-- Erros de Autenticação -->
+    <string name="error_auth_required">Você precisa estar logado para realizar esta ação.</string>
+    <string name="error_session_expired">Sua sessão expirou. Por favor, faça login novamente.</string>
+    <string name="error_api_key_expired">Houve um problema de conexão com o servidor. Por favor, atualize o aplicativo.</string>
+
+    <!-- Erros de Integração Externa -->
+    <string name="error_google_calendar_permission">O Momentus não tem permissão para acessar sua Agenda do Google.</string>
 </resources>

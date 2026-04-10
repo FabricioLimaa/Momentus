@@ -9,6 +9,7 @@ import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdateWorker
 import com.google.firebase.auth.FirebaseAuth
@@ -90,7 +91,7 @@ open class ScheduleRepository @Inject constructor(
      * Sincronização bidirecional do Cronograma.
      */
     suspend fun syncSchedule(): Result<Unit> = withContext(dispatcher) {
-        val currentUserId = userId ?: return@withContext Result.Error(Exception("Usuário não logado"))
+        val currentUserId = userId ?: return@withContext Result.Error(AppError.AuthRequiredError)
 
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection(EVENTS_COLLECTION)
@@ -121,25 +122,22 @@ open class ScheduleRepository @Inject constructor(
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao sincronizar cronograma.", e)
-            Result.Error(e)
+            Result.Error(AppError.SyncError)
         }
     }
 
-    // Método compatível com EventoRepository
     suspend fun syncEventos() = syncSchedule()
 
     fun getItemsForDay(day: String): Flow<List<ItemCronograma>> {
         return itemCronogramaDao.getItemsByDayOfWeek(day)
     }
 
-    // Método compatível com EventoRepository
     fun getItensDoDia(dia: String) = getItemsForDay(dia)
 
     suspend fun getItemById(itemId: String): ItemCronograma? {
         return itemCronogramaDao.getItemById(itemId)
     }
 
-    // Método compatível com EventoRepository
     suspend fun getItemCronograma(itemId: String) = getItemById(itemId)
 
     suspend fun insertItem(item: ItemCronograma) {
@@ -150,7 +148,6 @@ open class ScheduleRepository @Inject constructor(
         triggerWidgetUpdate()
     }
 
-    // Método compatível com EventoRepository
     suspend fun insertItemCronograma(item: ItemCronograma) = insertItem(item)
 
     suspend fun insertAllItems(items: List<ItemCronograma>) {
@@ -164,7 +161,6 @@ open class ScheduleRepository @Inject constructor(
         triggerWidgetUpdate()
     }
     
-    // Método compatível com EventoRepository
     suspend fun insertAll(items: List<ItemCronograma>) = insertAllItems(items)
 
     suspend fun updateItems(items: List<ItemCronograma>) {
@@ -178,7 +174,6 @@ open class ScheduleRepository @Inject constructor(
         triggerWidgetUpdate()
     }
 
-    // Método compatível com EventoRepository
     suspend fun updateItensCronograma(items: List<ItemCronograma>) = updateItems(items)
 
     suspend fun deleteScheduleItem(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
@@ -191,11 +186,10 @@ open class ScheduleRepository @Inject constructor(
             triggerWidgetUpdate()
             Result.Success(Unit)
         } catch (e: Exception) {
-            Result.Error(e)
+            Result.Error(AppError.UnknownError(e))
         }
     }
 
-    // Método compatível com EventoRepository
     suspend fun excluirEventoCompleto(item: ItemCronograma) = deleteScheduleItem(item)
 
     suspend fun deleteItemsByIds(ids: Set<String>) = withContext(dispatcher) {
@@ -211,7 +205,6 @@ open class ScheduleRepository @Inject constructor(
         triggerWidgetUpdate()
     }
 
-    // Método compatível com EventoRepository
     suspend fun deleteEventsByIds(ids: Set<String>) = deleteItemsByIds(ids)
 
     suspend fun deleteItemsByTemplateId(templateId: String) = withContext(dispatcher) {
@@ -221,7 +214,6 @@ open class ScheduleRepository @Inject constructor(
         }
     }
 
-    // Método compatível com EventoRepository
     suspend fun deleteEventsByTemplateId(templateId: String) = deleteItemsByTemplateId(templateId)
 
     suspend fun deleteItemsByCategoryId(categoryId: String) = withContext(dispatcher) {
@@ -231,7 +223,6 @@ open class ScheduleRepository @Inject constructor(
         }
     }
 
-    // Método compatível com EventoRepository
     suspend fun deleteEventsByCategoryId(categoryId: String) = deleteItemsByCategoryId(categoryId)
 
     fun getWidgetEvents(data: LocalDate, allowedCategoryIds: Set<String>): List<WidgetEventItem> {

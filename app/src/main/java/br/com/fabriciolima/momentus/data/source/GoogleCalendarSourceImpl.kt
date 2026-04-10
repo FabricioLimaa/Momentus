@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.ui.theme.getGoogleColorId
 import br.com.fabriciolima.momentus.ui.viewmodel.GoogleCalendarEvent
 import br.com.fabriciolima.momentus.util.Result
@@ -53,7 +54,7 @@ class GoogleCalendarSourceImpl @Inject constructor(
     ): Result<String?> = withContext(dispatcher) {
         try {
             val account = GoogleSignIn.getLastSignedInAccount(context)
-                ?: return@withContext Result.Error(Exception("Nenhuma conta Google conectada."))
+                ?: return@withContext Result.Error(AppError.AuthRequiredError)
 
             val service = getService(account)
             val googleColorId = cor?.let { getGoogleColorId(it) }
@@ -73,14 +74,14 @@ class GoogleCalendarSourceImpl @Inject constructor(
             Result.Success(createdEvent.id)
         } catch (e: Exception) {
             Log.e("GoogleCalendarSource", "Falha ao salvar evento", e)
-            Result.Error(Exception("Falha ao salvar evento no Google Calendar.", e))
+            Result.Error(AppError.UnknownError(e))
         }
     }
 
     override suspend fun updateEvent(item: ItemCronograma, cor: String?): Result<String?> = withContext(dispatcher) {
         try {
             val account = GoogleSignIn.getLastSignedInAccount(context)
-                ?: return@withContext Result.Error(Exception("Nenhuma conta Google conectada."))
+                ?: return@withContext Result.Error(AppError.AuthRequiredError)
 
             val service = getService(account)
             val googleColorId = cor?.let { getGoogleColorId(it) }
@@ -106,21 +107,21 @@ class GoogleCalendarSourceImpl @Inject constructor(
             Result.Success(updatedEventId)
         } catch (e: Exception) {
             Log.e("GoogleCalendarSource", "Falha ao atualizar evento", e)
-            Result.Error(Exception("Falha ao atualizar evento no Google Calendar.", e))
+            Result.Error(AppError.UnknownError(e))
         }
     }
 
     override suspend fun deleteEvent(eventId: String): Result<Unit> = withContext(dispatcher) {
         try {
             val account = GoogleSignIn.getLastSignedInAccount(context)
-                ?: return@withContext Result.Error(Exception("Nenhuma conta Google conectada."))
+                ?: return@withContext Result.Error(AppError.AuthRequiredError)
 
             val service = getService(account)
             service.events().delete("primary", eventId).execute()
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e("GoogleCalendarSource", "Falha ao excluir evento", e)
-            Result.Error(Exception("Falha ao excluir evento no Google Calendar.", e))
+            Result.Error(AppError.UnknownError(e))
         }
     }
 
@@ -147,7 +148,7 @@ class GoogleCalendarSourceImpl @Inject constructor(
             Result.Success(items)
         } catch (e: Exception) {
             Log.e("GoogleCalendarSource", "Falha ao buscar eventos", e)
-            Result.Error(Exception("Falha ao buscar eventos do Google Calendar.", e))
+            Result.Error(AppError.UnknownError(e))
         }
     }
 }

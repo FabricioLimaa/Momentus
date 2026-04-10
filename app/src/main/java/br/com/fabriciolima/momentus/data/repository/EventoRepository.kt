@@ -8,6 +8,7 @@ import br.com.fabriciolima.momentus.data.database.ItemCronogramaDao
 import br.com.fabriciolima.momentus.data.database.WidgetEventItem
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.util.Result
 import br.com.fabriciolima.momentus.widget.WidgetUpdateWorker
 import com.google.firebase.auth.FirebaseAuth
@@ -199,7 +200,7 @@ open class EventoRepository @Inject constructor(
             triggerWidgetUpdate()
             Result.Success(Unit)
         } catch (e: Exception) {
-            Result.Error(Exception("Falha ao excluir evento.", e))
+            Result.Error(AppError.UnknownError(e))
         }
     }
 

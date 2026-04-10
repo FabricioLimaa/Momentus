@@ -4,10 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.domain.error.AppError
-import br.com.fabriciolima.momentus.domain.exception.DuplicateCategoryNameException
 import br.com.fabriciolima.momentus.domain.usecase.DeleteCategoryUseCase
 import br.com.fabriciolima.momentus.domain.usecase.GetCategoriesUseCase
 import br.com.fabriciolima.momentus.domain.usecase.UpsertCategoryUseCase
+import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -81,38 +81,36 @@ class CategoryViewModel @Inject constructor(
         duracaoPadraoMinutos: Int = 0
     ) {
         viewModelScope.launch {
-            try {
-                // Se o seu UseCase ainda não suportar os novos campos, 
-                // por enquanto passaremos os básicos, mas o ideal é atualizar o UseCase na Fase 1.
-                upsertCategoryUseCase(id, nome, cor) 
-                onDialogDismiss()
-            } catch (e: DuplicateCategoryNameException) {
-                _uiState.update { it.copy(error = AppError.DuplicateCategoryNameError()) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = AppError.UnknownError(e.message)) }
+            val result = upsertCategoryUseCase(id, nome, cor)
+            
+            when (result) {
+                is Result.Success -> onDialogDismiss()
+                is Result.Error -> _uiState.update { it.copy(error = result.error) }
             }
         }
     }
     
-    // Método direto para salvar o objeto completo (usado pelo novo EditorScreen)
     fun insertCategory(category: Category) {
         viewModelScope.launch {
-            try {
-                upsertCategoryUseCase(
-                    id = category.id,
-                    nome = category.nome,
-                    cor = category.cor
-                )
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = AppError.UnknownError(e.message)) }
+            val result = upsertCategoryUseCase(
+                id = category.id,
+                nome = category.nome,
+                cor = category.cor
+            )
+            
+            if (result is Result.Error) {
+                _uiState.update { it.copy(error = result.error) }
             }
         }
     }
 
     fun deleteCategory(category: Category) {
         viewModelScope.launch {
-            deleteCategoryUseCase(category)
-            onDialogDismiss()
+            val result = deleteCategoryUseCase(category)
+            when (result) {
+                is Result.Success -> onDialogDismiss()
+                is Result.Error -> _uiState.update { it.copy(error = result.error) }
+            }
         }
     }
 

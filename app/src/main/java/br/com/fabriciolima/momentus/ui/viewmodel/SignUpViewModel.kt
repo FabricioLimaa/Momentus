@@ -3,6 +3,7 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.util.Result
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -33,7 +34,7 @@ class SignUpViewModel @Inject constructor(
                 .addOnSuccessListener { authResult ->
                     val userId = authResult.user?.uid ?: run {
                         viewModelScope.launch { 
-                            _signUpResult.emit(Result.Error(Exception("Falha ao obter ID do usuário.")))
+                            _signUpResult.emit(Result.Error(AppError.AuthError("Falha ao obter ID do usuário.")))
                         }
                         return@addOnSuccessListener
                     }
@@ -51,7 +52,7 @@ class SignUpViewModel @Inject constructor(
                          }
                         .addOnFailureListener { e -> 
                             Log.w("SignUpViewModel", "Falha ao salvar dados do usuário no Firestore", e)
-                            viewModelScope.launch { _signUpResult.emit(Result.Error(Exception("Falha ao salvar dados do usuário."))) }
+                            viewModelScope.launch { _signUpResult.emit(Result.Error(AppError.UnknownError(e))) }
                         }
                 }
                 .addOnFailureListener { e ->
@@ -60,7 +61,7 @@ class SignUpViewModel @Inject constructor(
                         is FirebaseAuthWeakPasswordException -> "A senha é muito fraca. Use pelo menos 6 caracteres."
                         else -> e.message ?: "Ocorreu uma falha no cadastro. Tente novamente."
                     }
-                     viewModelScope.launch { _signUpResult.emit(Result.Error(Exception(message))) }
+                     viewModelScope.launch { _signUpResult.emit(Result.Error(AppError.AuthError(message))) }
                 }
         }
     }
