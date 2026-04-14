@@ -8,7 +8,7 @@ import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.model.SharedTemplate
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import br.com.fabriciolima.momentus.data.repository.TemplateRepository
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,8 +32,8 @@ data class TemplateDetailUiState(
 class TemplateDetailViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val templateRepository: TemplateRepository,
-    private val eventoRepository: EventoRepository,
-    private val alarmScheduler: AlarmScheduler // Adicionado
+    private val scheduleRepository: ScheduleRepository,
+    private val alarmScheduler: AlarmScheduler
 ) : ViewModel() {
 
     private val _templateId = MutableStateFlow<String?>("")
@@ -75,27 +75,20 @@ class TemplateDetailViewModel @Inject constructor(
                 titulo = titulo,
                 descricao = descricao,
                 data = null,
-                diaDaSemana = null, // Lógica de dia da semana precisa ser adicionada aqui
+                diaDaSemana = null, 
                 horarioInicio = horarioInicio,
                 horarioTermino = horarioTermino,
                 categoryId = category.id,
                 templateId = templateId
             )
-            eventoRepository.insertItemCronograma(novoEvento)
-            alarmScheduler.schedule(novoEvento) // Adicionado
+            scheduleRepository.insertItem(novoEvento)
+            alarmScheduler.schedule(novoEvento)
         }
     }
 
     fun reorderEventos(fromId: String, toId: String) {
         viewModelScope.launch {
-            // TODO: Persistir a nova ordem requer uma mudança no banco de dados.
-            // O modelo de dados atual do 'ItemCronograma' não possui um campo de 'ordem' ou 'posição'.
-            // Para salvar corretamente a lista reordenada, você deve:
-            // 1. Adicionar um campo 'orderIndex: Int' à classe de dados ItemCronograma.
-            // 2. Criar uma migração de banco de dados do Room para a alteração.
-            // 3. Nesta função, obter a lista, reordená-la, atualizar o 'orderIndex'
-            //    para todos os itens da lista e, em seguida, chamar repository.updateItensCronograma(reorderedList).
-            // Por enquanto, esta função é um placeholder para resolver o erro de compilação.
+            // Placeholder para futura implementação de reordenação persistente
         }
     }
 }

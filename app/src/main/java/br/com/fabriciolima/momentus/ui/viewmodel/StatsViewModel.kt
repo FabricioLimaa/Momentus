@@ -2,15 +2,12 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.domain.usecase.GetStatsUseCase
+import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -27,7 +24,9 @@ data class StatsUiState(
     val filter: StatsFilter = StatsFilter.MONTH,
     val completionRates: List<CompletionRate> = emptyList(),
     val barChartData: List<BarChartData> = emptyList(),
-    val streakCount: Int = 0
+    val streakCount: Int = 0,
+    val error: AppError? = null,
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel
@@ -39,28 +38,41 @@ class StatsViewModel @Inject constructor(
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val statsData = _uiState.flatMapLatest {
-        getStatsUseCase(it.filter)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = null
-    )
+    private val statsData = _uiState
+        .map { it.filter }
+        .distinctUntilChanged()
+        .flatMapLatest { filter ->
+            getStatsUseCase(filter)
+        }
 
     init {
         viewModelScope.launch {
-            statsData.collect { data ->
-                if (data == null) return@collect
-                _uiState.value = _uiState.value.copy(
-                    completionRates = data.completionRates,
-                    barChartData = data.barChartData,
-                    streakCount = data.streakCount
-                )
+            _uiState.update { it.copy(isLoading = true) }
+            statsData.collect { result ->
+                when (result) {
+                    is Result.Success -> {
+                        val data = result.data
+                        _uiState.update { it.copy(
+                            completionRates = data.completionRates,
+                            barChartData = data.barChartData,
+                            streakCount = data.streakCount,
+                            error = null,
+                            isLoading = false
+                        )}
+                    }
+                    is Result.Error -> {
+                        _uiState.update { it.copy(error = result.error, isLoading = false) }
+                    }
+                }
             }
         }
     }
 
     fun setFilter(filter: StatsFilter) {
-        _uiState.value = _uiState.value.copy(filter = filter)
+        _uiState.update { it.copy(filter = filter) }
+    }
+
+    fun onErrorShown() {
+        _uiState.update { it.copy(error = null) }
     }
 }

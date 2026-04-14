@@ -8,7 +8,7 @@ import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -23,16 +23,16 @@ data class CronogramaUiState(
 @HiltViewModel
 class CronogramaViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
-    private val eventoRepository: EventoRepository
+    private val scheduleRepository: ScheduleRepository
 ) : ViewModel() {
 
     val uiState: LiveData<CronogramaUiState> = combine(
-        eventoRepository.todosOsItensDoCronograma,
+        scheduleRepository.allScheduleItems,
         categoryRepository.allCategoriesWithMetas,
         categoryRepository.idsHabitosConcluidos
     ) { itens: List<ItemCronograma>, categoriesWithMetas: List<CategoryWithMeta>, habitos: List<String> ->
         CronogramaUiState(
-            itens = itens.sortedBy { it.ordem }, // Garante a ordem correta
+            itens = itens.sortedBy { it.ordem }, 
             categories = categoriesWithMetas.map { it.category },
             habitosConcluidos = habitos.toSet()
         )
@@ -61,11 +61,10 @@ class CronogramaViewModel @Inject constructor(
                 val item = listaAtual.removeAt(fromIndex)
                 listaAtual.add(toIndex, item)
 
-                // Atualiza a propriedade 'ordem' de todos os itens
                 val itensAtualizados = listaAtual.mapIndexed { index, it ->
                     it.copy(ordem = index)
                 }
-                eventoRepository.updateItensCronograma(itensAtualizados)
+                scheduleRepository.updateItems(itensAtualizados)
             }
         }
     }

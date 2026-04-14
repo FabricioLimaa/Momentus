@@ -3,9 +3,11 @@ package br.com.fabriciolima.momentus.domain.usecase
 import br.com.fabriciolima.momentus.data.database.StatsSummary
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.di.IoDispatcher
+import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.ui.viewmodel.BarChartData
 import br.com.fabriciolima.momentus.ui.viewmodel.CompletionRate
 import br.com.fabriciolima.momentus.ui.viewmodel.StatsFilter
+import br.com.fabriciolima.momentus.util.Result
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.*
 import java.time.Instant
@@ -25,7 +27,7 @@ class GetStatsUseCase @Inject constructor(
     private val repository: CategoryRepository,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
-    operator fun invoke(filter: StatsFilter): Flow<StatsData> {
+    operator fun invoke(filter: StatsFilter): Flow<Result<StatsData>> {
         val since = LocalDate.now().minusDays(filter.days.toLong())
         val sinceMillis = since.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val dayOfWeekCountsInPeriod = getDayOfWeekCounts(since)
@@ -33,7 +35,8 @@ class GetStatsUseCase @Inject constructor(
         return repository.getStatsSummary(sinceMillis).flatMapLatest { summaries ->
             if (summaries.isEmpty()) {
                 repository.getAllCompletionDates().map { dates ->
-                    StatsData(streakCount = calculateStreakSync(dates))
+                    val data = StatsData(streakCount = calculateStreakSync(dates))
+                    Result.Success(data) as Result<StatsData>
                 }
             } else {
                 val schedulableFlows = summaries.map { summary ->
@@ -65,14 +68,17 @@ class GetStatsUseCase @Inject constructor(
                         } else null
                     }
 
-                    StatsData(
+                    val data = StatsData(
                         completionRates = completionRates,
                         barChartData = barChartData,
                         streakCount = calculateStreakSync(completionDates)
                     )
+                    Result.Success(data) as Result<StatsData>
                 }
             }
-        }
+        }.catch { e ->
+            emit(Result.Error(AppError.UnknownError(e)))
+        }.flowOn(dispatcher)
     }
 
     private fun calculateStreakSync(completionDatesMillis: List<Long>): Int {

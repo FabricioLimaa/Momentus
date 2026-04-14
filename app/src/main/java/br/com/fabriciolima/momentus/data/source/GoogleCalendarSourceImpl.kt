@@ -128,7 +128,7 @@ class GoogleCalendarSourceImpl @Inject constructor(
     override suspend fun fetchEvents(): Result<List<GoogleCalendarEvent>> = withContext(dispatcher) {
         try {
             val account = GoogleSignIn.getLastSignedInAccount(context)
-                ?: return@withContext Result.Success(emptyList()) // Não é um erro, apenas não há conta
+                ?: return@withContext Result.Success(emptyList())
 
             val service = getService(account)
             val now = DateTime(System.currentTimeMillis())

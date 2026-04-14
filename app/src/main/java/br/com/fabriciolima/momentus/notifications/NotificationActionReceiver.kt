@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
-import br.com.fabriciolima.momentus.data.repository.EventoRepository
+import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 @InstallIn(SingletonComponent::class)
 interface NotificationActionEntryPoint {
     fun categoryRepository(): CategoryRepository
-    fun eventoRepository(): EventoRepository // Adicionado
+    fun scheduleRepository(): ScheduleRepository
 }
 
 class NotificationActionReceiver : BroadcastReceiver() {
@@ -52,18 +52,18 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 }
             }
             ACTION_SNOOZE -> {
-                val eventoRepository = hiltEntryPoint.eventoRepository()
+                val scheduleRepository = hiltEntryPoint.scheduleRepository()
                 val alarmScheduler = AlarmScheduler(context)
                 MainScope().launch {
                     Log.d("NotificationAction", "[AÇÃO] Adiar o evento $eventId")
-                    val originalEvent = eventoRepository.getItemCronograma(eventId)
+                    val originalEvent = scheduleRepository.getItemById(eventId)
                     if (originalEvent != null) {
                         val snoozedEvent = originalEvent.copy(
                             horarioInicio = originalEvent.horarioInicio.plusMinutes(15),
                             horarioTermino = originalEvent.horarioTermino.plusMinutes(15)
                         )
-                        eventoRepository.insertItemCronograma(snoozedEvent) // Salva a atualização
-                        alarmScheduler.schedule(snoozedEvent) // Reagenda o alarme
+                        scheduleRepository.insertItem(snoozedEvent) 
+                        alarmScheduler.schedule(snoozedEvent)
                         notificationManager.cancel(eventId.hashCode())
                         Log.d("NotificationAction", "[CONCLUÍDO] Evento $eventId adiado e reagendado.")
                     } else {

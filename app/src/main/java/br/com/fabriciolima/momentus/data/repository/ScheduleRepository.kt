@@ -37,7 +37,8 @@ open class ScheduleRepository @Inject constructor(
     private val habitoConcluidoDao: HabitoConcluidoDao,
     @IoDispatcher private val dispatcher: CoroutineDispatcher,
     @ApplicationContext private val context: Context
-) {
+) : IScheduleRepository { // Implementação da interface unificadora
+
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private var scheduleListener: ListenerRegistration? = null
@@ -55,44 +56,32 @@ open class ScheduleRepository @Inject constructor(
     private val userId: String?
         get() = auth.currentUser?.uid
 
-    // Propriedade compatível com EventoRepository
-    val todosOsItensDoCronograma: Flow<List<ItemCronograma>> = itemCronogramaDao.getAllItems()
-    
-    // Propriedade oficial do ScheduleRepository
-    val allScheduleItems: Flow<List<ItemCronograma>> = todosOsItensDoCronograma
+    override val todosOsItensDoCronograma: Flow<List<ItemCronograma>> = itemCronogramaDao.getAllItems()
+    override val allScheduleItems: Flow<List<ItemCronograma>> = todosOsItensDoCronograma
 
-    fun startListeningForChanges() {
+    override fun startListeningForChanges() {
         val currentUserId = this.userId
-        Log.d(TAG, "Iniciando listener do cronograma. UID: $currentUserId")
         if (currentUserId == null || scheduleListener != null) return
 
         val scheduleCollection = firestore.collection("users").document(currentUserId).collection(EVENTS_COLLECTION)
         scheduleListener = scheduleCollection.addSnapshotListener { snapshots, e ->
-            if (e != null) {
-                Log.w(TAG, "Erro ao escutar mudanças no cronograma.", e)
-                return@addSnapshotListener
-            }
+            if (e != null) return@addSnapshotListener
             snapshots?.toObjects<ItemCronograma>()?.let {
                 CoroutineScope(dispatcher).launch {
                     itemCronogramaDao.insertAll(it)
-                    Log.d(TAG, "${it.size} tarefas sincronizadas em tempo real.")
                     triggerWidgetUpdate()
                 }
             }
         }
     }
 
-    fun stopListeningForChanges() {
+    override fun stopListeningForChanges() {
         scheduleListener?.remove()
         scheduleListener = null
     }
 
-    /**
-     * Sincronização bidirecional do Cronograma.
-     */
-    suspend fun syncSchedule(): Result<Unit> = withContext(dispatcher) {
+    override suspend fun syncSchedule(): Result<Unit> = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext Result.Error(AppError.AuthRequiredError)
-
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection(EVENTS_COLLECTION)
             val localItems = itemCronogramaDao.getAllSync().associateBy { it.id }
@@ -118,39 +107,28 @@ open class ScheduleRepository @Inject constructor(
                 itemCronogramaDao.insertAll(itemsToDownload.toList())
                 triggerWidgetUpdate()
             }
-
             Result.Success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Erro ao sincronizar cronograma.", e)
             Result.Error(AppError.SyncError)
         }
     }
 
-    suspend fun syncEventos() = syncSchedule()
+    override suspend fun syncEventos() = syncSchedule()
 
-    fun getItemsForDay(day: String): Flow<List<ItemCronograma>> {
-        return itemCronogramaDao.getItemsByDayOfWeek(day)
-    }
+    override fun getItemsForDay(day: String): Flow<List<ItemCronograma>> = itemCronogramaDao.getItemsByDayOfWeek(day)
+    override fun getItensDoDia(dia: String) = getItemsForDay(dia)
 
-    fun getItensDoDia(dia: String) = getItemsForDay(dia)
+    override suspend fun getItemById(itemId: String): ItemCronograma? = itemCronogramaDao.getItemById(itemId)
+    override suspend fun getItemCronograma(itemId: String) = getItemById(itemId)
 
-    suspend fun getItemById(itemId: String): ItemCronograma? {
-        return itemCronogramaDao.getItemById(itemId)
-    }
-
-    suspend fun getItemCronograma(itemId: String) = getItemById(itemId)
-
-    suspend fun insertItem(item: ItemCronograma) {
+    override suspend fun insertItem(item: ItemCronograma) {
         itemCronogramaDao.insert(item)
-        userId?.let {
-            firestore.collection("users").document(it).collection(EVENTS_COLLECTION).document(item.id).set(item)
-        }
+        userId?.let { firestore.collection("users").document(it).collection(EVENTS_COLLECTION).document(item.id).set(item) }
         triggerWidgetUpdate()
     }
+    override suspend fun insertItemCronograma(item: ItemCronograma) = insertItem(item)
 
-    suspend fun insertItemCronograma(item: ItemCronograma) = insertItem(item)
-
-    suspend fun insertAllItems(items: List<ItemCronograma>) {
+    override suspend fun insertAllItems(items: List<ItemCronograma>) {
         itemCronogramaDao.insertAll(items)
         userId?.let { userId ->
             val batch = firestore.batch()
@@ -160,10 +138,9 @@ open class ScheduleRepository @Inject constructor(
         }
         triggerWidgetUpdate()
     }
-    
-    suspend fun insertAll(items: List<ItemCronograma>) = insertAllItems(items)
+    override suspend fun insertAll(items: List<ItemCronograma>) = insertAllItems(items)
 
-    suspend fun updateItems(items: List<ItemCronograma>) {
+    override suspend fun updateItems(items: List<ItemCronograma>) {
         itemCronogramaDao.updateAll(items)
         userId?.let { userId ->
             val batch = firestore.batch()
@@ -173,26 +150,20 @@ open class ScheduleRepository @Inject constructor(
         }
         triggerWidgetUpdate()
     }
+    override suspend fun updateItensCronograma(items: List<ItemCronograma>) = updateItems(items)
 
-    suspend fun updateItensCronograma(items: List<ItemCronograma>) = updateItems(items)
-
-    suspend fun deleteScheduleItem(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
+    override suspend fun deleteScheduleItem(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
         try {
             habitoConcluidoDao.delete(item.id)
             itemCronogramaDao.delete(item)
-            userId?.let {
-                firestore.collection("users").document(it).collection(EVENTS_COLLECTION).document(item.id).delete()
-            }
+            userId?.let { firestore.collection("users").document(it).collection(EVENTS_COLLECTION).document(item.id).delete() }
             triggerWidgetUpdate()
             Result.Success(Unit)
-        } catch (e: Exception) {
-            Result.Error(AppError.UnknownError(e))
-        }
+        } catch (e: Exception) { Result.Error(AppError.UnknownError(e)) }
     }
+    override suspend fun excluirEventoCompleto(item: ItemCronograma) = deleteScheduleItem(item)
 
-    suspend fun excluirEventoCompleto(item: ItemCronograma) = deleteScheduleItem(item)
-
-    suspend fun deleteItemsByIds(ids: Set<String>) = withContext(dispatcher) {
+    override suspend fun deleteItemsByIds(ids: Set<String>) = withContext(dispatcher) {
         if (ids.isEmpty()) return@withContext
         habitoConcluidoDao.deleteByIds(ids)
         itemCronogramaDao.deleteByIds(ids)
@@ -204,28 +175,21 @@ open class ScheduleRepository @Inject constructor(
         }
         triggerWidgetUpdate()
     }
+    override suspend fun deleteEventsByIds(ids: Set<String>) = deleteItemsByIds(ids)
 
-    suspend fun deleteEventsByIds(ids: Set<String>) = deleteItemsByIds(ids)
-
-    suspend fun deleteItemsByTemplateId(templateId: String) = withContext(dispatcher) {
+    override suspend fun deleteItemsByTemplateId(templateId: String) = withContext(dispatcher) {
         val idsToDelete = itemCronogramaDao.getIdsByTemplateId(templateId).toSet()
-        if (idsToDelete.isNotEmpty()) {
-            deleteItemsByIds(idsToDelete)
-        }
+        if (idsToDelete.isNotEmpty()) deleteItemsByIds(idsToDelete)
     }
+    override suspend fun deleteEventsByTemplateId(templateId: String) = deleteItemsByTemplateId(templateId)
 
-    suspend fun deleteEventsByTemplateId(templateId: String) = deleteItemsByTemplateId(templateId)
-
-    suspend fun deleteItemsByCategoryId(categoryId: String) = withContext(dispatcher) {
+    override suspend fun deleteItemsByCategoryId(categoryId: String) = withContext(dispatcher) {
         val idsToDelete = itemCronogramaDao.getIdsByCategoryId(categoryId).toSet()
-        if (idsToDelete.isNotEmpty()) {
-            deleteItemsByIds(idsToDelete)
-        }
+        if (idsToDelete.isNotEmpty()) deleteItemsByIds(idsToDelete)
     }
+    override suspend fun deleteEventsByCategoryId(categoryId: String) = deleteItemsByCategoryId(categoryId)
 
-    suspend fun deleteEventsByCategoryId(categoryId: String) = deleteItemsByCategoryId(categoryId)
-
-    fun getWidgetEvents(data: LocalDate, allowedCategoryIds: Set<String>): List<WidgetEventItem> {
+    override fun getWidgetEvents(data: LocalDate, allowedCategoryIds: Set<String>): List<WidgetEventItem> {
         if (allowedCategoryIds.isEmpty()) return emptyList()
         val startOfDayMillis = data.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
         val endOfDayMillis = data.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() - 1
@@ -233,7 +197,7 @@ open class ScheduleRepository @Inject constructor(
         return itemCronogramaDao.getWidgetEventItems(startOfDayMillis, endOfDayMillis, dayOfWeekName, allowedCategoryIds)
     }
 
-    suspend fun clear() = withContext(dispatcher) {
+    override suspend fun clear() = withContext(dispatcher) {
         habitoConcluidoDao.clear()
         itemCronogramaDao.clear()
         triggerWidgetUpdate()
