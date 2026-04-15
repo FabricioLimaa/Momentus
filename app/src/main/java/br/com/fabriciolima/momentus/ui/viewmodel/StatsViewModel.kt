@@ -9,12 +9,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
-enum class StatsFilter(val days: Long) {
-    WEEK(7L),
-    MONTH(30L),
-    YEAR(365L)
+enum class StatsFilter(val days: Int) {
+    WEEK(7),
+    MONTH(30),
+    YEAR(365)
 }
 
 data class CompletionRate(val categoryName: String, val categoryColor: String, val percentage: Float)
@@ -25,6 +26,10 @@ data class StatsUiState(
     val completionRates: List<CompletionRate> = emptyList(),
     val barChartData: List<BarChartData> = emptyList(),
     val streakCount: Int = 0,
+    val totalCompletions: Int = 0,
+    val bestCategory: String? = null,
+    val dailyAverage: Float = 0f,
+    val completionDates: List<LocalDate> = emptyList(),
     val error: AppError? = null,
     val isLoading: Boolean = false
 )
@@ -56,6 +61,10 @@ class StatsViewModel @Inject constructor(
                             completionRates = data.completionRates,
                             barChartData = data.barChartData,
                             streakCount = data.streakCount,
+                            totalCompletions = data.totalCompletions,
+                            bestCategory = data.bestCategory,
+                            dailyAverage = data.dailyAverage,
+                            completionDates = data.completionDates,
                             error = null,
                             isLoading = false
                         )}

@@ -4,8 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,7 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,6 +33,11 @@ import br.com.fabriciolima.momentus.ui.viewmodel.BarChartData
 import br.com.fabriciolima.momentus.ui.viewmodel.CompletionRate
 import br.com.fabriciolima.momentus.ui.viewmodel.StatsFilter
 import br.com.fabriciolima.momentus.ui.viewmodel.StatsViewModel
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,11 +46,22 @@ fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            val messageText = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
+            snackbarHostState.showSnackbar(message = messageText)
+            viewModel.onErrorShown()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Progresso e Estatísticas") },
+                title = { Text("Estatísticas Premium") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -50,64 +75,194 @@ fun StatsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Filtro de Período",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
                 Spacer(modifier = Modifier.height(8.dp))
                 FilterButtons(
                     selectedFilter = uiState.filter, 
                     onFilterSelected = viewModel::setFilter 
                 )
             }
+
+            // --- INSIGHTS PREMIUM ---
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    InsightCardMinimal(
+                        title = "Total",
+                        value = uiState.totalCompletions.toString(),
+                        icon = Icons.Default.EmojiEvents,
+                        modifier = Modifier.weight(1f),
+                        color = Color(0xFF6366F1)
+                    )
+                    InsightCardMinimal(
+                        title = "Média",
+                        value = "%.1f".format(Locale.getDefault(), uiState.dailyAverage),
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        modifier = Modifier.weight(1f),
+                        color = Color(0xFF10B981)
+                    )
+                }
+            }
+
+            item {
+                if (uiState.bestCategory != null) {
+                    InsightCardMinimal(
+                        title = "Categoria Destaque",
+                        value = uiState.bestCategory ?: "",
+                        icon = Icons.Default.BarChart,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFFF59E0B)
+                    )
+                }
+            }
+
+            item {
+                Text(
+                    text = "Consistência Semanal",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                WeeklyProgressRings(dates = uiState.completionDates)
+            }
             
             item {
                 Text(
-                    text = "Total de Hábitos Concluídos",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = "Frequência por Categoria",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                 Spacer(modifier = Modifier.height(8.dp))
+                 Spacer(modifier = Modifier.height(12.dp))
                  if (uiState.barChartData.isNotEmpty()) {
                     BarChart(data = uiState.barChartData)
                  } else {
-                     Text("Nenhum dado de conclusão para este período.")
+                    Text("Dados insuficientes para o gráfico.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                  }
             }
 
             item {
                 HorizontalDivider()
                 Text(
-                    text = "Taxa de Conclusão",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = "Taxa de Sucesso",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Percentual de hábitos concluídos em relação aos agendados.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            items(
-                items = uiState.completionRates,
-                key = { it.categoryName } 
-            ) { rate ->
-                CompletionRateItem(rate = rate)
             }
 
             if (uiState.completionRates.isEmpty()) {
                 item {
-                    Text("Nenhuma taxa de conclusão para este período.")
+                    Text(
+                        "Nenhuma atividade registrada no período.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                items(uiState.completionRates) { rate ->
+                    CompletionRateItem(rate = rate)
                 }
             }
+
+            item { Spacer(modifier = Modifier.height(32.dp)) }
+        }
+    }
+}
+
+@Composable
+fun InsightCardMinimal(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    color: Color
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = color.copy(alpha = 0.08f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = color.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+/**
+ * ANÉIS DE PROGRESSO SEMANAL: Visualização fixa de Domingo a Sábado com nomes abreviados.
+ */
+@Composable
+fun WeeklyProgressRings(dates: List<LocalDate>) {
+    val today = LocalDate.now()
+    val sunday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+    val completionSet = dates.toSet()
+    val ptBr = Locale.forLanguageTag("pt-BR")
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        for (i in 0 until 7) {
+            val date = sunday.plusDays(i.toLong())
+            val isActive = completionSet.contains(date)
             
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        progress = { if (isActive) 1f else 0f },
+                        modifier = Modifier.size(38.dp),
+                        color = if (isActive) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        strokeWidth = 3.dp,
+                        trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                        strokeCap = StrokeCap.Round
+                    )
+                    if (isActive) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // Exibe o dia abreviado (DOM, SEG, TER...)
+                Text(
+                    text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, ptBr).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 9.sp,
+                    fontWeight = if (date == today) FontWeight.Bold else FontWeight.Normal,
+                    color = if (date == today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = date.dayOfMonth.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 10.sp,
+                    color = if (date == today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }
@@ -136,64 +291,43 @@ fun FilterButtons(selectedFilter: StatsFilter, onFilterSelected: (StatsFilter) -
 @Composable
 fun CompletionRateItem(rate: CompletionRate) {
     val categoryColor = remember(rate.categoryColor) {
-        try {
-            Color(android.graphics.Color.parseColor(rate.categoryColor))
-        } catch (e: Exception) {
-            Color.Gray
-        }
+        try { Color(android.graphics.Color.parseColor(rate.categoryColor)) } catch (e: Exception) { Color.Gray }
     }
 
-    Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    text = rate.categoryName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-                Text(
-                    text = "${(rate.percentage * 100).toInt()}%",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { rate.percentage },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = categoryColor,
-                strokeCap = StrokeCap.Round
-            )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(text = rate.categoryName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(text = "${(rate.percentage * 100).toInt()}%", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = categoryColor)
         }
+        Spacer(modifier = Modifier.height(6.dp))
+        LinearProgressIndicator(
+            progress = { rate.percentage },
+            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+            color = categoryColor,
+            trackColor = categoryColor.copy(alpha = 0.1f),
+            strokeCap = StrokeCap.Round
+        )
     }
 }
 
 @Composable
 fun BarChart(data: List<BarChartData>) {
-    val maxValue = remember(data) { data.maxOfOrNull { it.value } ?: 0 }
+    if (data.isEmpty()) return
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    val maxValue = remember(data) { data.maxOfOrNull { it.value } ?: 1 }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .height(200.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).height(160.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.Bottom
         ) {
             data.forEach { item ->
                 val itemColor = remember(item.color) {
-                    try {
-                        Color(android.graphics.Color.parseColor(item.color))
-                    } catch (e: Exception) {
-                        Color.LightGray
-                    }
+                    try { Color(android.graphics.Color.parseColor(item.color)) } catch (e: Exception) { Color.Gray }
                 }
 
                 Column(
@@ -201,22 +335,17 @@ fun BarChart(data: List<BarChartData>) {
                     verticalArrangement = Arrangement.Bottom,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(text = item.value.toString(), fontSize = 12.sp)
+                    Text(text = item.value.toString(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.6f)
-                            .fillMaxHeight(if (maxValue > 0) item.value.toFloat() / maxValue else 0f)
-                            .clip(MaterialTheme.shapes.small)
+                            .fillMaxWidth(0.4f)
+                            .fillMaxHeight(item.value.toFloat() / maxValue.toFloat())
+                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                             .background(itemColor)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = item.label,
-                        fontSize = 10.sp, 
-                        maxLines = 1, 
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = item.label, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                 }
             }
         }
