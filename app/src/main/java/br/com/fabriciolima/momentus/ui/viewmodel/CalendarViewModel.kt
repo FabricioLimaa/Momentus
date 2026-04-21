@@ -24,6 +24,7 @@ import br.com.fabriciolima.momentus.domain.usecase.UpdateScheduleItemUseCase
 import br.com.fabriciolima.momentus.notifications.AlarmScheduler
 import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import br.com.fabriciolima.momentus.util.Result
+import br.com.fabriciolima.momentus.util.SoundManager
 import br.com.fabriciolima.momentus.util.SyncManager
 import br.com.fabriciolima.momentus.util.UpdateProgress
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
@@ -109,6 +110,7 @@ class CalendarViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
     private val inAppUpdateManager: InAppUpdateManager,
     private val syncManager: SyncManager,
+    private val soundManager: SoundManager,
     private val googleSignInClient: GoogleSignInClient,
     private val auth: FirebaseAuth,
     private val application: Application,
@@ -326,6 +328,7 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             gamificationRepository.newlyUnlockedAchievement.collect { achievement ->
                 _uiState.update { it.copy(newlyUnlockedAchievement = achievement) }
+                soundManager.playAchievementSound() // Feedback auditivo de conquista
             }
         }
     }
@@ -500,6 +503,7 @@ class CalendarViewModel @Inject constructor(
     fun markHabitAsCompleted(itemCronogramaId: String) {
         viewModelScope.launch {
             markHabitAsCompletedUseCase(itemCronogramaId)
+            soundManager.playSuccessSound() // Feedback auditivo de tarefa
 
             val lastAnimationDate = userPreferencesRepository.userPreferencesFlow.first().lastAnimationDate
             val today = LocalDate.now()

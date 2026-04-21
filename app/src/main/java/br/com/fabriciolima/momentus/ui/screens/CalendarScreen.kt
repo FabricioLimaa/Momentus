@@ -24,7 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -101,7 +102,7 @@ fun CalendarScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var showSuccessCelebration by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
 
     val view = LocalView.current
     val darkTheme = isSystemInDarkTheme()
@@ -153,6 +154,11 @@ fun CalendarScreen(
     }
 
     uiState.newlyUnlockedAchievement?.let { achievement ->
+        // Feedback tátil de sucesso ao ganhar conquista
+        LaunchedEffect(achievement.id) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+        
         AchievementUnlockedDialog(
             achievement = achievement,
             onDismiss = onAchievementDialogDismissed
@@ -161,7 +167,7 @@ fun CalendarScreen(
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
-            val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
+            val message = error.message ?: error.messageResId?.let { view.context.getString(it) } ?: "Erro desconhecido"
             snackbarHostState.showSnackbar(message = message)
             onErrorShown()
         }
@@ -374,7 +380,10 @@ fun CalendarScreen(
                         },
                         onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
                         onAddNewRotinaClicked = onAddNewRotinaClicked,
-                        onMarkAsCompleted = onMarkAsCompleted,
+                        onMarkAsCompleted = { id ->
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onMarkAsCompleted(id)
+                        },
                         onUnmarkAsCompleted = onUnmarkAsCompleted
                     )
                 }
@@ -434,19 +443,29 @@ fun SelectionTopAppBar(
 fun AchievementUnlockedDialog(achievement: Achievement, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(48.dp)) },
-        title = { Text("Conquista Desbloqueada!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
+        icon = { 
+            Box(contentAlignment = Alignment.Center) {
+                SuccessCelebration(onFinished = {}) // Animação de fundo
+                Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+        },
+        title = { Text("Conquista Desbloqueada!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
         text = {
-            Column {
-                Text(achievement.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text(achievement.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(achievement.description, style = MaterialTheme.typography.bodyLarge)
+                Text(achievement.description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("+${achievement.points} pontos", fontWeight = FontWeight.Bold, fontSize = 18.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("+${achievement.points} pontos", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                }
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
+            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text("Continuar")
             }
         }
