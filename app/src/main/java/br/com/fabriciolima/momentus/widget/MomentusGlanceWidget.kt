@@ -177,7 +177,7 @@ class MomentusGlanceWidget : GlanceAppWidget() {
     @Composable
     private fun WidgetHeader(context: Context) {
         val today = LocalDate.now()
-        val dayFormatter = DateTimeFormatter.ofPattern("d 'de' MMMM")
+        val dayFormatter = DateTimeFormatter.ofPattern("dd 'de' MMMM")
         val title = "Hoje, ${today.format(dayFormatter)}"
 
         Row(

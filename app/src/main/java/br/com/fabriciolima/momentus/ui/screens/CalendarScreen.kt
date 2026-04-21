@@ -58,7 +58,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
-import java.time.ZoneOffset
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -154,7 +154,6 @@ fun CalendarScreen(
     }
 
     uiState.newlyUnlockedAchievement?.let { achievement ->
-        // Feedback tátil de sucesso ao ganhar conquista
         LaunchedEffect(achievement.id) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         }
@@ -242,7 +241,7 @@ fun CalendarScreen(
                 title = { Text("Excluir Rotinas") },
                 text = { Text("Tem certeza que deseja excluir as ${dialogState.count} rotinas selecionadas? Essa ação não pode ser desfeita.") },
                 confirmButton = {
-                    Button(onClick = onDeleteSelectedRotinas) {
+                    Button(onClick = { onDeleteSelectedRotinas() }) {
                         Text("Excluir")
                     }
                 },
@@ -271,7 +270,7 @@ fun CalendarScreen(
                     TopAppBar(
                         title = { Text(text = "Minha Agenda") },
                         navigationIcon = {
-                            IconButton(onClick = onMenuClick) {
+                            IconButton(onClick = { onMenuClick() }) {
                                 Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
                             }
                         },
@@ -318,7 +317,7 @@ fun CalendarScreen(
             Column(
                 modifier = Modifier
                     .padding(paddingValues)
-                    .fillMaxWidth()
+                    .fillMaxSize()
             ) {
                 uiState.updateProgress?.let { progress ->
                     if (progress.totalBytesToDownload > 0) {
@@ -337,7 +336,7 @@ fun CalendarScreen(
                         }
                     }
                 }
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp).weight(1f)) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Calendário", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text(
@@ -345,11 +344,11 @@ fun CalendarScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
 
                     Button(
                         onClick = onAddNewRotinaClicked,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        modifier = Modifier.fillMaxWidth().height(45.dp),
                         enabled = !uiState.isLoading && !uiState.isSelectionModeActive
                     ) {
                         if (uiState.isLoading) {
@@ -360,7 +359,7 @@ fun CalendarScreen(
                             Text("Nova Rotina", fontSize = 16.sp)
                         }
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     CalendarContent(
                         uiState = uiState,
@@ -368,24 +367,27 @@ fun CalendarScreen(
                         onDateSelected = onDateSelected
                     )
 
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider()
-                    Spacer(modifier = Modifier.height(16.dp))
-                    EventsForDay(
-                        uiState = uiState,
-                        selectedDate = selectedDate,
-                        eventsForDate = eventsForSelectedDate,
-                        onRotinaClick = { item ->
-                             if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
-                        },
-                        onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
-                        onAddNewRotinaClicked = onAddNewRotinaClicked,
-                        onMarkAsCompleted = { id ->
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onMarkAsCompleted(id)
-                        },
-                        onUnmarkAsCompleted = onUnmarkAsCompleted
-                    )
+                    
+                    Box(modifier = Modifier.weight(1f)) {
+                        EventsForDay(
+                            uiState = uiState,
+                            selectedDate = selectedDate,
+                            eventsForDate = eventsForSelectedDate,
+                            onRotinaClick = { item ->
+                                 if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
+                            },
+                            onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
+                            onAddNewRotinaClicked = onAddNewRotinaClicked,
+                            onMarkAsCompleted = { id ->
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onMarkAsCompleted(id)
+                            },
+                            onUnmarkAsCompleted = onUnmarkAsCompleted
+                        )
+                    }
                 }
             }
         }
@@ -445,7 +447,7 @@ fun AchievementUnlockedDialog(achievement: Achievement, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         icon = { 
             Box(contentAlignment = Alignment.Center) {
-                SuccessCelebration(onFinished = {}) // Animação de fundo
+                SuccessCelebration(onFinished = {})
                 Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
             }
         },
@@ -542,21 +544,23 @@ fun CalendarContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         val localScheduleByDate = uiState.allScheduleItems.groupBy {
-            it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneOffset.UTC).toLocalDate() }
+            it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneId.systemDefault()).toLocalDate() }
         }
 
-        HorizontalCalendar(
-            state = calendarState,
-            dayContent = { day ->
-                DayCell(
-                    day = day,
-                    isSelected = selectedDate == day.date,
-                    localRotinas = localScheduleByDate[day.date] ?: emptyList(),
-                    categoriesMap = uiState.categoriesMap,
-                    onDateSelected = { onDateSelected(it.date) }
-                )
-            }
-        )
+        Box(modifier = Modifier.height(275.dp)) {
+            HorizontalCalendar(
+                state = calendarState,
+                dayContent = { day ->
+                    DayCell(
+                        day = day,
+                        isSelected = selectedDate == day.date,
+                        localRotinas = localScheduleByDate[day.date] ?: emptyList(),
+                        categoriesMap = uiState.categoriesMap,
+                        onDateSelected = { onDateSelected(it.date) }
+                    )
+                }
+            )
+        }
     }
 }
 
@@ -600,51 +604,67 @@ fun DayCell(
     categoriesMap: Map<String, Category>,
     onDateSelected: (CalendarDay) -> Unit
 ) {
+    val today = LocalDate.now()
     val isCurrentMonth = day.position == DayPosition.MonthDate
-    val textColor = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val isToday = day.date == today
 
-    var modifier = Modifier
-        .aspectRatio(1f)
-        .padding(2.dp)
-        .clip(RoundedCornerShape(8.dp))
-        .clickable(
-            enabled = isCurrentMonth,
-            onClick = { onDateSelected(day) }
-        )
-
-    if (isSelected && isCurrentMonth) {
-        modifier = modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+    val textColor = if (isSelected && isCurrentMonth) {
+        MaterialTheme.colorScheme.onPrimary
+    } else if (isToday && isCurrentMonth) {
+        MaterialTheme.colorScheme.primary
+    } else if (isCurrentMonth) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
     }
 
-    Column(
-        modifier = modifier.padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+    val backgroundColor = if (isSelected && isCurrentMonth) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        Color.Transparent
+    }
+
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .padding(4.dp)
+            .clip(CircleShape)
+            .background(backgroundColor)
+            .then(
+                if (isToday && !isSelected && isCurrentMonth) {
+                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                } else Modifier
+            )
+            .clickable(
+                enabled = isCurrentMonth,
+                onClick = { onDateSelected(day) }
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = day.date.dayOfMonth.toString(),
-            color = textColor,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = day.date.dayOfMonth.toString(),
+                color = textColor,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
+            )
 
-        if (isCurrentMonth) {
-            if (localRotinas.isNotEmpty()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.height(8.dp)
-                ) {
-                    localRotinas.take(2).forEach { rotina ->
-                        val category = categoriesMap[rotina.categoryId]
-                        val rotinaColor = category?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } }
-                            ?: MaterialTheme.colorScheme.secondary
-                        Box(modifier = Modifier.size(6.dp).background(rotinaColor, CircleShape))
-                    }
-
-                    val remainingCount = localRotinas.size - 2
-                    if (remainingCount > 0) {
-                        Text(text = "+${remainingCount}", fontSize = 8.sp, color = textColor)
+            if (isCurrentMonth && !isSelected) {
+                if (localRotinas.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.height(6.dp)
+                    ) {
+                        localRotinas.take(2).forEach { rotina ->
+                            val category = categoriesMap[rotina.categoryId]
+                            val rotinaColor = category?.cor?.let { try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { MaterialTheme.colorScheme.secondary } }
+                                ?: MaterialTheme.colorScheme.secondary
+                            Box(modifier = Modifier.size(4.dp).background(rotinaColor, CircleShape))
+                        }
                     }
                 }
             }
@@ -726,16 +746,20 @@ fun EventsForDay(
     onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit
 ) {
-    val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("pt", "BR"))
+    val ptBr = Locale("pt", "BR")
+    val dateFormatter = remember(selectedDate) {
+        DateTimeFormatter.ofPattern("dd 'de' MMMM", ptBr)
+    }
     val formattedDate = selectedDate.format(dateFormatter)
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = formattedDate,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
         if (eventsForDate.localRotinas.isEmpty()) {
             Column(
@@ -746,26 +770,26 @@ fun EventsForDay(
                 Icon(
                     imageVector = Icons.Outlined.EventBusy,
                     contentDescription = null,
-                    modifier = Modifier.size(80.dp),
+                    modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Dia livre!",
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Você não tem nenhuma rotina para este dia. Que tal adicionar uma?",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp)
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = onAddNewRotinaClicked, enabled = !uiState.isSelectionModeActive) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Nova Rotina")
+                    Icon(imageVector = Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Adicionar Rotina")
                 }

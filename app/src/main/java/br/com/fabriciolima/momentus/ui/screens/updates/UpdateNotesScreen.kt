@@ -72,7 +72,7 @@ fun UpdateNotesScreen(
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text("🚀 Robustez e Performance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(

@@ -16,6 +16,7 @@ import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
 import br.com.fabriciolima.momentus.di.VersionCode
 import br.com.fabriciolima.momentus.domain.error.AppError
+import br.com.fabriciolima.momentus.domain.model.UserLevel
 import br.com.fabriciolima.momentus.domain.usecase.DeleteScheduleItemUseCase
 import br.com.fabriciolima.momentus.domain.usecase.MarkHabitAsCompletedUseCase
 import br.com.fabriciolima.momentus.domain.usecase.SaveScheduleItemUseCase
@@ -134,6 +135,7 @@ class CalendarViewModel @Inject constructor(
     private val _showCompletionAnimation = MutableSharedFlow<Unit>()
     val showCompletionAnimation = _showCompletionAnimation.asSharedFlow()
 
+    private var lastKnownPoints: Int = 0
     private val jobs = mutableListOf<Job>()
 
     val installStatus = inAppUpdateManager.installStatus
@@ -215,6 +217,18 @@ class CalendarViewModel @Inject constructor(
             val finalData = data ?: auth.currentUser?.let { user ->
                 UserData(displayName = user.displayName, email = user.email)
             }
+            
+            // Lógica de detecção de Level Up
+            val newPoints = finalData?.points ?: 0
+            if (UserLevel.didLevelUp(lastKnownPoints, newPoints)) {
+                Log.i(TAG, "[DOPAMINE] LEVEL UP DETECTADO! De $lastKnownPoints para $newPoints")
+                viewModelScope.launch {
+                    _showCompletionAnimation.emit(Unit)
+                    soundManager.playAchievementSound()
+                }
+            }
+            lastKnownPoints = newPoints
+
             _uiState.update { it.copy(userData = finalData) }
         }.launchIn(viewModelScope).also { jobs.add(it) }
 
