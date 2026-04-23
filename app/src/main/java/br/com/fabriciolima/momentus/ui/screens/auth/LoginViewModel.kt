@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.fabriciolima.momentus.data.repository.AppThemeMode
 import br.com.fabriciolima.momentus.data.repository.UserPreferences
 import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.data.repository.UserRepository
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,7 +30,19 @@ import javax.inject.Inject
 data class LoginUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val userPreferences: UserPreferences = UserPreferences(email = "", rememberMe = false, lastAnimationDate = 0L)
+    val userPreferences: UserPreferences = UserPreferences(
+        email = "", 
+        rememberMe = false, 
+        lastAnimationDate = 0L,
+        themeMode = AppThemeMode.SYSTEM,
+        primaryColorHex = null,
+        cornerRadiusDp = 12,
+        fontSizeMultiplier = 1.0f,
+        animationsEnabled = true,
+        soundEnabled = true,
+        hapticEnabled = true,
+        lastSyncTimestamp = 0L
+    )
 )
 
 sealed interface NavigationEvent {

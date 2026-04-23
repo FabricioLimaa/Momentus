@@ -112,6 +112,13 @@ fun AppDrawerContent(
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
+                    label = { Text("Configurações") },
+                    selected = false,
+                    onClick = { onNavigate(Screen.Settings.route) },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
                     label = { Text("Novidades") },
                     selected = false,
                     onClick = {
@@ -166,7 +173,7 @@ fun AppDrawerContent(
                             text = "Nível ${userLevel.level}",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Surface(
                             color = userLevel.rankColor.copy(alpha = 0.1f),
@@ -200,7 +207,7 @@ fun AppDrawerContent(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Item de saída (Sair) corrigido
+                // Item de saída (Sair)
                 NavigationDrawerItem(
                     label = { Text("Sair")},
                     selected = false,

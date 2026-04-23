@@ -35,6 +35,7 @@ import com.google.api.client.util.DateTime
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -137,6 +138,9 @@ class CalendarViewModel @Inject constructor(
 
     private var lastKnownPoints: Int = 0
     private val jobs = mutableListOf<Job>()
+    
+    // Flag de controle para evitar animações indesejadas na inicialização
+    private var isFullyLoaded = false
 
     val installStatus = inAppUpdateManager.installStatus
 
@@ -167,6 +171,13 @@ class CalendarViewModel @Inject constructor(
         checkIfNeedToShowUpdateBadge()
         listenForUpdateProgress()
         startFirebaseListeners()
+        
+        // Marca o app como carregado após um pequeno delay para garantir que os dados iniciais do Room/Firebase foram processados
+        viewModelScope.launch {
+            delay(2000)
+            isFullyLoaded = true
+            Log.d(TAG, "[ANIMATION_CONTROL] App marcado como totalmente carregado. Animações permitidas.")
+        }
     }
 
     private fun startFirebaseListeners() {
@@ -220,7 +231,9 @@ class CalendarViewModel @Inject constructor(
             
             // Lógica de detecção de Level Up
             val newPoints = finalData?.points ?: 0
-            if (UserLevel.didLevelUp(lastKnownPoints, newPoints)) {
+            
+            // Só dispara a animação se o app já estiver totalmente carregado E houver um ganho real de pontos
+            if (isFullyLoaded && UserLevel.didLevelUp(lastKnownPoints, newPoints)) {
                 Log.i(TAG, "[DOPAMINE] LEVEL UP DETECTADO! De $lastKnownPoints para $newPoints")
                 viewModelScope.launch {
                     _showCompletionAnimation.emit(Unit)
@@ -341,8 +354,11 @@ class CalendarViewModel @Inject constructor(
     private fun listenForNewAchievements() {
         viewModelScope.launch {
             gamificationRepository.newlyUnlockedAchievement.collect { achievement ->
-                _uiState.update { it.copy(newlyUnlockedAchievement = achievement) }
-                soundManager.playAchievementSound() // Feedback auditivo de conquista
+                // Só mostra o diálogo de conquista se o app estiver totalmente carregado
+                if (isFullyLoaded) {
+                    _uiState.update { it.copy(newlyUnlockedAchievement = achievement) }
+                    soundManager.playAchievementSound() // Feedback auditivo de conquista
+                }
             }
         }
     }

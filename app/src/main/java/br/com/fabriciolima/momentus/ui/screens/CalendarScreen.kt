@@ -50,6 +50,7 @@ import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.DayPosition
+import com.kizitonwose.calendar.core.OutDateStyle
 import com.kizitonwose.calendar.core.daysOfWeek
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -59,6 +60,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -107,14 +109,14 @@ fun CalendarScreen(
     val view = LocalView.current
     val darkTheme = isSystemInDarkTheme()
     val surfaceColor = MaterialTheme.colorScheme.surface.toArgb()
-    val selectionColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
+    val selectionColor = MaterialTheme.colorScheme.primary.toArgb() // Use Primary em vez de Container para o StatusBar
 
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             if (uiState.isSelectionModeActive) {
                 window.statusBarColor = selectionColor
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false // Sempre claro no primary escuro
             } else {
                 window.statusBarColor = surfaceColor
                  WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
@@ -336,40 +338,42 @@ fun CalendarScreen(
                         }
                     }
                 }
-                Column(modifier = Modifier.padding(horizontal = 16.dp).weight(1f)) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Calendário", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = "Gerencie suas rotinas e compromissos",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(15.dp))
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                        .widthIn(max = 600.dp) 
+                        .align(Alignment.CenterHorizontally)
+                        .weight(1f)
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
                         onClick = onAddNewRotinaClicked,
-                        modifier = Modifier.fillMaxWidth().height(45.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
                         enabled = !uiState.isLoading && !uiState.isSelectionModeActive
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Rotina")
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Nova Rotina", fontSize = 16.sp)
                         }
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     CalendarContent(
                         uiState = uiState,
                         selectedDate = selectedDate,
-                        onDateSelected = onDateSelected
+                        onDateSelected = onDateSelected,
+                        modifier = Modifier.weight(1.5f) // Maior peso para o calendário
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     
                     Box(modifier = Modifier.weight(1f)) {
                         EventsForDay(
@@ -433,10 +437,10 @@ fun SelectionTopAppBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            containerColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
         )
     )
 }
@@ -478,7 +482,8 @@ fun AchievementUnlockedDialog(achievement: Achievement, onDismiss: () -> Unit) {
 fun CalendarContent(
     uiState: CalendarUiState,
     selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val currentMonth = remember { YearMonth.now() }
     val startMonth = remember { currentMonth.minusYears(100) }
@@ -490,7 +495,8 @@ fun CalendarContent(
         startMonth = startMonth,
         endMonth = endMonth,
         firstVisibleMonth = remember { YearMonth.from(selectedDate) },
-        firstDayOfWeek = daysOfWeek.first()
+        firstDayOfWeek = daysOfWeek.first(),
+        outDateStyle = OutDateStyle.EndOfGrid // Fixa o calendário em 6 linhas
     )
 
     val scope = rememberCoroutineScope()
@@ -515,7 +521,7 @@ fun CalendarContent(
         )
     }
 
-    Column {
+    Column(modifier = modifier) {
         CalendarHeader(
             month = visibleMonth,
             onPreviousMonth = {
@@ -544,23 +550,22 @@ fun CalendarContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         val localScheduleByDate = uiState.allScheduleItems.groupBy {
-            it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneId.systemDefault()).toLocalDate() }
+            it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneOffset.UTC).toLocalDate() }
         }
 
-        Box(modifier = Modifier.height(275.dp)) {
-            HorizontalCalendar(
-                state = calendarState,
-                dayContent = { day ->
-                    DayCell(
-                        day = day,
-                        isSelected = selectedDate == day.date,
-                        localRotinas = localScheduleByDate[day.date] ?: emptyList(),
-                        categoriesMap = uiState.categoriesMap,
-                        onDateSelected = { onDateSelected(it.date) }
-                    )
-                }
-            )
-        }
+        HorizontalCalendar(
+            modifier = Modifier.fillMaxWidth(),
+            state = calendarState,
+            dayContent = { day ->
+                DayCell(
+                    day = day,
+                    isSelected = selectedDate == day.date,
+                    localRotinas = localScheduleByDate[day.date] ?: emptyList(),
+                    categoriesMap = uiState.categoriesMap,
+                    onDateSelected = { onDateSelected(it.date) }
+                )
+            }
+        )
     }
 }
 
@@ -807,7 +812,7 @@ fun EventsForDay(
                                 onClick = { onRotinaClick(rotina) },
                                 onLongClick = { onRotinaLongClick(rotina) }
                             ),
-                            colors = if(isSelected) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else CardDefaults.cardColors()
+                            colors = if(isSelected) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)) else CardDefaults.cardColors()
                         ) {
                              EventListItem(
                                 item = rotina,

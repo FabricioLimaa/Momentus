@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters
 import br.com.fabriciolima.momentus.data.repository.CategoryRepository
 import br.com.fabriciolima.momentus.data.repository.GamificationRepository
 import br.com.fabriciolima.momentus.data.repository.ScheduleRepository
+import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -22,7 +23,8 @@ class SyncWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val categoryRepository: CategoryRepository,
     private val scheduleRepository: ScheduleRepository,
-    private val gamificationRepository: GamificationRepository
+    private val gamificationRepository: GamificationRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result = coroutineScope {
@@ -47,7 +49,10 @@ class SyncWorker @AssistedInject constructor(
                 Log.w(TAG, "[SYNC_ENGINE] Sincronização parcial com erros. Solicitando retentativa.")
                 Result.retry()
             } else {
-                Log.i(TAG, "[SYNC_ENGINE] Sincronização concluída com sucesso. Atualizando Widget.")
+                Log.i(TAG, "[SYNC_ENGINE] Sincronização concluída com sucesso. Atualizando Timestamp e Widget.")
+                
+                // Atualiza o timestamp do último backup bem-sucedido
+                userPreferencesRepository.updateLastSyncTimestamp(System.currentTimeMillis())
                 
                 // Gatilho do Widget: Garante que os dados baixados apareçam na Home Screen
                 WidgetUpdater.requestUpdate(applicationContext)

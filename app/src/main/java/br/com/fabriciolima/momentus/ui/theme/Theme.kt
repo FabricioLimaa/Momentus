@@ -2,75 +2,108 @@ package br.com.fabriciolima.momentus.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-
-private val DarkColorScheme = darkColorScheme(
-    primary = md_theme_dark_primary,
-    onPrimary = md_theme_dark_onPrimary,
-    primaryContainer = md_theme_dark_primaryContainer,
-    secondary = md_theme_dark_secondary,
-    onSecondary = md_theme_dark_onSecondary,
-    tertiary = md_theme_dark_tertiary,
-    onTertiary = md_theme_dark_onTertiary,
-    error = md_theme_dark_error,
-    errorContainer = md_theme_dark_errorContainer,
-    onError = md_theme_dark_onError,
-    background = md_theme_dark_background,
-    onBackground = md_theme_dark_onBackground,
-    surface = md_theme_dark_surface,
-    onSurface = md_theme_dark_onSurface,
-    surfaceVariant = md_theme_dark_surfaceVariant,
-    onSurfaceVariant = md_theme_dark_onSurfaceVariant,
-    outline = md_theme_dark_outline,
-    inverseOnSurface = md_theme_dark_inverseOnSurface,
-    inverseSurface = md_theme_dark_inverseSurface,
-    inversePrimary = md_theme_dark_inversePrimary,
-    surfaceTint = md_theme_dark_surfaceTint,
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = md_theme_light_primary,
-    onPrimary = md_theme_light_onPrimary,
-    primaryContainer = md_theme_light_primaryContainer,
-    secondary = md_theme_light_secondary,
-    onSecondary = md_theme_light_onSecondary,
-    tertiary = md_theme_light_tertiary,
-    onTertiary = md_theme_light_onTertiary,
-    error = md_theme_light_error,
-    errorContainer = md_theme_light_errorContainer,
-    onError = md_theme_light_onError,
-    background = md_theme_light_background,
-    onBackground = md_theme_light_onBackground,
-    surface = md_theme_light_surface,
-    onSurface = md_theme_light_onSurface,
-    surfaceVariant = md_theme_light_surfaceVariant,
-    onSurfaceVariant = md_theme_light_onSurfaceVariant,
-    outline = md_theme_light_outline,
-    inverseOnSurface = md_theme_light_inverseOnSurface,
-    inverseSurface = md_theme_light_inverseSurface,
-    inversePrimary = md_theme_light_inversePrimary,
-    surfaceTint = md_theme_light_surfaceTint,
-)
+import br.com.fabriciolima.momentus.data.repository.AppThemeMode
+import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
+import dagger.hilt.android.EntryPointAccessors
 
 @Composable
 fun MomentusTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    overrideThemeMode: AppThemeMode? = null,
+    overridePrimaryColorHex: String? = null,
+    overrideCornerRadiusDp: Int? = null,
+    overrideFontSizeMultiplier: Float? = null,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val context = LocalContext.current
+    val repository = remember {
+        EntryPointAccessors.fromApplication(context, ThemeEntryPoint::class.java).userPreferencesRepository()
+    }
+    
+    val preferences by repository.userPreferencesFlow.collectAsState(initial = null)
+    
+    // Prioriza o override (Preview) ou usa o salvo, senão usa padrão de sistema
+    val themeMode = overrideThemeMode ?: preferences?.themeMode ?: AppThemeMode.SYSTEM
+    val darkTheme = when (themeMode) {
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK -> true
+        AppThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    val primaryColorHex = overridePrimaryColorHex ?: preferences?.primaryColorHex
+    val primaryColor = primaryColorHex?.let { 
+        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { md_theme_light_primary }
+    } ?: md_theme_light_primary
+
+    val cornerRadius = (overrideCornerRadiusDp ?: preferences?.cornerRadiusDp ?: 12).dp
+    val fontSizeMultiplier = overrideFontSizeMultiplier ?: preferences?.fontSizeMultiplier ?: 1.0f
+
+    val colorScheme = if (darkTheme) {
+        darkColorScheme(
+            primary = primaryColor,
+            onPrimary = DarkBlue,
+            primaryContainer = primaryColor.copy(alpha = 0.2f),
+            onPrimaryContainer = Color.White,
+            background = DarkBlue,
+            surface = Color(0xFF1C2C5A),
+            onSurface = Color.White,
+            outline = Color.Gray
+        )
+    } else {
+        lightColorScheme(
+            primary = primaryColor,
+            onPrimary = Color.White,
+            primaryContainer = primaryColor.copy(alpha = 0.1f),
+            onPrimaryContainer = primaryColor,
+            background = OffWhite,
+            surface = Color.White,
+            onSurface = DarkBlue,
+            outline = Color.Gray
+        )
+    }
+
+    // Shapes dinâmicos baseados no arredondamento escolhido
+    val shapes = Shapes(
+        small = RoundedCornerShape(cornerRadius / 2),
+        medium = RoundedCornerShape(cornerRadius),
+        large = RoundedCornerShape(cornerRadius * 1.5f)
+    )
+
+    // Tipografia dinâmica baseada no multiplicador
+    val dynamicTypography = Typography.copy(
+        displayLarge = Typography.displayLarge.copy(fontSize = Typography.displayLarge.fontSize * fontSizeMultiplier),
+        displayMedium = Typography.displayMedium.copy(fontSize = Typography.displayMedium.fontSize * fontSizeMultiplier),
+        displaySmall = Typography.displaySmall.copy(fontSize = Typography.displaySmall.fontSize * fontSizeMultiplier),
+        headlineLarge = Typography.headlineLarge.copy(fontSize = Typography.headlineLarge.fontSize * fontSizeMultiplier),
+        headlineMedium = Typography.headlineMedium.copy(fontSize = Typography.headlineMedium.fontSize * fontSizeMultiplier),
+        headlineSmall = Typography.headlineSmall.copy(fontSize = Typography.headlineSmall.fontSize * fontSizeMultiplier),
+        titleLarge = Typography.titleLarge.copy(fontSize = Typography.titleLarge.fontSize * fontSizeMultiplier),
+        titleMedium = Typography.titleMedium.copy(fontSize = Typography.titleMedium.fontSize * fontSizeMultiplier),
+        titleSmall = Typography.titleSmall.copy(fontSize = Typography.titleSmall.fontSize * fontSizeMultiplier),
+        bodyLarge = Typography.bodyLarge.copy(fontSize = Typography.bodyLarge.fontSize * fontSizeMultiplier),
+        bodyMedium = Typography.bodyMedium.copy(fontSize = Typography.bodyMedium.fontSize * fontSizeMultiplier),
+        bodySmall = Typography.bodySmall.copy(fontSize = Typography.bodySmall.fontSize * fontSizeMultiplier),
+        labelLarge = Typography.labelLarge.copy(fontSize = Typography.labelLarge.fontSize * fontSizeMultiplier),
+        labelMedium = Typography.labelMedium.copy(fontSize = Typography.labelMedium.fontSize * fontSizeMultiplier),
+        labelSmall = Typography.labelSmall.copy(fontSize = Typography.labelSmall.fontSize * fontSizeMultiplier)
+    )
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Android 15 (API 35+) ignora setStatusBarColor e força edge-to-edge.
-            // Mantemos apenas a configuração da aparência dos ícones (claro/escuro).
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
@@ -78,7 +111,14 @@ fun MomentusTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        shapes = shapes,
+        typography = dynamicTypography,
         content = content
     )
+}
+
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface ThemeEntryPoint {
+    fun userPreferencesRepository(): UserPreferencesRepository
 }

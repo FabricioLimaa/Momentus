@@ -1,6 +1,8 @@
 package br.com.fabriciolima.momentus.ui.screens
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -14,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import br.com.fabriciolima.momentus.ui.AppScaffold
 import br.com.fabriciolima.momentus.ui.Screen
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
@@ -34,6 +37,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var firebaseAuth: FirebaseAuth
 
+    @Inject
+    lateinit var userPreferencesRepository: UserPreferencesRepository
+
     private val viewModel: SplashViewModel by viewModels()
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -41,14 +47,21 @@ class MainActivity : ComponentActivity() {
     ) { /* No-op */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Ativa a exibição de ponta a ponta (Edge-to-Edge)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         askNotificationPermission()
 
         setContent {
-            MomentusTheme {
+            // Observa as preferências globais para aplicar o tema dinâmico
+            val preferences by userPreferencesRepository.userPreferencesFlow.collectAsState(initial = null)
+
+            MomentusTheme(
+                overrideThemeMode = preferences?.themeMode,
+                overridePrimaryColorHex = preferences?.primaryColorHex,
+                overrideCornerRadiusDp = preferences?.cornerRadiusDp,
+                overrideFontSizeMultiplier = preferences?.fontSizeMultiplier
+            ) {
                 val syncMessage by viewModel.syncMessage.collectAsState(initial = "Iniciando...")
                 
                 val startDestination by produceState<String?>(initialValue = null, viewModel) {

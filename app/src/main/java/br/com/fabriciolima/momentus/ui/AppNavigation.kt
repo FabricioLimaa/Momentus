@@ -26,6 +26,7 @@ import br.com.fabriciolima.momentus.ui.screens.auth.SignUpScreen
 import br.com.fabriciolima.momentus.ui.screens.category.CategoriesScreen
 import br.com.fabriciolima.momentus.ui.screens.legal.LegalScreen
 import br.com.fabriciolima.momentus.ui.screens.onboarding.OnboardingScreen
+import br.com.fabriciolima.momentus.ui.screens.settings.SettingsScreen
 import br.com.fabriciolima.momentus.ui.screens.stats.StatsScreen
 import br.com.fabriciolima.momentus.ui.screens.template.TemplatesScreen
 import br.com.fabriciolima.momentus.ui.screens.terms.TermsScreen
@@ -49,6 +50,7 @@ sealed class Screen(val route: String) {
     object Achievements : Screen("achievements")
     object Updates : Screen("updates")
     object Legal : Screen("legal")
+    object Settings : Screen("settings")
 }
 
 @Composable
@@ -118,9 +120,6 @@ fun AppNavHost(
         composable(Screen.Onboarding.route) {
             OnboardingScreen(navController = navController)
         }
-        class OnboardingScreen(navController: NavHostController) {
-
-        }
         composable(Screen.Login.route) {
             LoginScreen(navController = navController)
         }
@@ -181,10 +180,6 @@ fun AppNavHost(
             )
         }
 
-        class LoginScreen(navController: NavHostController) {
-
-        }
-
         composable(Screen.Templates.route) { 
             TemplatesScreen(navController = navController)
         }
@@ -207,6 +202,10 @@ fun AppNavHost(
 
         composable(Screen.Legal.route) { 
             LegalScreen(navController = navController)
+        }
+
+        composable(Screen.Settings.route) { 
+            SettingsScreen(navController = navController)
         }
     }
 }
