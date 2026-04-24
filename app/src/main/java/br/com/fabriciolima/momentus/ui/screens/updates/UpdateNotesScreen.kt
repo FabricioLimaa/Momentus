@@ -44,39 +44,39 @@ fun UpdateNotesScreen(
             Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("Versão 1.3.0 (Abril de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Versão 1.3.6 (Abril de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Esta atualização torna o Momentus mais gratificante e seguro para o seu dia a dia.", style = MaterialTheme.typography.bodyMedium)
+            Text("Esta atualização foca na estabilidade absoluta e no refinamento da experiência multi-dispositivo.", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("📈 Sistema de Níveis e Ranks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("📱 Design Adaptativo Inteligente", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Agora você ganha experiência ao completar tarefas! Suba de nível e conquiste novos títulos. Acompanhe seu progresso na nova barra de nível no menu lateral.",
+                "O Momentus agora brilha em qualquer tela! Introduzimos um layout lado a lado exclusivo para Tablets em modo paisagem, enquanto mantemos a agilidade vertical perfeita nos celulares.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("✨ Novas Celebrações", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🔒 Estabilidade de Orientação", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Concluir hábitos ficou mais divertido. Adicionamos animações, sons e vibrações para comemorar cada tarefa realizada e cada conquista desbloqueada.",
+                "Para garantir que seu planejamento nunca seja interrompido, travamos o modo retrato nos celulares. E se você tentar girar, o Momentus te avisa gentilmente sobre essa otimização.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("📊 Estatísticas Premium", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("📅 Precisão Milimétrica", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Novo painel de progresso semanal (Domingo a Sábado) com anéis de conclusão, permitindo visualizar seu foco de forma muito mais simples e elegante.",
+                "Corrigimos o alinhamento das células do calendário e eliminamos inconsistências de fuso horário. Seus eventos agora aparecem exatamente onde deveriam, com um visual limpo e simétrico.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("☁️ Sincronização Automática", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🔄 Sincronização e Feedbacks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Seus dados agora são salvos na nuvem de forma automática. Mesmo se você trocar de celular ou desinstalar o app, sua jornada estará protegida.",
+                "Novo botão de sincronização manual com registro de data/hora em tempo real. Além disso, unificamos a paleta de cores verde na seleção múltipla para uma identidade visual impecável.",
                 style = MaterialTheme.typography.bodyLarge)
 
             Spacer(modifier = Modifier.height(16.dp))
