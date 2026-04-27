@@ -11,6 +11,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -46,6 +48,7 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { /* No-op */ }
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -53,6 +56,9 @@ class MainActivity : ComponentActivity() {
         askNotificationPermission()
 
         setContent {
+            // Calcula o WindowSizeClass para inteligência de tela (Adaptive UI)
+            val windowSizeClass = calculateWindowSizeClass(this)
+            
             // Observa as preferências globais para aplicar o tema dinâmico
             val preferences by userPreferencesRepository.userPreferencesFlow.collectAsState(initial = null)
 
@@ -84,6 +90,7 @@ class MainActivity : ComponentActivity() {
                         startDestination = destination,
                         googleAccount = googleAccount,
                         inAppUpdateManager = inAppUpdateManager,
+                        windowSizeClass = windowSizeClass,
                         onLogout = { calendarViewModel.logout() }
                     )
                 }

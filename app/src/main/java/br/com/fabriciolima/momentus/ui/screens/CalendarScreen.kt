@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +81,7 @@ fun CalendarScreen(
     installStatus: Int,
     showCompletionAnimation: Flow<Unit>,
     account: GoogleSignInAccount?,
+    windowSizeClass: WindowSizeClass,
     onNavigateToAchievements: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
     onMenuClick: () -> Unit,
@@ -118,11 +121,11 @@ fun CalendarScreen(
     val selectionColor = MaterialTheme.colorScheme.primary.toArgb()
 
     val configuration = LocalConfiguration.current
-    val isTablet = configuration.smallestScreenWidthDp >= 600
+    val isTablet = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val useSideBySide = isTablet && isLandscape
 
-    // Bloqueio de orientação e sensor de rotação física para celulares
+    // Bloqueio de orientação e detecção física para celulares
     DisposableEffect(isTablet) {
         val activity = context as? Activity
         if (!isTablet) {
@@ -411,7 +414,7 @@ fun CalendarScreen(
                             Text("Nova Rotina")
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Calendário com altura dinâmica para evitar desalinhamento

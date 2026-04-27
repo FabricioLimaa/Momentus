@@ -5,6 +5,8 @@ import android.content.Intent
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +60,7 @@ fun AppScaffold(
     startDestination: String,
     googleAccount: GoogleSignInAccount?,
     inAppUpdateManager: InAppUpdateManager,
+    windowSizeClass: WindowSizeClass,
     onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -80,6 +83,7 @@ fun AppScaffold(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact,
         drawerContent = {
             val uiState by calendarViewModel.uiState.collectAsStateWithLifecycle()
             AppDrawerContent(
@@ -100,6 +104,7 @@ fun AppScaffold(
             startDestination = startDestination,
             googleAccount = googleAccount,
             inAppUpdateManager = inAppUpdateManager,
+            windowSizeClass = windowSizeClass,
             onMenuClick = { scope.launch { drawerState.open() } }
         )
     }
@@ -111,6 +116,7 @@ fun AppNavHost(
     startDestination: String,
     googleAccount: GoogleSignInAccount?,
     inAppUpdateManager: InAppUpdateManager,
+    windowSizeClass: WindowSizeClass,
     onMenuClick: () -> Unit
 ) {
     NavHost(
@@ -149,6 +155,7 @@ fun AppNavHost(
                 installStatus = installStatus,
                 account = googleAccount,
                 showCompletionAnimation = viewModel.showCompletionAnimation,
+                windowSizeClass = windowSizeClass,
                 onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                 onDateSelected = viewModel::selectDate,
                 onMenuClick = onMenuClick,
