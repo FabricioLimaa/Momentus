@@ -69,8 +69,8 @@ fun AppDrawerContent(
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(40.dp))
                     Spacer(modifier = Modifier.padding(8.dp))
                     Column {
-                        Text(text = "Minha Agenda", style = MaterialTheme.typography.titleLarge)
-                        Text(text = "Organize seu tempo", style = MaterialTheme.typography.bodyMedium)
+                        Text(text = "Momentus", style = MaterialTheme.typography.titleLarge)
+                        Text(text = "Viva o presente, planeje o futuro", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 HorizontalDivider()

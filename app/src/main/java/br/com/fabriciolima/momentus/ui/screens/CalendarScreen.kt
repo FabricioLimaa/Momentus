@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -305,7 +306,7 @@ fun CalendarScreen(
                     )
                 } else {
                     TopAppBar(
-                        title = { Text(text = "Minha Agenda") },
+                        title = { Text(text = "Momentus") },
                         navigationIcon = {
                             IconButton(onClick = { onMenuClick() }) {
                                 Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
@@ -397,6 +398,7 @@ fun CalendarScreen(
                                     uiState = uiState,
                                     selectedDate = selectedDate,
                                     eventsForDate = eventsForSelectedDate,
+                                    windowSizeClass = windowSizeClass,
                                     onRotinaClick = { item ->
                                          if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
                                     },
@@ -445,6 +447,7 @@ fun CalendarScreen(
                                 uiState = uiState,
                                 selectedDate = selectedDate,
                                 eventsForDate = eventsForSelectedDate,
+                                windowSizeClass = windowSizeClass,
                                 onRotinaClick = { item ->
                                      if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
                                 },
@@ -825,6 +828,7 @@ fun EventsForDay(
     uiState: CalendarUiState,
     selectedDate: LocalDate,
     eventsForDate: EventsForDate,
+    windowSizeClass: WindowSizeClass,
     onRotinaClick: (ItemCronograma) -> Unit,
     onRotinaLongClick: (ItemCronograma) -> Unit,
     onAddNewRotinaClicked: () -> Unit,
@@ -834,6 +838,14 @@ fun EventsForDay(
     val ptBr = Locale("pt", "BR")
     val dateFormatter = remember(selectedDate) { DateTimeFormatter.ofPattern("dd 'de' MMMM", ptBr) }
     val formattedDate = selectedDate.format(dateFormatter)
+
+    // Calculamos o número de colunas baseado na inteligência de tela
+    val columnCount = when (windowSizeClass.widthSizeClass) {
+        WindowWidthSizeClass.Compact -> 1
+        WindowWidthSizeClass.Medium -> 2
+        WindowWidthSizeClass.Expanded -> 2 // Já temos o Master-Detail, 2 colunas aqui são ideais
+        else -> 1
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(text = formattedDate, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -858,7 +870,13 @@ fun EventsForDay(
                 }
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Trocamos LazyColumn por LazyVerticalGrid Adaptativo
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columnCount),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
                 items(eventsForDate.localRotinas, key = { rotina -> rotina.id }) { rotina ->
                     val category = uiState.categoriesMap[rotina.categoryId]
                     if (category != null) {
@@ -866,7 +884,10 @@ fun EventsForDay(
                         val isSelected = uiState.selectedRotinaIds.contains(rotina.id)
 
                         Card(
-                            modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { onRotinaClick(rotina) }, onLongClick = { onRotinaLongClick(rotina) }),
+                            modifier = Modifier.fillMaxWidth().combinedClickable(
+                                onClick = { onRotinaClick(rotina) },
+                                onLongClick = { onRotinaLongClick(rotina) }
+                            ),
                             colors = if(isSelected) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)) else CardDefaults.cardColors()
                         ) {
                              EventListItem(

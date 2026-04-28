@@ -2,21 +2,22 @@ package br.com.fabriciolima.momentus.ui
 
 import android.app.Activity
 import android.content.Intent
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.rememberDrawerState
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import br.com.fabriciolima.momentus.ui.screens.AppDrawerContent
 import br.com.fabriciolima.momentus.ui.screens.CalendarScreen
@@ -39,20 +40,20 @@ import br.com.fabriciolima.momentus.util.InAppUpdateManager
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import kotlinx.coroutines.launch
 
-sealed class Screen(val route: String) {
+sealed class Screen(val route: String, val label: String = "", val icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Circle) {
     object Onboarding : Screen("onboarding")
     object Login : Screen("login")
     object SignUp : Screen("signup")
     object ForgotPassword : Screen("forgot_password")
     object Terms : Screen("terms")
-    object Calendar : Screen("calendar")
-    object Templates : Screen("templates")
-    object Categories : Screen("categories")
-    object Stats : Screen("stats")
-    object Achievements : Screen("achievements")
-    object Updates : Screen("updates")
-    object Legal : Screen("legal")
-    object Settings : Screen("settings")
+    object Calendar : Screen("calendar", "Agenda", Icons.Default.CalendarToday)
+    object Templates : Screen("templates", "Templates", Icons.Default.GridView)
+    object Categories : Screen("categories", "Categorias", Icons.Default.Category)
+    object Stats : Screen("stats", "Estatísticas", Icons.Default.Assessment)
+    object Achievements : Screen("achievements", "Conquistas", Icons.Default.EmojiEvents)
+    object Updates : Screen("updates", "Novidades", Icons.Default.NewReleases)
+    object Legal : Screen("legal", "Informações", Icons.Default.Info)
+    object Settings : Screen("settings", "Ajustes", Icons.Default.Settings)
 }
 
 @Composable
@@ -67,9 +68,12 @@ fun AppScaffold(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     val calendarViewModel: CalendarViewModel = hiltViewModel()
-    
+    val isWideScreen = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+
     LaunchedEffect(Unit) {
         calendarViewModel.logoutEvent.collect { event ->
             if (event is LogoutEvent.Success) {
@@ -81,32 +85,88 @@ fun AppScaffold(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact,
-        drawerContent = {
-            val uiState by calendarViewModel.uiState.collectAsStateWithLifecycle()
-            AppDrawerContent(
-                userData = uiState.userData,
-                account = googleAccount,
-                showUpdateBadge = uiState.showUpdateBadge,
-                onNavigate = { route ->
-                    scope.launch { drawerState.close() }
-                    navController.navigate(route)
-                },
-                onLogout = onLogout,
-                onUpdatesClicked = calendarViewModel::onUpdatesClicked
+    if (isWideScreen) {
+        // Layout para Telas Largas: Navigation Rail (Lateral Fixa)
+        Row(modifier = Modifier.fillMaxSize()) {
+            NavigationRail(
+                containerColor = MaterialTheme.colorScheme.surface,
+                header = {
+                    IconButton(onClick = { /* Opcional: Perfil */ }) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            ) {
+                Spacer(Modifier.weight(1f))
+
+                val items = listOf(Screen.Calendar, Screen.Templates, Screen.Categories, Screen.Stats, Screen.Achievements, Screen.Settings)
+                items.forEach { screen ->
+                    NavigationRailItem(
+                        selected = currentRoute == screen.route,
+                        onClick = { 
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        icon = { Icon(screen.icon, contentDescription = screen.label) },
+                        label = { Text(screen.label) }
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                NavigationRailItem(
+                    selected = false,
+                    onClick = onLogout,
+                    icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Sair", tint = MaterialTheme.colorScheme.error) },
+                    label = { Text("Sair", color = MaterialTheme.colorScheme.error) }
+                )
+            }
+
+            Box(modifier = Modifier.weight(1f)) {
+                AppNavHost(
+                    navController = navController,
+                    startDestination = startDestination,
+                    googleAccount = googleAccount,
+                    inAppUpdateManager = inAppUpdateManager,
+                    windowSizeClass = windowSizeClass,
+                    onMenuClick = { /* No-op em tablet com Rail */ }
+                )
+            }
+        }
+    } else {
+        // Layout para Celular: Navigation Drawer (Hamburger)
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                val uiState by calendarViewModel.uiState.collectAsStateWithLifecycle()
+                AppDrawerContent(
+                    userData = uiState.userData,
+                    account = googleAccount,
+                    showUpdateBadge = uiState.showUpdateBadge,
+                    onNavigate = { route ->
+                        scope.launch { drawerState.close() }
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onLogout = onLogout,
+                    onUpdatesClicked = calendarViewModel::onUpdatesClicked
+                )
+            }
+        ) {
+            AppNavHost(
+                navController = navController,
+                startDestination = startDestination,
+                googleAccount = googleAccount,
+                inAppUpdateManager = inAppUpdateManager,
+                windowSizeClass = windowSizeClass,
+                onMenuClick = { scope.launch { drawerState.open() } }
             )
         }
-    ) {
-        AppNavHost(
-            navController = navController,
-            startDestination = startDestination,
-            googleAccount = googleAccount,
-            inAppUpdateManager = inAppUpdateManager,
-            windowSizeClass = windowSizeClass,
-            onMenuClick = { scope.launch { drawerState.open() } }
-        )
     }
 }
 
@@ -187,31 +247,31 @@ fun AppNavHost(
             )
         }
 
-        composable(Screen.Templates.route) { 
+        composable(Screen.Templates.route) {
             TemplatesScreen(navController = navController)
         }
-        
-        composable(Screen.Categories.route) { 
+
+        composable(Screen.Categories.route) {
             CategoriesScreen(navController = navController)
         }
 
-        composable(Screen.Stats.route) { 
+        composable(Screen.Stats.route) {
             StatsScreen(navController = navController)
         }
 
-        composable(Screen.Achievements.route) { 
+        composable(Screen.Achievements.route) {
             AchievementsScreen(navController = navController)
         }
 
-        composable(Screen.Updates.route) { 
+        composable(Screen.Updates.route) {
             UpdateNotesScreen(navController = navController)
         }
 
-        composable(Screen.Legal.route) { 
+        composable(Screen.Legal.route) {
             LegalScreen(navController = navController)
         }
 
-        composable(Screen.Settings.route) { 
+        composable(Screen.Settings.route) {
             SettingsScreen(navController = navController)
         }
     }

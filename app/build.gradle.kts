@@ -50,8 +50,8 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.3.7"
+        versionCode = 35
+        versionName = "1.3.71"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -149,6 +149,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // ADICIONADO: Window Size Class para layouts adaptativos
+    implementation("androidx.compose.material3:material3-window-size-class")
+
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.constraintlayout.compose) // Adicionado

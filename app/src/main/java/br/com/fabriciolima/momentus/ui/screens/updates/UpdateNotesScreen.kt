@@ -44,45 +44,45 @@ fun UpdateNotesScreen(
             Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("Versão 1.3.6 (Abril de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Versão 1.3.7 (Abril de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Esta atualização foca na estabilidade absoluta e no refinamento da experiência multi-dispositivo.", style = MaterialTheme.typography.bodyMedium)
+            Text("Esta atualização foca em tornar o Momentus totalmente responsivo e visualmente impecável em qualquer dispositivo.", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("📱 Design Adaptativo Inteligente", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("📅 Calendário Inteligente e Estável", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "O Momentus agora brilha em qualquer tela! Introduzimos um layout lado a lado exclusivo para Tablets em modo paisagem, enquanto mantemos a agilidade vertical perfeita nos celulares.",
+                "Diga adeus aos 'pulos' no layout! Estabilizamos o calendário para ter um tamanho fixo e elegante. Agora, ao trocar de mês, sua lista de tarefas permanece firme no lugar.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("🔒 Estabilidade de Orientação", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("✨ Destaque Visual Refinado", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Para garantir que seu planejamento nunca seja interrompido, travamos o modo retrato nos celulares. E se você tentar girar, o Momentus te avisa gentilmente sobre essa otimização.",
+                "Melhoramos a clareza visual: o dia de 'Hoje' é indicado por um contorno sutil, enquanto sua seleção ganha um preenchimento sólido. Navegar pelo tempo nunca foi tão intuitivo.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("📅 Precisão Milimétrica", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("📱 Experiência Responsiva Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Corrigimos o alinhamento das células do calendário e eliminamos inconsistências de fuso horário. Seus eventos agora aparecem exatamente onde deveriam, com um visual limpo e simétrico.",
+                "O Momentus agora se adapta perfeitamente do seu celular ao seu Tablet. Ajustamos os pesos e espaçamentos para garantir que todas as informações caibam na tela com harmonia e elegância.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("🔄 Sincronização e Feedbacks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🕰️ Precisão de Data e Sincronização", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Novo botão de sincronização manual com registro de data/hora em tempo real. Além disso, unificamos a paleta de cores verde na seleção múltipla para uma identidade visual impecável.",
+                "Corrigimos inconsistências de fuso horário e sincronizamos o título da agenda com sua seleção em tempo real. Seus registros estão sempre onde deveriam estar.",
                 style = MaterialTheme.typography.bodyLarge)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Momentus - Foco e evolução constante.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 16.dp))
+            Text("Momentus - Viva o presente, planeje o futuro.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 16.dp))
         }
     }
 }
