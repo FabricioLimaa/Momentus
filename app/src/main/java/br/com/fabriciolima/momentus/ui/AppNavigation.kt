@@ -172,7 +172,7 @@ fun AppNavHost(
                 onErrorShown = viewModel::onErrorShown,
                 onSuccessMessageShown = viewModel::onSuccessMessageShown,
                 onAchievementDialogDismissed = viewModel::onAchievementDialogDismissed,
-                onCheckForUpdate = viewModel::checkForAppUpdate,
+                onCheckForAppUpdate = viewModel::checkForAppUpdate,
                 onStartUpdate = { updateInfo ->
                     inAppUpdateManager.startUpdateFlow(updateInfo, context as Activity)
                 },

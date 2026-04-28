@@ -3,6 +3,11 @@ package br.com.fabriciolima.momentus.ui.screens
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.view.OrientationEventListener
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,8 +47,10 @@ import androidx.core.view.WindowCompat
 import br.com.fabriciolima.momentus.data.model.Achievement
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
+import br.com.fabriciolima.momentus.ui.components.EventDetailContent
 import br.com.fabriciolima.momentus.ui.components.EventDetailDialog
 import br.com.fabriciolima.momentus.ui.components.EventListItem
+import br.com.fabriciolima.momentus.ui.components.NewEventContent
 import br.com.fabriciolima.momentus.ui.components.NewEventDialog
 import br.com.fabriciolima.momentus.ui.components.SuccessCelebration
 import br.com.fabriciolima.momentus.ui.components.UpdateAvailableDialog
@@ -98,7 +105,7 @@ fun CalendarScreen(
     onErrorShown: () -> Unit,
     onSuccessMessageShown: () -> Unit,
     onAchievementDialogDismissed: () -> Unit,
-    onCheckForUpdate: () -> Unit,
+    onCheckForAppUpdate: () -> Unit,
     onStartUpdate: (com.google.android.play.core.appupdate.AppUpdateInfo) -> Unit,
     onCompleteUpdate: () -> Unit,
     onDismissUpdateDialog: () -> Unit,
@@ -121,21 +128,23 @@ fun CalendarScreen(
     val selectionColor = MaterialTheme.colorScheme.primary.toArgb()
 
     val configuration = LocalConfiguration.current
-    val isTablet = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+    val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+    val isMedium = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium
+    val isTablet = isExpanded || isMedium
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val useSideBySide = isTablet && isLandscape
+    
+    // Decidimos se usamos o layout Master-Detail (Painel lateral)
+    val useSidePanel = isExpanded || (isMedium && isLandscape)
 
     // Bloqueio de orientação e detecção física para celulares
     DisposableEffect(isTablet) {
         val activity = context as? Activity
         if (!isTablet) {
-            // Trava fisicamente a Activity em Portrait
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
             val listener = object : OrientationEventListener(context) {
                 override fun onOrientationChanged(orientation: Int) {
                     if (orientation == ORIENTATION_UNKNOWN) return
-                    // Se o usuário inclinar o celular para horizontal (aprox. 90 ou 270 graus)
                     val isTiltedHorizontal = (orientation in 70..110) || (orientation in 250..290)
                     if (isTiltedHorizontal) {
                         scope.launch {
@@ -176,7 +185,7 @@ fun CalendarScreen(
         showCompletionAnimation.collect { showSuccessCelebration = true }
     }
 
-    LaunchedEffect(Unit) { onCheckForUpdate() }
+    LaunchedEffect(Unit) { onCheckForAppUpdate() }
 
     uiState.updateInfo?.let {
         UpdateAvailableDialog(
@@ -216,44 +225,50 @@ fun CalendarScreen(
         }
     }
 
-    // Dialogs
-    when (val dialogState = uiState.dialogState) {
-        is DialogState.AddNewRotina -> {
-            NewEventDialog(
-                eventoParaEditar = null,
-                selectedDate = selectedDate,
-                categories = allCategories,
-                onDismiss = onDialogDismiss,
-                onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
-                    onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
-                }
-            )
-        }
-        is DialogState.EditRotina -> {
-            NewEventDialog(
-                eventoParaEditar = dialogState.rotina,
-                selectedDate = selectedDate,
-                categories = allCategories,
-                onDismiss = onDialogDismiss,
-                onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
-                    if (item != null) {
-                        onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
-                    }
-                }
-            )
-        }
-        is DialogState.ShowDetail -> {
-            val category = uiState.categoriesMap[dialogState.rotina.categoryId]
-            if (category != null) {
-                EventDetailDialog(
-                    event = dialogState.rotina,
-                    category = category,
+    // Dialogs (Apenas se não estiver usando Painel Lateral)
+    if (!useSidePanel) {
+        when (val dialogState = uiState.dialogState) {
+            is DialogState.AddNewRotina -> {
+                NewEventDialog(
+                    selectedDate = selectedDate,
+                    categories = allCategories,
                     onDismiss = onDialogDismiss,
-                    onEditClick = { onEditRotinaClicked(dialogState.rotina) },
-                    onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) }
+                    onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                        onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                    }
                 )
             }
+            is DialogState.EditRotina -> {
+                NewEventDialog(
+                    eventoParaEditar = dialogState.rotina,
+                    selectedDate = selectedDate,
+                    categories = allCategories,
+                    onDismiss = onDialogDismiss,
+                    onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                        if (item != null) {
+                            onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                        }
+                    }
+                )
+            }
+            is DialogState.ShowDetail -> {
+                val category = uiState.categoriesMap[dialogState.rotina.categoryId]
+                if (category != null) {
+                    EventDetailDialog(
+                        event = dialogState.rotina,
+                        category = category,
+                        onDismiss = onDialogDismiss,
+                        onEditClick = { onEditRotinaClicked(dialogState.rotina) },
+                        onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) }
+                    )
+                }
+            }
+            else -> {}
         }
+    }
+
+    // Confirm Delete Dialogs (Sempre como Dialog)
+    when (val dialogState = uiState.dialogState) {
         is DialogState.ConfirmDelete -> {
             AlertDialog(
                 onDismissRequest = onDialogDismiss,
@@ -274,7 +289,7 @@ fun CalendarScreen(
                 dismissButton = { TextButton(onClick = onDialogDismiss) { Text("Cancelar") } }
             )
         }
-        is DialogState.Hidden -> {}
+        else -> {}
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -334,24 +349,76 @@ fun CalendarScreen(
                 }
             }
         ) { paddingValues ->
-            if (useSideBySide) {
-                // Layout para Tablets em Paisagem: Lado a Lado
-                Row(
+            Row(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize()
+            ) {
+                // Conteúdo Principal (Calendário e Lista)
+                Column(
                     modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(horizontal = 16.dp)
                 ) {
-                    // Lado Esquerdo: Calendário e Ação
-                    Column(modifier = Modifier.weight(1.2f).fillMaxHeight()) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                    if (useSidePanel) {
+                        // Layout Master (Calendário + Lista) Lado a Lado em Tablet
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1.2f).fillMaxHeight()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = onAddNewRotinaClicked,
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    enabled = !uiState.isLoading && !uiState.isSelectionModeActive
+                                ) {
+                                     if (uiState.isLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                                    } else {
+                                        Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Nova Rotina")
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                CalendarContent(
+                                    uiState = uiState,
+                                    selectedDate = selectedDate,
+                                    onDateSelected = onDateSelected
+                                )
+                            }
+                            
+                            VerticalDivider(modifier = Modifier.fillMaxHeight().padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                EventsForDay(
+                                    uiState = uiState,
+                                    selectedDate = selectedDate,
+                                    eventsForDate = eventsForSelectedDate,
+                                    onRotinaClick = { item ->
+                                         if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
+                                    },
+                                    onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
+                                    onAddNewRotinaClicked = onAddNewRotinaClicked,
+                                    onMarkAsCompleted = { id ->
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onMarkAsCompleted(id)
+                                    },
+                                    onUnmarkAsCompleted = onUnmarkAsCompleted
+                                )
+                            }
+                        }
+                    } else {
+                        // Layout Celular (Vertical)
+                        Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = onAddNewRotinaClicked,
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             enabled = !uiState.isLoading && !uiState.isSelectionModeActive
                         ) {
-                             if (uiState.isLoading) {
+                            if (uiState.isLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                             } else {
                                 Icon(imageVector = Icons.Default.Add, contentDescription = null)
@@ -359,22 +426,22 @@ fun CalendarScreen(
                                 Text("Nova Rotina")
                             }
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         CalendarContent(
                             uiState = uiState,
                             selectedDate = selectedDate,
-                            onDateSelected = onDateSelected
+                            onDateSelected = onDateSelected,
+                            modifier = Modifier.fillMaxWidth().wrapContentHeight()
                         )
-                    }
 
-                    // Divisor Vertical
-                    VerticalDivider(modifier = Modifier.fillMaxHeight().padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                    // Lado Direito: Lista de Rotinas
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                             Spacer(modifier = Modifier.height(16.dp))
-                             EventsForDay(
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Box(modifier = Modifier.weight(1f)) {
+                            EventsForDay(
                                 uiState = uiState,
                                 selectedDate = selectedDate,
                                 eventsForDate = eventsForSelectedDate,
@@ -392,60 +459,61 @@ fun CalendarScreen(
                         }
                     }
                 }
-            } else {
-                // Layout Vertical (Celulares e Tablets em modo Retrato)
-                Column(
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
+
+                // PAINEL LATERAL (Detail/Edit) - Master-Detail Flow
+                AnimatedVisibility(
+                    visible = useSidePanel && uiState.dialogState != DialogState.Hidden,
+                    enter = fadeIn() + expandHorizontally(),
+                    exit = fadeOut() + shrinkHorizontally()
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = onAddNewRotinaClicked,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        enabled = !uiState.isLoading && !uiState.isSelectionModeActive
+                    Surface(
+                        modifier = Modifier
+                            .width(400.dp)
+                            .fillMaxHeight(),
+                        tonalElevation = 2.dp,
+                        shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
                     ) {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                        } else {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Nova Rotina")
+                        Box(modifier = Modifier.fillMaxSize().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))) {
+                            when (val dialogState = uiState.dialogState) {
+                                is DialogState.ShowDetail -> {
+                                    val category = uiState.categoriesMap[dialogState.rotina.categoryId]
+                                    if (category != null) {
+                                        EventDetailContent(
+                                            event = dialogState.rotina,
+                                            category = category,
+                                            onEditClick = { onEditRotinaClicked(dialogState.rotina) },
+                                            onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) },
+                                            onCloseClick = onDialogDismiss,
+                                            showCloseButton = true
+                                        )
+                                    }
+                                }
+                                is DialogState.AddNewRotina -> {
+                                    NewEventContent(
+                                        selectedDate = selectedDate,
+                                        categories = allCategories,
+                                        onDismiss = onDialogDismiss,
+                                        onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                                            onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                                        }
+                                    )
+                                }
+                                is DialogState.EditRotina -> {
+                                    NewEventContent(
+                                        eventoParaEditar = dialogState.rotina,
+                                        selectedDate = selectedDate,
+                                        categories = allCategories,
+                                        onDismiss = onDialogDismiss,
+                                        onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                                            if (item != null) {
+                                                onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                                            }
+                                        }
+                                    )
+                                }
+                                else -> {}
+                            }
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Calendário com altura dinâmica para evitar desalinhamento
-                    CalendarContent(
-                        uiState = uiState,
-                        selectedDate = selectedDate,
-                        onDateSelected = onDateSelected,
-                        modifier = Modifier.fillMaxWidth().wrapContentHeight()
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // A lista de eventos ocupa o restante do espaço
-                    Box(modifier = Modifier.weight(1f)) {
-                        EventsForDay(
-                            uiState = uiState,
-                            selectedDate = selectedDate,
-                            eventsForDate = eventsForSelectedDate,
-                            onRotinaClick = { item ->
-                                 if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
-                            },
-                            onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
-                            onAddNewRotinaClicked = onAddNewRotinaClicked,
-                            onMarkAsCompleted = { id ->
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onMarkAsCompleted(id)
-                            },
-                            onUnmarkAsCompleted = onUnmarkAsCompleted
-                        )
                     }
                 }
             }
@@ -728,7 +796,7 @@ fun MonthYearPickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { selectedYear-- }) { Icon(imageVector = Icons.Filled.ChevronLeft, contentDescription = "Ano anterior") }
-                    Text(text = selectedYear.toString(), style = MaterialTheme.typography.headlineMedium)
+                    Text(text = selectedYear.toString(), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
                     IconButton(onClick = { selectedYear++ }) { Icon(imageVector = Icons.Filled.ChevronRight, contentDescription = "Próximo ano") }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -743,7 +811,7 @@ fun MonthYearPickerDialog(
                                 .clickable { onMonthYearSelected(YearMonth.of(selectedYear, month + 1)) }
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
-                        ) { Text(text = monthName.replaceFirstChar { it.uppercase() }) }
+                        ) { Text(text = monthName.replaceFirstChar { it.uppercase() }, textAlign = TextAlign.Center) }
                     }
                 }
             }
@@ -779,7 +847,7 @@ fun EventsForDay(
             ) {
                 Icon(imageVector = Icons.Outlined.EventBusy, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Dia livre!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(text = "Dia livre!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(text = "Você não tem nenhuma rotina para este dia. Que tal adicionar uma?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp))
                 Spacer(modifier = Modifier.height(8.dp))
