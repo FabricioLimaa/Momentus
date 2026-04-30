@@ -77,10 +77,10 @@ fun AppDrawerContent(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(text = "NAVEGAÇÃO", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 16.dp))
                 NavigationDrawerItem(
-                    label = { Text("Calendário") },
+                    label = { Text("Agenda") },
                     selected = false,
                     onClick = { onNavigate(Screen.Calendar.route) },
-                    icon = { Icon(Icons.Default.CalendarViewMonth, contentDescription = null) },
+                    icon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
@@ -112,7 +112,7 @@ fun AppDrawerContent(
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
-                    label = { Text("Configurações") },
+                    label = { Text("Ajustes") },
                     selected = false,
                     onClick = { onNavigate(Screen.Settings.route) },
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },

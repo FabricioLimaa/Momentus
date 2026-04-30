@@ -44,42 +44,42 @@ fun UpdateNotesScreen(
             Text("O que há de novo?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("Versão 1.3.7 (Abril de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Versão 1.3.8 (Abril de 2026)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Esta atualização foca em tornar o Momentus totalmente responsivo e visualmente impecável em qualquer dispositivo.", style = MaterialTheme.typography.bodyMedium)
+            Text("Esta atualização eleva o patamar de navegação e identidade visual do Momentus.", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("📅 Calendário Inteligente e Estável", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🚀 Navegação de Elite", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Diga adeus aos 'pulos' no layout! Estabilizamos o calendário para ter um tamanho fixo e elegante. Agora, ao trocar de mês, sua lista de tarefas permanece firme no lugar.",
+                "Diga adeus aos labirintos! Implementamos um menu no celular para acesso instantâneo. No Tablet, o menu lateral agora está perfeitamente centralizado e completo.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("✨ Destaque Visual Refinado", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("👤 Perfil 'Você' Redesenhado", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Melhoramos a clareza visual: o dia de 'Hoje' é indicado por um contorno sutil, enquanto sua seleção ganha um preenchimento sólido. Navegar pelo tempo nunca foi tão intuitivo.",
+                "Sua jornada em destaque: um novo dashboard com avatar circular, progresso de nível (XP) e acesso rápido a Ajustes e Novidades.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("📱 Experiência Responsiva Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🏅 Medalhas com Identidade", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "O Momentus agora se adapta perfeitamente do seu celular ao seu Tablet. Ajustamos os pesos e espaçamentos para garantir que todas as informações caibam na tela com harmonia e elegância.",
+                "Cada conquista agora tem um ícone único e representativo! Explore suas medalhas clicando nelas para ver detalhes, descrição e a data da sua glória.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("🕰️ Precisão de Data e Sincronização", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("🌑 Estética Layers (Premium Dark)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Corrigimos inconsistências de fuso horário e sincronizamos o título da agenda com sua seleção em tempo real. Seus registros estão sempre onde deveriam estar.",
+                "Introduzimos profundidade visual com a paleta 'Layers'. Fundo preto absoluto e cards em cinza profundo criam uma hierarquia clara e moderna, economizando bateria e reduzindo o cansaço visual.",
                 style = MaterialTheme.typography.bodyLarge)
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(16.dp))
             Text("Momentus - Viva o presente, planeje o futuro.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 16.dp))

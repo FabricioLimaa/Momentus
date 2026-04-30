@@ -307,11 +307,6 @@ fun CalendarScreen(
                 } else {
                     TopAppBar(
                         title = { Text(text = "Momentus") },
-                        navigationIcon = {
-                            IconButton(onClick = { onMenuClick() }) {
-                                Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
-                            }
-                        },
                         actions = {
                             Row(
                                 modifier = Modifier
