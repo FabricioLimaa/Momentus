@@ -1,23 +1,22 @@
 package br.com.fabriciolima.momentus.ui.theme
 
 import android.app.Activity
+import android.app.Application
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import br.com.fabriciolima.momentus.data.repository.AppThemeMode
 import br.com.fabriciolima.momentus.data.repository.UserPreferencesRepository
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.flow.flowOf
 
 @Composable
 fun MomentusTheme(
@@ -28,11 +27,29 @@ fun MomentusTheme(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val repository = remember {
-        EntryPointAccessors.fromApplication(context, ThemeEntryPoint::class.java).userPreferencesRepository()
+    val isInPreview = LocalInspectionMode.current
+    
+    val repository = remember(context, isInPreview) {
+        if (isInPreview) null else {
+            try {
+                // Tenta encontrar o Application context de forma segura para o Hilt
+                var currentContext = context
+                while (currentContext is android.content.ContextWrapper && currentContext !is Application) {
+                    currentContext = currentContext.baseContext
+                }
+                
+                if (currentContext is Application) {
+                    EntryPointAccessors.fromApplication(currentContext, ThemeEntryPoint::class.java).userPreferencesRepository()
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
     
-    val preferences by repository.userPreferencesFlow.collectAsState(initial = null)
+    val preferences by (repository?.userPreferencesFlow ?: flowOf(null)).collectAsState(initial = null)
     
     // Prioriza o override (Preview) ou usa o salvo, senão usa padrão de sistema
     val themeMode = overrideThemeMode ?: preferences?.themeMode ?: AppThemeMode.SYSTEM

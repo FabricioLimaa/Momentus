@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -41,6 +42,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -48,6 +51,7 @@ import androidx.core.view.WindowCompat
 import br.com.fabriciolima.momentus.data.model.Achievement
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
+import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.ui.components.EventDetailContent
 import br.com.fabriciolima.momentus.ui.components.EventDetailDialog
 import br.com.fabriciolima.momentus.ui.components.EventListItem
@@ -55,6 +59,7 @@ import br.com.fabriciolima.momentus.ui.components.NewEventContent
 import br.com.fabriciolima.momentus.ui.components.NewEventDialog
 import br.com.fabriciolima.momentus.ui.components.SuccessCelebration
 import br.com.fabriciolima.momentus.ui.components.UpdateAvailableDialog
+import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
@@ -67,6 +72,7 @@ import com.kizitonwose.calendar.core.DayPosition
 import com.kizitonwose.calendar.core.OutDateStyle
 import com.kizitonwose.calendar.core.daysOfWeek
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
@@ -133,17 +139,20 @@ fun CalendarScreen(
     val isMedium = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium
     val isTablet = isExpanded || isMedium
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    
+    val screenWidth = configuration.screenWidthDp.dp
+
     // Decidimos se usamos o layout Master-Detail (Painel lateral)
     val useSidePanel = isExpanded || (isMedium && isLandscape)
 
     // Bloqueio de orientação e detecção física para celulares
     DisposableEffect(isTablet) {
         val activity = context as? Activity
-        if (!isTablet) {
+        var listener: OrientationEventListener? = null
+
+        if (!isTablet && !view.isInEditMode) {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
-            val listener = object : OrientationEventListener(context) {
+            listener = object : OrientationEventListener(context) {
                 override fun onOrientationChanged(orientation: Int) {
                     if (orientation == ORIENTATION_UNKNOWN) return
                     val isTiltedHorizontal = (orientation in 70..110) || (orientation in 250..290)
@@ -160,12 +169,13 @@ fun CalendarScreen(
                 }
             }
             listener.enable()
-            onDispose {
-                listener.disable()
+        }
+
+        onDispose {
+            listener?.disable()
+            if (!isTablet && !view.isInEditMode) {
                 activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             }
-        } else {
-            onDispose {}
         }
     }
 
@@ -305,15 +315,18 @@ fun CalendarScreen(
                         onDelete = onConfirmDeleteSelectedRotinas
                     )
                 } else {
-                    TopAppBar(
-                        title = { Text(text = "Momentus") },
+                    TopAppBar( title = {
+                        Text(text = "Momentus", style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = if (screenWidth < 360.dp) 20.sp else 22.sp // <-- Altere aqui o tamanho do título
+                        ))
+                    },
                         actions = {
                             Row(
                                 modifier = Modifier
-                                    .padding(horizontal = 8.dp)
+                                    .padding(horizontal = 4.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .clickable { onNavigateToAchievements() }
-                                    .padding(8.dp),
+                                    .padding(vertical = 4.dp, horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -378,14 +391,14 @@ fun CalendarScreen(
                                         Text("Nova Rotina")
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
                                 CalendarContent(
                                     uiState = uiState,
                                     selectedDate = selectedDate,
                                     onDateSelected = onDateSelected
                                 )
                             }
-                            
+
                             VerticalDivider(modifier = Modifier.fillMaxHeight().padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
@@ -436,7 +449,7 @@ fun CalendarScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Box(modifier = Modifier.weight(1f)) {
                             EventsForDay(
                                 uiState = uiState,
@@ -566,7 +579,7 @@ fun SelectionTopAppBar(
 fun AchievementUnlockedDialog(achievement: Achievement, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { 
+        icon = {
             Box(contentAlignment = Alignment.Center) {
                 SuccessCelebration(onFinished = {})
                 Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
@@ -684,7 +697,7 @@ fun CalendarHeader(
     onTitleClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -848,9 +861,9 @@ fun EventsForDay(
 
         if (eventsForDate.localRotinas.isEmpty()) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
+                modifier = Modifier.fillMaxSize().padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Top
             ) {
                 Icon(imageVector = Icons.Outlined.EventBusy, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                 Spacer(modifier = Modifier.height(8.dp))
@@ -860,7 +873,7 @@ fun EventsForDay(
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = onAddNewRotinaClicked, enabled = !uiState.isSelectionModeActive) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(24.dp))
                     Text("Adicionar Rotina")
                 }
             }
