@@ -3,51 +3,53 @@ package br.com.fabriciolima.momentus.ui.theme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 
-// Paleta Premium Dark (Inspirada na referência)
-val PremiumBackground = Color(0xFF000000) // Preto Absoluto
-val PremiumSurface = Color(0xFF121212)    // Cinza Profundo para Cards
-val PremiumOutline = Color(0xFF252525)    // Borda sutil para camadas
+// Paleta Premium "Deep Navy" e "Emerald" (Baseada nas novas imagens)
 
-// Cores de Identidade
-val DarkBlue = Color(0xFF0A1A4A)
-val GreenVibrant = Color(0xFF3DDC84)
-val GreenDark = Color(0xFF2A9371)
-val OffWhite = Color(0xFFE6E6E6)
+// Cores de Fundo e Superfície (Tema Escuro)
+val DeepNavyBackground = Color(0xFF0F172A) // Fundo Principal (Deep Navy)
+val DeepNavySurface = Color(0xFF1E293B)    // Cards e Diálogos
+val DeepNavyOutline = Color(0xFF334155)    // Bordas sutis
+
+// Cores de Destaque
+val EmeraldGreen = Color(0xFF10B981)       // Verde Esmeralda Premium (Ação principal)
+val EmeraldLight = Color(0xFF34D399)       // Verde mais claro para estados ativos
+val EmeraldDark = Color(0xFF065F46)        // Verde escuro para containers
+
+// Cores de Texto e Utilitários
+val TextPrimaryDark = Color(0xFFF8FAFC)    // Quase branco para texto principal
+val TextSecondaryDark = Color(0xFF94A3B8)  // Cinza azulado para texto secundário
 
 // Cores do Tema Claro (Light Theme)
-val md_theme_light_primary = GreenVibrant
+val md_theme_light_primary = EmeraldGreen
 val md_theme_light_onPrimary = Color.White
-val md_theme_light_primaryContainer = Color(0xFFB9FBC9)
-val md_theme_light_secondary = DarkBlue
+val md_theme_light_primaryContainer = Color(0xFFD1FAE5)
+val md_theme_light_onPrimaryContainer = EmeraldDark
+val md_theme_light_secondary = DeepNavyBackground
 val md_theme_light_onSecondary = Color.White
-val md_theme_light_tertiary = GreenDark
-val md_theme_light_onTertiary = Color.White
-val md_theme_light_error = Color(0xFFBA1A1A)
-val md_theme_light_errorContainer = Color(0xFFFFDAD6)
-val md_theme_light_onError = Color.White
-val md_theme_light_background = OffWhite
-val md_theme_light_onBackground = DarkBlue
+val md_theme_light_error = Color(0xFFEF4444)
+val md_theme_light_background = Color(0xFFF1F5F9) // Cinza azulado muito claro
+val md_theme_light_onBackground = Color(0xFF0F172A)
 val md_theme_light_surface = Color.White
-val md_theme_light_onSurface = DarkBlue
-val md_theme_light_surfaceVariant = Color(0xFFE0E2EC)
-val md_theme_light_onSurfaceVariant = Color(0xFF44474F)
-val md_theme_light_outline = Color(0xFFD1D1D6)
+val md_theme_light_onSurface = Color(0xFF0F172A)
+val md_theme_light_surfaceVariant = Color(0xFFE2E8F0)
+val md_theme_light_onSurfaceVariant = Color(0xFF475569)
+val md_theme_light_outline = Color(0xFFCBD5E1)
 
-// Cores do Tema Escuro (Dark Theme - Ponto 3: Estética Layers)
-val md_theme_dark_primary = GreenVibrant
-val md_theme_dark_onPrimary = Color.Black
-val md_theme_dark_primaryContainer = Color(0xFF1A3326) // Verde muito escuro
-val md_theme_dark_onPrimaryContainer = GreenVibrant
-val md_theme_dark_secondary = Color(0xFFADC6FF)
-val md_theme_dark_onSecondary = Color(0xFF002E69)
-val md_theme_dark_error = Color(0xFFFFB4AB)
-val md_theme_dark_background = PremiumBackground
-val md_theme_dark_onBackground = Color(0xFFE2E2E6)
-val md_theme_dark_surface = PremiumSurface
-val md_theme_dark_onSurface = Color(0xFFE2E2E6)
-val md_theme_dark_surfaceVariant = Color(0xFF1E1E1E)
-val md_theme_dark_onSurfaceVariant = Color(0xFFC4C6D0)
-val md_theme_dark_outline = PremiumOutline
+// Cores do Tema Escuro (Dark Theme)
+val md_theme_dark_primary = EmeraldGreen
+val md_theme_dark_onPrimary = Color(0xFF064E3B)
+val md_theme_dark_primaryContainer = EmeraldDark.copy(alpha = 0.3f)
+val md_theme_dark_onPrimaryContainer = EmeraldLight
+val md_theme_dark_secondary = Color(0xFF38BDF8) // Azul claro para variação
+val md_theme_dark_onSecondary = Color(0xFF0C4A6E)
+val md_theme_dark_error = Color(0xFFFCA5A5)
+val md_theme_dark_background = DeepNavyBackground
+val md_theme_dark_onBackground = TextPrimaryDark
+val md_theme_dark_surface = DeepNavySurface
+val md_theme_dark_onSurface = TextPrimaryDark
+val md_theme_dark_surfaceVariant = Color(0xFF334155)
+val md_theme_dark_onSurfaceVariant = TextSecondaryDark
+val md_theme_dark_outline = DeepNavyOutline
 
 
 // --- Paleta de Cores do Google Agenda ---

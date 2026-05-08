@@ -60,34 +60,46 @@ fun MomentusTheme(
     }
 
     val primaryColorHex = overridePrimaryColorHex ?: preferences?.primaryColorHex
-    val primaryColor = primaryColorHex?.let { 
-        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { md_theme_light_primary }
-    } ?: md_theme_light_primary
+    val customPrimaryColor = primaryColorHex?.let { 
+        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
+    }
 
     val cornerRadius = (overrideCornerRadiusDp ?: preferences?.cornerRadiusDp ?: 12).dp
     val fontSizeMultiplier = overrideFontSizeMultiplier ?: preferences?.fontSizeMultiplier ?: 1.0f
 
     val colorScheme = if (darkTheme) {
         darkColorScheme(
-            primary = primaryColor,
-            onPrimary = DarkBlue,
-            primaryContainer = primaryColor.copy(alpha = 0.2f),
-            onPrimaryContainer = Color.White,
-            background = DarkBlue,
-            surface = Color(0xFF1C2C5A),
-            onSurface = Color.White,
-            outline = Color.Gray
+            primary = customPrimaryColor ?: md_theme_dark_primary,
+            onPrimary = md_theme_dark_onPrimary,
+            primaryContainer = (customPrimaryColor ?: md_theme_dark_primary).copy(alpha = 0.2f),
+            onPrimaryContainer = md_theme_dark_onPrimaryContainer,
+            secondary = md_theme_dark_secondary,
+            onSecondary = md_theme_dark_onSecondary,
+            background = md_theme_dark_background,
+            onBackground = md_theme_dark_onBackground,
+            surface = md_theme_dark_surface,
+            onSurface = md_theme_dark_onSurface,
+            surfaceVariant = md_theme_dark_surfaceVariant,
+            onSurfaceVariant = md_theme_dark_onSurfaceVariant,
+            outline = md_theme_dark_outline,
+            error = md_theme_dark_error
         )
     } else {
         lightColorScheme(
-            primary = primaryColor,
-            onPrimary = Color.White,
-            primaryContainer = primaryColor.copy(alpha = 0.1f),
-            onPrimaryContainer = primaryColor,
-            background = OffWhite,
-            surface = Color.White,
-            onSurface = DarkBlue,
-            outline = Color.Gray
+            primary = customPrimaryColor ?: md_theme_light_primary,
+            onPrimary = md_theme_light_onPrimary,
+            primaryContainer = (customPrimaryColor ?: md_theme_light_primary).copy(alpha = 0.1f),
+            onPrimaryContainer = md_theme_light_onPrimaryContainer,
+            secondary = md_theme_light_secondary,
+            onSecondary = md_theme_light_onSecondary,
+            background = md_theme_light_background,
+            onBackground = md_theme_light_onBackground,
+            surface = md_theme_light_surface,
+            onSurface = md_theme_light_onSurface,
+            surfaceVariant = md_theme_light_surfaceVariant,
+            onSurfaceVariant = md_theme_light_onSurfaceVariant,
+            outline = md_theme_light_outline,
+            error = md_theme_light_error
         )
     }
 

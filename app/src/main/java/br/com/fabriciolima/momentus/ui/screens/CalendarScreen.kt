@@ -14,11 +14,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,7 +24,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -42,8 +39,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -51,7 +46,6 @@ import androidx.core.view.WindowCompat
 import br.com.fabriciolima.momentus.data.model.Achievement
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.UserData
 import br.com.fabriciolima.momentus.ui.components.EventDetailContent
 import br.com.fabriciolima.momentus.ui.components.EventDetailDialog
 import br.com.fabriciolima.momentus.ui.components.EventListItem
@@ -59,7 +53,6 @@ import br.com.fabriciolima.momentus.ui.components.NewEventContent
 import br.com.fabriciolima.momentus.ui.components.NewEventDialog
 import br.com.fabriciolima.momentus.ui.components.SuccessCelebration
 import br.com.fabriciolima.momentus.ui.components.UpdateAvailableDialog
-import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
@@ -72,14 +65,12 @@ import com.kizitonwose.calendar.core.DayPosition
 import com.kizitonwose.calendar.core.OutDateStyle
 import com.kizitonwose.calendar.core.daysOfWeek
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -139,7 +130,6 @@ fun CalendarScreen(
     val isMedium = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium
     val isTablet = isExpanded || isMedium
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val screenWidth = configuration.screenWidthDp.dp
 
     // Decidimos se usamos o layout Master-Detail (Painel lateral)
     val useSidePanel = isExpanded || (isMedium && isLandscape)
@@ -236,7 +226,6 @@ fun CalendarScreen(
         }
     }
 
-    // Dialogs (Apenas se não estiver usando Painel Lateral)
     if (!useSidePanel) {
         when (val dialogState = uiState.dialogState) {
             is DialogState.AddNewRotina -> {
@@ -307,7 +296,7 @@ fun CalendarScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                 if (uiState.isSelectionModeActive) {
+                if (uiState.isSelectionModeActive) {
                     SelectionTopAppBar(
                         selectedCount = uiState.selectedRotinaIds.size,
                         onClearSelection = onClearSelection,
@@ -315,43 +304,11 @@ fun CalendarScreen(
                         onDelete = onConfirmDeleteSelectedRotinas
                     )
                 } else {
-                    TopAppBar( title = {
-                        Text(text = "Momentus", style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = if (screenWidth < 360.dp) 20.sp else 22.sp // <-- Altere aqui o tamanho do título
-                        ))
-                    },
+                    TopAppBar(
+                        title = { Text("Agenda", fontWeight = FontWeight.Bold) },
                         actions = {
-                            Row(
-                                modifier = Modifier
-                                    .padding(horizontal = 4.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { onNavigateToAchievements() }
-                                    .padding(vertical = 4.dp, horizontal = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocalFireDepartment,
-                                    contentDescription = "Sequência",
-                                    tint = getStreakColor(uiState.streak)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = uiState.streak.toString(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = "Pontos",
-                                    tint = Color(0xFFD4AF37)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = (uiState.userData?.points ?: 0).toString(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            IconButton(onClick = onAddNewRotinaClicked) {
+                                Icon(Icons.Default.Add, contentDescription = "Nova Rotina")
                             }
                         }
                     )
@@ -371,116 +328,41 @@ fun CalendarScreen(
                         .padding(horizontal = 16.dp)
                 ) {
                     if (useSidePanel) {
-                        // Layout Master (Calendário + Lista) Lado a Lado em Tablet
                         Row(
                             modifier = Modifier.fillMaxSize(),
                             horizontalArrangement = Arrangement.spacedBy(24.dp)
                         ) {
                             Column(modifier = Modifier.weight(1.2f).fillMaxHeight()) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(
-                                    onClick = onAddNewRotinaClicked,
-                                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                                    enabled = !uiState.isLoading && !uiState.isSelectionModeActive
-                                ) {
-                                     if (uiState.isLoading) {
-                                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                                    } else {
-                                        Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Nova Rotina")
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                CalendarContent(
-                                    uiState = uiState,
-                                    selectedDate = selectedDate,
-                                    onDateSelected = onDateSelected
-                                )
+                                CalendarContent(uiState = uiState, selectedDate = selectedDate, onDateSelected = onDateSelected)
                             }
-
                             VerticalDivider(modifier = Modifier.fillMaxHeight().padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
                             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                EventsForDay(
-                                    uiState = uiState,
-                                    selectedDate = selectedDate,
-                                    eventsForDate = eventsForSelectedDate,
-                                    windowSizeClass = windowSizeClass,
-                                    onRotinaClick = { item ->
-                                         if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
-                                    },
-                                    onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
-                                    onAddNewRotinaClicked = onAddNewRotinaClicked,
-                                    onMarkAsCompleted = { id ->
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onMarkAsCompleted(id)
-                                    },
-                                    onUnmarkAsCompleted = onUnmarkAsCompleted
-                                )
+                                EventsForDay(uiState = uiState, selectedDate = selectedDate, eventsForDate = eventsForSelectedDate, windowSizeClass = windowSizeClass, onRotinaClick = { item -> if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item) }, onRotinaLongClick = { item -> onRotinaLongPressed(item.id) }, onAddNewRotinaClicked = onAddNewRotinaClicked, onMarkAsCompleted = { id -> haptic.performHapticFeedback(HapticFeedbackType.LongPress); onMarkAsCompleted(id) }, onUnmarkAsCompleted = onUnmarkAsCompleted)
                             }
                         }
                     } else {
-                        // Layout Celular (Vertical)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = onAddNewRotinaClicked,
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            enabled = !uiState.isLoading && !uiState.isSelectionModeActive
-                        ) {
-                            if (uiState.isLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                            } else {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Nova Rotina")
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-
                         CalendarContent(
                             uiState = uiState,
                             selectedDate = selectedDate,
                             onDateSelected = onDateSelected,
                             modifier = Modifier.fillMaxWidth().wrapContentHeight()
                         )
-
                         Spacer(modifier = Modifier.height(8.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         Spacer(modifier = Modifier.height(8.dp))
-
                         Box(modifier = Modifier.weight(1f)) {
-                            EventsForDay(
-                                uiState = uiState,
-                                selectedDate = selectedDate,
-                                eventsForDate = eventsForSelectedDate,
-                                windowSizeClass = windowSizeClass,
-                                onRotinaClick = { item ->
-                                     if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
-                                },
-                                onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
-                                onAddNewRotinaClicked = onAddNewRotinaClicked,
-                                onMarkAsCompleted = { id ->
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onMarkAsCompleted(id)
-                                },
-                                onUnmarkAsCompleted = onUnmarkAsCompleted
-                            )
+                            EventsForDay(uiState = uiState, selectedDate = selectedDate, eventsForDate = eventsForSelectedDate, windowSizeClass = windowSizeClass, onRotinaClick = { item -> if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item) }, onRotinaLongClick = { item -> onRotinaLongPressed(item.id) }, onAddNewRotinaClicked = onAddNewRotinaClicked, onMarkAsCompleted = { id -> haptic.performHapticFeedback(HapticFeedbackType.LongPress); onMarkAsCompleted(id) }, onUnmarkAsCompleted = onUnmarkAsCompleted)
                         }
                     }
                 }
 
-                // PAINEL LATERAL (Detail/Edit) - Master-Detail Flow
                 AnimatedVisibility(
                     visible = useSidePanel && uiState.dialogState != DialogState.Hidden,
                     enter = fadeIn() + expandHorizontally(),
                     exit = fadeOut() + shrinkHorizontally()
                 ) {
                     Surface(
-                        modifier = Modifier
-                            .width(400.dp)
-                            .fillMaxHeight(),
+                        modifier = Modifier.width(400.dp).fillMaxHeight(),
                         tonalElevation = 2.dp,
                         shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
                     ) {
@@ -489,38 +371,14 @@ fun CalendarScreen(
                                 is DialogState.ShowDetail -> {
                                     val category = uiState.categoriesMap[dialogState.rotina.categoryId]
                                     if (category != null) {
-                                        EventDetailContent(
-                                            event = dialogState.rotina,
-                                            category = category,
-                                            onEditClick = { onEditRotinaClicked(dialogState.rotina) },
-                                            onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) },
-                                            onCloseClick = onDialogDismiss,
-                                            showCloseButton = true
-                                        )
+                                        EventDetailContent(event = dialogState.rotina, category = category, onEditClick = { onEditRotinaClicked(dialogState.rotina) }, onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) }, onCloseClick = onDialogDismiss, showCloseButton = true)
                                     }
                                 }
                                 is DialogState.AddNewRotina -> {
-                                    NewEventContent(
-                                        selectedDate = selectedDate,
-                                        categories = allCategories,
-                                        onDismiss = onDialogDismiss,
-                                        onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
-                                            onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
-                                        }
-                                    )
+                                    NewEventContent(selectedDate = selectedDate, categories = allCategories, onDismiss = onDialogDismiss, onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle -> onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle) })
                                 }
                                 is DialogState.EditRotina -> {
-                                    NewEventContent(
-                                        eventoParaEditar = dialogState.rotina,
-                                        selectedDate = selectedDate,
-                                        categories = allCategories,
-                                        onDismiss = onDialogDismiss,
-                                        onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
-                                            if (item != null) {
-                                                onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
-                                            }
-                                        }
-                                    )
+                                    NewEventContent(eventoParaEditar = dialogState.rotina, selectedDate = selectedDate, categories = allCategories, onDismiss = onDialogDismiss, onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle -> if (item != null) onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle) })
                                 }
                                 else -> {}
                             }
@@ -531,10 +389,7 @@ fun CalendarScreen(
         }
 
         if (uiState.isLoading && !uiState.isSelectionModeActive) {
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         }
 
         if (showSuccessCelebration) {
@@ -847,11 +702,10 @@ fun EventsForDay(
     val dateFormatter = remember(selectedDate) { DateTimeFormatter.ofPattern("dd 'de' MMMM", ptBr) }
     val formattedDate = selectedDate.format(dateFormatter)
 
-    // Calculamos o número de colunas baseado na inteligência de tela
     val columnCount = when (windowSizeClass.widthSizeClass) {
         WindowWidthSizeClass.Compact -> 1
         WindowWidthSizeClass.Medium -> 2
-        WindowWidthSizeClass.Expanded -> 2 // Já temos o Master-Detail, 2 colunas aqui são ideais
+        WindowWidthSizeClass.Expanded -> 2
         else -> 1
     }
 
@@ -868,8 +722,6 @@ fun EventsForDay(
                 Icon(imageVector = Icons.Outlined.EventBusy, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(text = "Dia livre!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Você não tem nenhuma rotina para este dia. Que tal adicionar uma?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp))
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = onAddNewRotinaClicked, enabled = !uiState.isSelectionModeActive) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = null)

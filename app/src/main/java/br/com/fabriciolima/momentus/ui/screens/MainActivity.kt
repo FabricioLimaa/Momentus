@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
                         SplashViewModel.UserStatus.ONBOARDING_INCOMPLETE -> Screen.Onboarding.route
                         SplashViewModel.UserStatus.NOT_LOGGED_IN -> Screen.Login.route
                         SplashViewModel.UserStatus.TERMS_NOT_ACCEPTED -> Screen.Terms.route
-                        else -> Screen.Calendar.route
+                        else -> Screen.Home.route
                     }
                 }
 

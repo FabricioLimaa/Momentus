@@ -28,6 +28,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import br.com.fabriciolima.momentus.domain.model.UserLevel
 import br.com.fabriciolima.momentus.ui.screens.CalendarScreen
+import br.com.fabriciolima.momentus.ui.screens.HomeScreen
+import br.com.fabriciolima.momentus.ui.screens.MoreScreen
 import br.com.fabriciolima.momentus.ui.screens.MainActivity
 import br.com.fabriciolima.momentus.ui.screens.UserAvatar
 import br.com.fabriciolima.momentus.ui.screens.achievements.AchievementsScreen
@@ -56,12 +58,14 @@ sealed class Screen(val route: String, val label: String = "", val icon: android
     object ForgotPassword : Screen("forgot_password")
     object Terms : Screen("terms")
 
+    object Home : Screen("home", "Hoje", Icons.Default.Home)
     object Calendar : Screen("calendar", "Agenda", Icons.Default.CalendarToday)
+    object Stats : Screen("stats", "Estatísticas", Icons.Default.Assessment)
+    object Achievements : Screen("achievements", "Você", Icons.Default.EmojiEvents)
+    object More : Screen("more", "Mais", Icons.Default.Menu)
+
     object Templates : Screen("templates", "Templates", Icons.Default.GridView)
     object Categories : Screen("categories", "Categorias", Icons.Default.Category)
-    object Stats : Screen("stats", "Estatísticas", Icons.Default.Assessment)
-    object Achievements : Screen("achievements", "Você", Icons.Default.Person)
-
     object Updates : Screen("updates", "Novidades", Icons.Default.NewReleases)
     object Legal : Screen("legal", "Informações", Icons.Default.Info)
     object Settings : Screen("settings", "Ajustes", Icons.Default.Settings)
@@ -113,7 +117,7 @@ fun AppScaffold(
                 }
             ) {
                 Column(modifier = Modifier.fillMaxHeight().weight(1f), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    val railItems = listOf(Screen.Calendar, Screen.Templates, Screen.Categories, Screen.Stats, Screen.Updates, Screen.Settings)
+                    val railItems = listOf(Screen.Home, Screen.Calendar, Screen.Stats, Screen.Achievements, Screen.More)
                     railItems.forEach { screen ->
                         NavigationRailItem(
                             selected = currentRoute == screen.route,
@@ -155,7 +159,7 @@ fun AppScaffold(
                 val hideBottomBar = listOf(Screen.Onboarding.route, Screen.Login.route, Screen.SignUp.route, Screen.ForgotPassword.route, Screen.Terms.route).contains(currentRoute)
                 if (!hideBottomBar) {
                     NavigationBar(tonalElevation = 8.dp) {
-                        val items = listOf(Screen.Calendar, Screen.Templates, Screen.Categories, Screen.Stats, Screen.Achievements)
+                        val items = listOf(Screen.Home, Screen.Calendar, Screen.Stats, Screen.Achievements, Screen.More)
                         items.forEach { screen ->
                             val isSelected = currentRoute == screen.route
                             NavigationBarItem(
@@ -222,6 +226,22 @@ fun AppNavHost(
         composable(Screen.ForgotPassword.route) { ForgotPasswordScreen(navController) }
         composable(Screen.Terms.route) { TermsScreen(navController) }
 
+        composable(Screen.Home.route) {
+            val viewModel: CalendarViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val eventsForToday by viewModel.eventsForSelectedDate.collectAsStateWithLifecycle()
+            
+            HomeScreen(
+                uiState = uiState,
+                eventsForToday = eventsForToday,
+                onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
+                onMarkAsCompleted = viewModel::markHabitAsCompleted,
+                onUnmarkAsCompleted = viewModel::unmarkHabitAsCompleted,
+                onAddNewRotinaClicked = viewModel::onAddNewRotinaClicked,
+                onShowDetailClicked = viewModel::onShowDetailClicked
+            )
+        }
+
         composable(Screen.Calendar.route) {
             val viewModel: CalendarViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -275,5 +295,15 @@ fun AppNavHost(
         composable(Screen.Updates.route) { UpdateNotesScreen(navController) }
         composable(Screen.Legal.route) { LegalScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
+        
+        composable(Screen.More.route) {
+            val viewModel: CalendarViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            MoreScreen(
+                navController = navController,
+                uiState = uiState,
+                onLogout = { viewModel.logout() }
+            )
+        }
     }
 }

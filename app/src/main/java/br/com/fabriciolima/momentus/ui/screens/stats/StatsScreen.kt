@@ -9,9 +9,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,12 +63,7 @@ fun StatsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Estatísticas Premium") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
-                    }
-                }
+                title = { Text("Progresso", fontWeight = FontWeight.Bold) }
             )
         }
     ) { paddingValues ->
@@ -85,69 +82,54 @@ fun StatsScreen(
                 )
             }
 
-            // --- INSIGHTS PREMIUM ---
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    InsightCardMinimal(
-                        title = "Total",
-                        value = uiState.totalCompletions.toString(),
-                        icon = Icons.Default.EmojiEvents,
-                        modifier = Modifier.weight(1f),
-                        color = Color(0xFF6366F1)
-                    )
-                    InsightCardMinimal(
-                        title = "Média",
-                        value = "%.1f".format(Locale.getDefault(), uiState.dailyAverage),
-                        icon = Icons.AutoMirrored.Filled.TrendingUp,
-                        modifier = Modifier.weight(1f),
-                        color = Color(0xFF10B981)
-                    )
-                }
-            }
-
-            item {
-                if (uiState.bestCategory != null) {
-                    InsightCardMinimal(
-                        title = "Categoria Destaque",
-                        value = uiState.bestCategory ?: "",
-                        icon = Icons.Default.BarChart,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color(0xFFF59E0B)
-                    )
-                }
-            }
-
+            // --- INSIGHTS PREMIUM (Mockup Estilo) ---
             item {
                 Text(
-                    text = "Consistência Semanal",
+                    text = "Insights da ${if(uiState.filter == StatsFilter.WEEK) "semana" else if(uiState.filter == StatsFilter.MONTH) "mês" else "ano"}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                WeeklyProgressRings(dates = uiState.completionDates)
-            }
-            
-            item {
-                Text(
-                    text = "Frequência por Categoria",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                 Spacer(modifier = Modifier.height(12.dp))
-                 if (uiState.barChartData.isNotEmpty()) {
-                    BarChart(data = uiState.barChartData)
-                 } else {
-                    Text("Dados insuficientes para o gráfico.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    InsightCardPremium(
+                        title = if (uiState.improvementPercentage >= 0) "Você melhorou" else "Você caiu",
+                        value = "${kotlin.math.abs(uiState.improvementPercentage)}%",
+                        subtitle = "em relação ao período anterior",
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        modifier = Modifier.weight(1f),
+                        color = if (uiState.improvementPercentage >= 0) Color(0xFF10B981) else Color(0xFFEF4444)
+                    )
+                    InsightCardPremium(
+                        title = "Melhor horário",
+                        value = uiState.bestHour?.let { "${it}h" } ?: "--",
+                        subtitle = "Período de maior produtividade",
+                        icon = Icons.Default.Schedule,
+                        modifier = Modifier.weight(1f),
+                        color = Color(0xFF6366F1)
+                    )
+                }
             }
 
             item {
-                HorizontalDivider()
                 Text(
-                    text = "Taxa de Sucesso",
+                    text = "Total de Hábitos Concluídos",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                if (uiState.barChartData.isNotEmpty()) {
+                    BarChartPremium(data = uiState.barChartData)
+                } else {
+                    Text("Dados insuficientes para o gráfico.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            item {
+                Text(
+                    text = "Taxa de Conclusão",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -163,12 +145,145 @@ fun StatsScreen(
                 }
             } else {
                 items(uiState.completionRates) { rate ->
-                    CompletionRateItem(rate = rate)
+                    CompletionRateItemPremium(rate = rate)
                 }
             }
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }
+    }
+}
+
+@Composable
+fun InsightCardPremium(
+    title: String,
+    value: String,
+    subtitle: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    color: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(color.copy(alpha = 0.2f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = color
+                )
+                if (icon == Icons.AutoMirrored.Filled.TrendingUp) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowUpward,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(16.dp).padding(bottom = 4.dp, start = 2.dp)
+                    )
+                }
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 12.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun BarChartPremium(data: List<BarChartData>) {
+    val maxValue = remember(data) { data.maxOfOrNull { it.value } ?: 1 }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp).height(180.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            data.forEach { item ->
+                val itemColor = remember(item.color) {
+                    try { Color(android.graphics.Color.parseColor(item.color)) } catch (e: Exception) { Color.Gray }
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = item.value.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.5f)
+                            .fillMaxHeight(item.value.toFloat() / maxValue.toFloat().coerceAtLeast(1f))
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(itemColor)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = item.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CompletionRateItemPremium(rate: CompletionRate) {
+    val categoryColor = remember(rate.categoryColor) {
+        try { Color(android.graphics.Color.parseColor(rate.categoryColor)) } catch (e: Exception) { Color.Gray }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(text = rate.categoryName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(text = "${(rate.percentage * 100).toInt()}%", fontWeight = FontWeight.Black, fontSize = 14.sp, color = categoryColor)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = { rate.percentage },
+            modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
+            color = categoryColor,
+            trackColor = categoryColor.copy(alpha = 0.15f),
+            strokeCap = StrokeCap.Round
+        )
     }
 }
 

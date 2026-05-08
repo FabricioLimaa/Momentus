@@ -30,6 +30,8 @@ data class StatsUiState(
     val bestCategory: String? = null,
     val dailyAverage: Float = 0f,
     val completionDates: List<LocalDate> = emptyList(),
+    val improvementPercentage: Int = 0,
+    val bestHour: Int? = null,
     val error: AppError? = null,
     val isLoading: Boolean = false
 )
@@ -65,6 +67,8 @@ class StatsViewModel @Inject constructor(
                             bestCategory = data.bestCategory,
                             dailyAverage = data.dailyAverage,
                             completionDates = data.completionDates,
+                            improvementPercentage = data.improvementPercentage,
+                            bestHour = data.bestHour,
                             error = null,
                             isLoading = false
                         )}
