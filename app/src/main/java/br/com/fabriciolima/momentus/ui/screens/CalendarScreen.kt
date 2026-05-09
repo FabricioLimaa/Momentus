@@ -130,9 +130,45 @@ fun CalendarScreen(
     val configuration = LocalConfiguration.current
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
     val isMedium = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium
+    val isTablet = isExpanded || isMedium
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     val useSidePanel = isExpanded || (isMedium && isLandscape)
+
+    // Bloqueio de orientação e detecção física para celulares
+    DisposableEffect(isTablet) {
+        val activity = context as? Activity
+        var listener: OrientationEventListener? = null
+
+        if (!isTablet && !view.isInEditMode) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+            listener = object : OrientationEventListener(context) {
+                override fun onOrientationChanged(orientation: Int) {
+                    if (orientation == ORIENTATION_UNKNOWN) return
+                    val isTiltedHorizontal = (orientation in 70..110) || (orientation in 250..290)
+                    if (isTiltedHorizontal) {
+                        scope.launch {
+                            if (snackbarHostState.currentSnackbarData == null) {
+                                snackbarHostState.showSnackbar(
+                                    message = "Momentus: Otimizado para o modo retrato no seu celular! ✨",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            listener.enable()
+        }
+
+        onDispose {
+            listener?.disable()
+            if (!isTablet && !view.isInEditMode) {
+                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
+        }
+    }
 
     if (!view.isInEditMode) {
         SideEffect {
@@ -282,38 +318,139 @@ fun CalendarScreen(
                 }
             }
         ) { paddingValues ->
-            Column(
+            Row(
                 modifier = Modifier
                     .padding(paddingValues)
                     .fillMaxSize()
             ) {
-                // 1. Calendário (Mockup Estilo)
-                CalendarContent(
-                    uiState = uiState,
-                    selectedDate = selectedDate,
-                    onDateSelected = onDateSelected,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                )
+                // Conteúdo Principal (Calendário e Lista)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    if (useSidePanel) {
+                        // Layout Master (Calendário + Lista) Lado a Lado em Tablet
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1.2f).fillMaxHeight()) {
+                                CalendarContent(
+                                    uiState = uiState,
+                                    selectedDate = selectedDate,
+                                    onDateSelected = onDateSelected
+                                )
+                            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-                Spacer(modifier = Modifier.height(16.dp))
+                            VerticalDivider(
+                                modifier = Modifier.fillMaxHeight().padding(vertical = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
 
-                // 2. Lista de Eventos
-                Box(modifier = Modifier.weight(1f).padding(horizontal = 16.dp)) {
-                    EventsForDay(
-                        uiState = uiState,
-                        selectedDate = selectedDate,
-                        eventsForDate = eventsForSelectedDate,
-                        onRotinaClick = { item ->
-                             if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
-                        },
-                        onMarkAsCompleted = { id ->
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onMarkAsCompleted(id)
-                        },
-                        onUnmarkAsCompleted = onUnmarkAsCompleted
-                    )
+                            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                EventsForDay(
+                                    uiState = uiState,
+                                    selectedDate = selectedDate,
+                                    eventsForDate = eventsForSelectedDate,
+                                    onRotinaClick = { item ->
+                                         if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
+                                    },
+                                    onMarkAsCompleted = { id ->
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onMarkAsCompleted(id)
+                                    },
+                                    onUnmarkAsCompleted = onUnmarkAsCompleted
+                                )
+                            }
+                        }
+                    } else {
+                        // Layout Celular (Vertical)
+                        CalendarContent(
+                            uiState = uiState,
+                            selectedDate = selectedDate,
+                            onDateSelected = onDateSelected,
+                            modifier = Modifier.fillMaxWidth().wrapContentHeight()
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Box(modifier = Modifier.weight(1f)) {
+                            EventsForDay(
+                                uiState = uiState,
+                                selectedDate = selectedDate,
+                                eventsForDate = eventsForSelectedDate,
+                                onRotinaClick = { item ->
+                                     if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
+                                },
+                                onMarkAsCompleted = { id ->
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onMarkAsCompleted(id)
+                                },
+                                onUnmarkAsCompleted = onUnmarkAsCompleted
+                            )
+                        }
+                    }
+                }
+
+                // PAINEL LATERAL (Detail/Edit) - Master-Detail Flow
+                AnimatedVisibility(
+                    visible = useSidePanel && uiState.dialogState != DialogState.Hidden,
+                    enter = fadeIn() + expandHorizontally(),
+                    exit = fadeOut() + shrinkHorizontally()
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .width(400.dp)
+                            .fillMaxHeight(),
+                        tonalElevation = 2.dp,
+                        shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))) {
+                            when (val dialogState = uiState.dialogState) {
+                                is DialogState.ShowDetail -> {
+                                    val category = uiState.categoriesMap[dialogState.rotina.categoryId]
+                                    if (category != null) {
+                                        EventDetailContent(
+                                            event = dialogState.rotina,
+                                            category = category,
+                                            onEditClick = { onEditRotinaClicked(dialogState.rotina) },
+                                            onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) },
+                                            onCloseClick = onDialogDismiss,
+                                            showCloseButton = true
+                                        )
+                                    }
+                                }
+                                is DialogState.AddNewRotina -> {
+                                    NewEventContent(
+                                        selectedDate = selectedDate,
+                                        categories = allCategories,
+                                        onDismiss = onDialogDismiss,
+                                        onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                                            onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                                        }
+                                    )
+                                }
+                                is DialogState.EditRotina -> {
+                                    NewEventContent(
+                                        eventoParaEditar = dialogState.rotina,
+                                        selectedDate = selectedDate,
+                                        categories = allCategories,
+                                        onDismiss = onDialogDismiss,
+                                        onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                                            if (item != null) {
+                                                onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                                            }
+                                        }
+                                    )
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
                 }
             }
         }

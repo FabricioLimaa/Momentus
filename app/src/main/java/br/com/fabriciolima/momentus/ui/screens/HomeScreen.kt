@@ -12,35 +12,159 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.ui.components.DashboardHeader
-import br.com.fabriciolima.momentus.ui.components.TimelineEventItem
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.view.OrientationEventListener
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import kotlinx.coroutines.launch
+import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.ui.components.*
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarUiState
+import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
+import java.time.LocalDate
+import java.time.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     uiState: CalendarUiState,
     eventsForToday: EventsForDate,
+    allCategories: List<Category>,
+    windowSizeClass: androidx.compose.material3.windowsizeclass.WindowSizeClass,
     onNavigateToAchievements: () -> Unit,
     onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit,
     onAddNewRotinaClicked: () -> Unit,
-    onShowDetailClicked: (ItemCronograma) -> Unit
+    onSaveRotina: (String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit,
+    onUpdateRotina: (ItemCronograma, String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit,
+    onDeleteRotina: (ItemCronograma) -> Unit,
+    onShowDetailClicked: (ItemCronograma) -> Unit,
+    onEditRotinaClicked: (ItemCronograma) -> Unit,
+    onConfirmDeleteClicked: (ItemCronograma) -> Unit,
+    onDialogDismiss: () -> Unit
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
+
+    val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+    val isMedium = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium
+    val isTablet = isExpanded || isMedium
+
+    // Bloqueio de orientação e detecção física para celulares
+    DisposableEffect(isTablet) {
+        val activity = context as? Activity
+        var listener: OrientationEventListener? = null
+
+        if (!isTablet && !view.isInEditMode) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+            listener = object : OrientationEventListener(context) {
+                override fun onOrientationChanged(orientation: Int) {
+                    if (orientation == ORIENTATION_UNKNOWN) return
+                    val isTiltedHorizontal = (orientation in 70..110) || (orientation in 250..290)
+                    if (isTiltedHorizontal) {
+                        scope.launch {
+                            if (snackbarHostState.currentSnackbarData == null) {
+                                snackbarHostState.showSnackbar(
+                                    message = "Momentus: Otimizado para o modo retrato no seu celular! ✨",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            listener.enable()
+        }
+
+        onDispose {
+            listener?.disable()
+            if (!isTablet && !view.isInEditMode) {
+                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
+        }
+    }
+
+    // 1. Lógica de Diálogos (Necessária para que o FAB funcione nesta tela)
+    when (val dialogState = uiState.dialogState) {
+        is DialogState.AddNewRotina -> {
+            NewEventDialog(
+                selectedDate = LocalDate.now(),
+                categories = allCategories,
+                onDismiss = onDialogDismiss,
+                onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                    onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                }
+            )
+        }
+        is DialogState.EditRotina -> {
+            NewEventDialog(
+                eventoParaEditar = dialogState.rotina,
+                selectedDate = LocalDate.now(),
+                categories = allCategories,
+                onDismiss = onDialogDismiss,
+                onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                    if (item != null) {
+                        onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                    }
+                }
+            )
+        }
+        is DialogState.ShowDetail -> {
+            val category = uiState.categoriesMap[dialogState.rotina.categoryId]
+            if (category != null) {
+                EventDetailDialog(
+                    event = dialogState.rotina,
+                    category = category,
+                    onDismiss = onDialogDismiss,
+                    onEditClick = { onEditRotinaClicked(dialogState.rotina) },
+                    onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) }
+                )
+            }
+        }
+        is DialogState.ConfirmDelete -> {
+            AlertDialog(
+                onDismissRequest = onDialogDismiss,
+                title = { Text("Excluir Rotina") },
+                text = { Text("Tem certeza que deseja excluir esta rotina?") },
+                confirmButton = {
+                    Button(onClick = { onDeleteRotina(dialogState.rotina) }) { Text("Excluir") }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDialogDismiss) { Text("Cancelar") }
+                }
+            )
+        }
+        else -> {}
+    }
+
     // Cálculo dinâmico do progresso diário
     val completionsToday = eventsForToday.localRotinas.count { uiState.completedHabitIds.contains(it.id) }
     val totalToday = eventsForToday.localRotinas.size
     val progress = if (totalToday > 0) completionsToday.toFloat() / totalToday.toFloat() else 0f
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }, // Adicionado SnackbarHost aqui também
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddNewRotinaClicked,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Nova Rotina")
+            if (!uiState.isSelectionModeActive) {
+                FloatingActionButton(
+                    onClick = onAddNewRotinaClicked,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.Black,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                    } else {
+                        Icon(Icons.Default.Add, contentDescription = "Nova Rotina")
+                    }
+                }
             }
         }
     ) { paddingValues ->

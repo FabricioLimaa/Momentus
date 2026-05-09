@@ -182,15 +182,25 @@ class CalendarViewModel @Inject constructor(
 
     private fun startFirebaseListeners() {
         viewModelScope.launch {
-            if (auth.currentUser == null) {
-                Log.w(TAG, "Usuário não logado. Sincronização e listeners adiados.")
+            // Aguarda um curto período para garantir que o estado de Auth foi propagado no Firebase SDK
+            delay(500)
+            
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                Log.w(TAG, "Usuário não logado. Sincronização e listeners abortados.")
                 return@launch
             }
-            listenForSyncCompletion()
-            // Primeiro, sincroniza todos os dados que podem ter mudado enquanto o app estava fechado.
-            categoryRepository.syncAllDataToLocal()
-            // Só depois, começa a ouvir por mudanças em tempo real.
-            categoryRepository.startListeningForChanges()
+
+            try {
+                Log.d(TAG, "Iniciando listeners do Firebase para o usuário: ${currentUser.uid}")
+                // Primeiro, sincroniza todos os dados que podem ter mudado enquanto o app estava fechado.
+                categoryRepository.syncAllDataToLocal()
+                // Só depois, começa a ouvir por mudanças em tempo real.
+                categoryRepository.startListeningForChanges()
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro de permissão ou rede ao iniciar listeners do Firestore", e)
+                _uiState.update { it.copy(error = AppError.SyncError) }
+            }
         }
     }
 

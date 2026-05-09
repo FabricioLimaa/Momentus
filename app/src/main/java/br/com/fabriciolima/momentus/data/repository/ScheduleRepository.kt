@@ -63,15 +63,22 @@ open class ScheduleRepository @Inject constructor(
         val currentUserId = this.userId
         if (currentUserId == null || scheduleListener != null) return
 
-        val scheduleCollection = firestore.collection("users").document(currentUserId).collection(EVENTS_COLLECTION)
-        scheduleListener = scheduleCollection.addSnapshotListener { snapshots, e ->
-            if (e != null) return@addSnapshotListener
-            snapshots?.toObjects<ItemCronograma>()?.let {
-                CoroutineScope(dispatcher).launch {
-                    itemCronogramaDao.insertAll(it)
-                    triggerWidgetUpdate()
+        try {
+            val scheduleCollection = firestore.collection("users").document(currentUserId).collection(EVENTS_COLLECTION)
+            scheduleListener = scheduleCollection.addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    Log.e(TAG, "Erro no SnapshotListener de eventos: ${e.code}", e)
+                    return@addSnapshotListener
+                }
+                snapshots?.toObjects<ItemCronograma>()?.let {
+                    CoroutineScope(dispatcher).launch {
+                        itemCronogramaDao.insertAll(it)
+                        triggerWidgetUpdate()
+                    }
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Falha crítica ao registrar listener de eventos", e)
         }
     }
 

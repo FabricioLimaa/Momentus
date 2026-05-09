@@ -80,25 +80,36 @@ fun AppScaffold(
     onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
-    val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
 
+    // Instância ÚNICA do ViewModel para todo o fluxo do Scaffold
     val calendarViewModel: CalendarViewModel = hiltViewModel()
-    val isWideScreen = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
     
+    // Identifica se estamos em fluxo de Autenticação (deve esconder menus)
+    val isAuthScreen = listOf(
+        Screen.Onboarding.route,
+        Screen.Login.route,
+        Screen.SignUp.route,
+        Screen.ForgotPassword.route,
+        Screen.Terms.route
+    ).contains(currentRoute ?: startDestination) // Usa startDestination como fallback inicial
+
     LaunchedEffect(Unit) {
         calendarViewModel.logoutEvent.collect { event ->
             if (event is LogoutEvent.Success) {
-                val intent = Intent(context, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                context.startActivity(intent)
-                (context as? Activity)?.finish()
+                // Limpa TUDO e vai para o Login
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
             }
         }
     }
+
+    val isWideScreen = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact && !isAuthScreen
 
     if (isWideScreen) {
         Row(modifier = Modifier.fillMaxSize()) {
@@ -143,21 +154,20 @@ fun AppScaffold(
                         Text("Lvl ${userLevel.level}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(16.dp))
-                    IconButton(onClick = onLogout) {
+                    IconButton(onClick = { calendarViewModel.logout() }) { // Usa o logout centralizado
                         Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Sair", tint = MaterialTheme.colorScheme.error)
                     }
                 }
             }
 
             Box(modifier = Modifier.weight(1f)) {
-                AppNavHost(navController, startDestination, googleAccount, inAppUpdateManager, windowSizeClass, {})
+                AppNavHost(navController, startDestination, googleAccount, inAppUpdateManager, windowSizeClass, calendarViewModel, {})
             }
         }
     } else {
         Scaffold(
             bottomBar = {
-                val hideBottomBar = listOf(Screen.Onboarding.route, Screen.Login.route, Screen.SignUp.route, Screen.ForgotPassword.route, Screen.Terms.route).contains(currentRoute)
-                if (!hideBottomBar) {
+                if (!isAuthScreen) {
                     NavigationBar(tonalElevation = 8.dp) {
                         val items = listOf(Screen.Home, Screen.Calendar, Screen.Templates, Screen.Stats, Screen.More)
                         items.forEach { screen ->
@@ -173,14 +183,8 @@ fun AppScaffold(
                                     }
                                 },
                                 icon = {
-                                    if (screen == Screen.Achievements) {
-                                        val uiState by calendarViewModel.uiState.collectAsStateWithLifecycle()
-                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        UserAvatar(
-                                            displayName = uiState.userData?.displayName ?: "U",
-                                            photoUrl = (googleAccount?.photoUrl ?: firebaseUser?.photoUrl)?.toString(),
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                    if (screen == Screen.More) {
+                                        Icon(Icons.Default.Menu, contentDescription = screen.label)
                                     } else {
                                         Icon(screen.icon, contentDescription = screen.label)
                                     }
@@ -198,13 +202,10 @@ fun AppScaffold(
                     }
                 }
             },
-            // IMPORTANTE: Desativamos o cálculo automático de insets aqui para que a tela filha
-            // controle seu topo sem o vácuo duplicado.
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { paddingValues ->
-            // Apenas aplicamos o padding inferior para não cobrir o conteúdo com a BottomBar
             Box(modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding())) {
-                AppNavHost(navController, startDestination, googleAccount, inAppUpdateManager, windowSizeClass, {})
+                AppNavHost(navController, startDestination, googleAccount, inAppUpdateManager, windowSizeClass, calendarViewModel, {})
             }
         }
     }
@@ -217,6 +218,7 @@ fun AppNavHost(
     googleAccount: GoogleSignInAccount?,
     inAppUpdateManager: InAppUpdateManager,
     windowSizeClass: WindowSizeClass,
+    sharedViewModel: CalendarViewModel, // Recebe o ViewModel compartilhado
     onMenuClick: () -> Unit
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
@@ -227,28 +229,35 @@ fun AppNavHost(
         composable(Screen.Terms.route) { TermsScreen(navController) }
 
         composable(Screen.Home.route) {
-            val viewModel: CalendarViewModel = hiltViewModel()
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-            val eventsForToday by viewModel.eventsForSelectedDate.collectAsStateWithLifecycle()
+            val uiState by sharedViewModel.uiState.collectAsStateWithLifecycle()
+            val eventsForToday by sharedViewModel.eventsForSelectedDate.collectAsStateWithLifecycle()
+            val allCategories by sharedViewModel.allCategories.collectAsStateWithLifecycle()
             
             HomeScreen(
                 uiState = uiState,
                 eventsForToday = eventsForToday,
+                allCategories = allCategories,
+                windowSizeClass = windowSizeClass,
                 onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
-                onMarkAsCompleted = viewModel::markHabitAsCompleted,
-                onUnmarkAsCompleted = viewModel::unmarkHabitAsCompleted,
-                onAddNewRotinaClicked = viewModel::onAddNewRotinaClicked,
-                onShowDetailClicked = viewModel::onShowDetailClicked
+                onMarkAsCompleted = sharedViewModel::markHabitAsCompleted,
+                onUnmarkAsCompleted = sharedViewModel::unmarkHabitAsCompleted,
+                onAddNewRotinaClicked = sharedViewModel::onAddNewRotinaClicked,
+                onSaveRotina = sharedViewModel::saveSingleRotina,
+                onUpdateRotina = sharedViewModel::updateRotina,
+                onDeleteRotina = sharedViewModel::deleteRotina,
+                onShowDetailClicked = sharedViewModel::onShowDetailClicked,
+                onEditRotinaClicked = sharedViewModel::onEditRotinaClicked,
+                onConfirmDeleteClicked = sharedViewModel::onConfirmDeleteClicked,
+                onDialogDismiss = sharedViewModel::onDialogDismiss
             )
         }
 
         composable(Screen.Calendar.route) {
-            val viewModel: CalendarViewModel = hiltViewModel()
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-            val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
-            val allCategories by viewModel.allCategories.collectAsStateWithLifecycle()
-            val eventsForSelectedDate by viewModel.eventsForSelectedDate.collectAsStateWithLifecycle()
-            val installStatus by viewModel.installStatus.collectAsStateWithLifecycle()
+            val uiState by sharedViewModel.uiState.collectAsStateWithLifecycle()
+            val selectedDate by sharedViewModel.selectedDate.collectAsStateWithLifecycle()
+            val allCategories by sharedViewModel.allCategories.collectAsStateWithLifecycle()
+            val eventsForSelectedDate by sharedViewModel.eventsForSelectedDate.collectAsStateWithLifecycle()
+            val installStatus by sharedViewModel.installStatus.collectAsStateWithLifecycle()
             val context = LocalContext.current
 
             CalendarScreen(
@@ -258,34 +267,34 @@ fun AppNavHost(
                 eventsForSelectedDate = eventsForSelectedDate,
                 installStatus = installStatus,
                 account = googleAccount,
-                showCompletionAnimation = viewModel.showCompletionAnimation,
+                showCompletionAnimation = sharedViewModel.showCompletionAnimation,
                 windowSizeClass = windowSizeClass,
                 onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
-                onDateSelected = viewModel::selectDate,
+                onDateSelected = sharedViewModel::selectDate,
                 onMenuClick = onMenuClick,
-                onAddNewRotinaClicked = viewModel::onAddNewRotinaClicked,
-                onDialogDismiss = viewModel::onDialogDismiss,
-                onSaveRotina = viewModel::saveSingleRotina,
-                onUpdateRotina = viewModel::updateRotina,
-                onShowDetailClicked = viewModel::onShowDetailClicked,
-                onEditRotinaClicked = viewModel::onEditRotinaClicked,
-                onConfirmDeleteClicked = viewModel::onConfirmDeleteClicked,
-                onDeleteRotina = viewModel::deleteRotina,
-                onMarkAsCompleted = viewModel::markHabitAsCompleted,
-                onUnmarkAsCompleted = viewModel::unmarkHabitAsCompleted,
-                onErrorShown = viewModel::onErrorShown,
-                onSuccessMessageShown = viewModel::onSuccessMessageShown,
-                onAchievementDialogDismissed = viewModel::onAchievementDialogDismissed,
-                onCheckForAppUpdate = viewModel::checkForAppUpdate,
+                onAddNewRotinaClicked = sharedViewModel::onAddNewRotinaClicked,
+                onDialogDismiss = sharedViewModel::onDialogDismiss,
+                onSaveRotina = sharedViewModel::saveSingleRotina,
+                onUpdateRotina = sharedViewModel::updateRotina,
+                onShowDetailClicked = sharedViewModel::onShowDetailClicked,
+                onEditRotinaClicked = sharedViewModel::onEditRotinaClicked,
+                onConfirmDeleteClicked = sharedViewModel::onConfirmDeleteClicked,
+                onDeleteRotina = sharedViewModel::deleteRotina,
+                onMarkAsCompleted = sharedViewModel::markHabitAsCompleted,
+                onUnmarkAsCompleted = sharedViewModel::unmarkHabitAsCompleted,
+                onErrorShown = sharedViewModel::onErrorShown,
+                onSuccessMessageShown = sharedViewModel::onSuccessMessageShown,
+                onAchievementDialogDismissed = sharedViewModel::onAchievementDialogDismissed,
+                onCheckForAppUpdate = sharedViewModel::checkForAppUpdate,
                 onStartUpdate = { updateInfo -> inAppUpdateManager.startUpdateFlow(updateInfo, context as Activity) },
                 onCompleteUpdate = inAppUpdateManager::completeUpdate,
-                onDismissUpdateDialog = viewModel::onUpdateDialogDismissed,
-                onRotinaLongPressed = viewModel::onRotinaLongPressed,
-                onRotinaClicked = viewModel::onRotinaClicked,
-                onClearSelection = viewModel::onClearSelection,
-                onSelectAll = viewModel::onSelectAll,
-                onDeleteSelectedRotinas = viewModel::deleteSelectedRotinas,
-                onConfirmDeleteSelectedRotinas = viewModel::confirmDeleteSelectedRotinas
+                onDismissUpdateDialog = sharedViewModel::onUpdateDialogDismissed,
+                onRotinaLongPressed = sharedViewModel::onRotinaLongPressed,
+                onRotinaClicked = sharedViewModel::onRotinaClicked,
+                onClearSelection = sharedViewModel::onClearSelection,
+                onSelectAll = sharedViewModel::onSelectAll,
+                onDeleteSelectedRotinas = sharedViewModel::deleteSelectedRotinas,
+                onConfirmDeleteSelectedRotinas = sharedViewModel::confirmDeleteSelectedRotinas
             )
         }
         composable(Screen.Templates.route) { TemplatesScreen(navController) }
@@ -297,12 +306,11 @@ fun AppNavHost(
         composable(Screen.Settings.route) { SettingsScreen(navController) }
         
         composable(Screen.More.route) {
-            val viewModel: CalendarViewModel = hiltViewModel()
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val uiState by sharedViewModel.uiState.collectAsStateWithLifecycle()
             MoreScreen(
                 navController = navController,
                 uiState = uiState,
-                onLogout = { viewModel.logout() }
+                onLogout = { sharedViewModel.logout() } // Agora chama a mesma instância!
             )
         }
     }

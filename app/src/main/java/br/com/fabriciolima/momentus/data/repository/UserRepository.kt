@@ -14,6 +14,8 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.map
@@ -39,32 +41,46 @@ class UserRepository @Inject constructor(
     private val userId: String?
         get() = auth.currentUser?.uid
 
-    val userData: Flow<UserData?> = callbackFlow {
-        val currentUserId = auth.currentUser?.uid
-        if (currentUserId == null) {
-            trySend(null)
-            awaitClose { }
-            return@callbackFlow
+    /**
+     * Flow que emite o estado de autenticação (UID) do usuário.
+     */
+    private val authStateFlow: Flow<String?> = callbackFlow {
+        val listener = FirebaseAuth.AuthStateListener { auth ->
+            trySend(auth.currentUser?.uid)
         }
+        auth.addAuthStateListener(listener)
+        awaitClose { auth.removeAuthStateListener(listener) }
+    }
 
-        val userDocRef = firestore.collection("users").document(currentUserId)
-        val listenerRegistration = userDocRef.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                    Log.w(TAG, "Permissão negada ao acessar dados do usuário. Provavelmente deslogado.")
-                    trySend(null)
-                } else {
-                    close(error)
+    /**
+     * Flow que observa os dados do usuário no Firestore, reagindo a mudanças de login.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val userData: Flow<UserData?> = authStateFlow.flatMapLatest { currentUserId ->
+        if (currentUserId == null) {
+            flowOf(null)
+        } else {
+            callbackFlow {
+                val userDocRef = firestore.collection("users").document(currentUserId)
+                val listenerRegistration = userDocRef.addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            Log.w(TAG, "Permissão negada ao acessar dados do usuário.")
+                            trySend(null)
+                        } else {
+                            close(error)
+                        }
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null && snapshot.exists()) {
+                        trySend(snapshot.toObject(UserData::class.java))
+                    } else {
+                        trySend(null)
+                    }
                 }
-                return@addSnapshotListener
-            }
-            if (snapshot != null && snapshot.exists()) {
-                trySend(snapshot.toObject(UserData::class.java))
-            } else {
-                trySend(null)
+                awaitClose { listenerRegistration.remove() }
             }
         }
-        awaitClose { listenerRegistration.remove() }
     }
 
     val lastSeenVersionCode: Flow<Int> = dataStore.data.map {
