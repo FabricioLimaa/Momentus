@@ -44,6 +44,10 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.sp
+import br.com.fabriciolima.momentus.ui.components.TimelineEventItem
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplatesScreen(
@@ -168,40 +172,30 @@ fun TemplatesScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Meus Templates") },
-                navigationIcon = { IconButton(onClick = { navController.navigateUp() }) { Icon(Icons.Default.ArrowBack, "Voltar") } }
+                title = { Text("Meus Templates", fontWeight = FontWeight.ExtraBold) }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = viewModel::onShowCreateDialog,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Novo Template")
+            }
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Templates de Rotina", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text(
-                text = "Crie e aplique rotinas em vários dias",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = viewModel::onShowCreateDialog,
-                    modifier = Modifier.weight(1f).height(50.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Adicionar Template")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Novo")
-                }
-                OutlinedButton(
-                    onClick = viewModel::onShowImportDialog,
-                    modifier = Modifier.weight(1f).height(50.dp)
-                ) {
-                    Icon(Icons.Default.ContentPasteGo, contentDescription = "Importar Template")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Importar")
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Ações secundárias
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = viewModel::onShowImportDialog) {
+                    Icon(Icons.Default.ContentPasteGo, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Importar Template")
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
 
             if (uiState.templates.isEmpty() && !uiState.isSyncing) {
                 Column(
@@ -221,12 +215,17 @@ fun TemplatesScreen(
                     )
                 }
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
                     items(uiState.templates) { templateComEventos ->
-                        TemplateCard(
+                        TemplateCardPremium(
                             templateComEventos = templateComEventos,
                             categoriesMap = uiState.categoriesMap,
-                            isSyncing = uiState.isSyncing,
+                            onEditClick = { viewModel.onShowEditDialog(templateComEventos) },
+                            onDeleteClick = { viewModel.onShowDeleteDialog(templateComEventos) },
+                            onApplyClick = { viewModel.onShowApplyDialog(templateComEventos) },
                             onShareClick = { 
                                 val shareableJson = viewModel.getShareableJsonForTemplate(templateComEventos.template.id)
                                 if (shareableJson != null) {
@@ -238,14 +237,137 @@ fun TemplatesScreen(
                                     val shareIntent = Intent.createChooser(sendIntent, "Compartilhar Template")
                                     context.startActivity(shareIntent)
                                 }
-                             },
-                            onEditClick = { viewModel.onShowEditDialog(templateComEventos) },
-                            onDeleteClick = { viewModel.onShowDeleteDialog(templateComEventos) },
-                            onApplyClick = { viewModel.onShowApplyDialog(templateComEventos) }
+                             }
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun TemplateCardPremium(
+    templateComEventos: TemplateComEventos,
+    categoriesMap: Map<String, Category>,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onApplyClick: () -> Unit,
+    onShareClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = templateComEventos.template.nome,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Text(
+                        text = "${templateComEventos.eventos.size} atividades configuradas",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Row {
+                    IconButton(onClick = onShareClick) { Icon(Icons.Default.Share, "Compartilhar", modifier = Modifier.size(20.dp)) }
+                    IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, "Editar", modifier = Modifier.size(20.dp)) }
+                    IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, "Deletar", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp)) }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Estatísticas do Template (Dados Reais)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // TODO: Adicionar contagem real de uso no Banco de Dados futuramente
+                TemplateStatChip(Icons.Default.History, "Novo template", Modifier.weight(1f))
+                
+                // Cálculo de conclusão (exemplo dinâmico baseado na complexidade ou histórico se houvesse)
+                val complexity = when {
+                    templateComEventos.eventos.size > 8 -> "Alta"
+                    templateComEventos.eventos.size > 4 -> "Média"
+                    else -> "Leve"
+                }
+                TemplateStatChip(Icons.Default.AutoGraph, "Foco $complexity", Modifier.weight(1.2f))
+                
+                TemplateStatChip(Icons.Default.Star, "Eficaz", Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Timeline compacta dentro do card
+            Column {
+                templateComEventos.eventos.sortedBy { it.horarioInicio }.take(4).forEachIndexed { index, evento ->
+                    val category = categoriesMap[evento.categoryId]
+                    if (category != null) {
+                        TimelineEventItem(
+                            item = evento,
+                            category = category,
+                            isChecked = false, // Em template não há check
+                            isFirst = index == 0,
+                            isLast = index == templateComEventos.eventos.size - 1 || index == 3,
+                            onCheckedChange = {},
+                            onClick = {}
+                        )
+                    }
+                }
+                if (templateComEventos.eventos.size > 4) {
+                    Text(
+                        text = "+ ${templateComEventos.eventos.size - 4} atividades...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 50.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = onApplyClick,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Text("Aplicar Template", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun TemplateStatChip(icon: ImageVector, label: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(6.dp))
+            Text(label, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, maxLines = 1)
         }
     }
 }

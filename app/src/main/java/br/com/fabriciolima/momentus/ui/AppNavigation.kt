@@ -60,11 +60,11 @@ sealed class Screen(val route: String, val label: String = "", val icon: android
 
     object Home : Screen("home", "Hoje", Icons.Default.Home)
     object Calendar : Screen("calendar", "Agenda", Icons.Default.CalendarToday)
+    object Templates : Screen("templates", "Templates", Icons.Default.GridView)
     object Stats : Screen("stats", "Estatísticas", Icons.Default.Assessment)
-    object Achievements : Screen("achievements", "Você", Icons.Default.EmojiEvents)
     object More : Screen("more", "Mais", Icons.Default.Menu)
 
-    object Templates : Screen("templates", "Templates", Icons.Default.GridView)
+    object Achievements : Screen("achievements", "Você", Icons.Default.EmojiEvents)
     object Categories : Screen("categories", "Categorias", Icons.Default.Category)
     object Updates : Screen("updates", "Novidades", Icons.Default.NewReleases)
     object Legal : Screen("legal", "Informações", Icons.Default.Info)
@@ -117,7 +117,7 @@ fun AppScaffold(
                 }
             ) {
                 Column(modifier = Modifier.fillMaxHeight().weight(1f), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    val railItems = listOf(Screen.Home, Screen.Calendar, Screen.Stats, Screen.Achievements, Screen.More)
+                    val railItems = listOf(Screen.Home, Screen.Calendar, Screen.Templates, Screen.Stats, Screen.More)
                     railItems.forEach { screen ->
                         NavigationRailItem(
                             selected = currentRoute == screen.route,
@@ -159,7 +159,7 @@ fun AppScaffold(
                 val hideBottomBar = listOf(Screen.Onboarding.route, Screen.Login.route, Screen.SignUp.route, Screen.ForgotPassword.route, Screen.Terms.route).contains(currentRoute)
                 if (!hideBottomBar) {
                     NavigationBar(tonalElevation = 8.dp) {
-                        val items = listOf(Screen.Home, Screen.Calendar, Screen.Stats, Screen.Achievements, Screen.More)
+                        val items = listOf(Screen.Home, Screen.Calendar, Screen.Templates, Screen.Stats, Screen.More)
                         items.forEach { screen ->
                             val isSelected = currentRoute == screen.route
                             NavigationBarItem(

@@ -33,9 +33,7 @@ fun MoreScreen(
     val firebaseUser = FirebaseAuth.getInstance().currentUser
 
     Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Configurações", fontWeight = FontWeight.Bold) })
-        }
+
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -79,9 +77,8 @@ fun MoreScreen(
 
             // 2. Menu Items
             item { MoreMenuItem("Perfil", Icons.Default.Person) { /* TODO */ } }
-            item { MoreMenuItem("Templates", Icons.Default.GridView) { navController.navigate(Screen.Templates.route) } }
+            item { MoreMenuItem("Minhas Conquistas", Icons.Default.EmojiEvents) { navController.navigate(Screen.Achievements.route) } }
             item { MoreMenuItem("Categorias", Icons.Default.Category) { navController.navigate(Screen.Categories.route) } }
-            item { MoreMenuItem("Notificações", Icons.Default.Notifications) { /* TODO */ } }
             item { MoreMenuItem("Ajustes", Icons.Default.Settings) { navController.navigate(Screen.Settings.route) } }
             item { MoreMenuItem("Novidades", Icons.Default.NewReleases) { navController.navigate(Screen.Updates.route) } }
             item { MoreMenuItem("Informações", Icons.Default.Info) { navController.navigate(Screen.Legal.route) } }

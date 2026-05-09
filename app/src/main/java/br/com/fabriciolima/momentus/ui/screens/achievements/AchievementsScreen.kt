@@ -75,16 +75,7 @@ fun AchievementsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Você", fontWeight = FontWeight.Bold) },
-                actions = {
-                    // Atalhos rápidos no topo do Perfil para fácil acesso no Celular
-                    IconButton(onClick = { navController.navigate(Screen.Updates.route) }) {
-                        Icon(Icons.Default.NewReleases, contentDescription = "Novidades")
-                    }
-                    IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Ajustes")
-                    }
-                }
+                title = { Text("Conquistas", fontWeight = FontWeight.ExtraBold) },
             )
         }
     ) { padding ->
@@ -93,7 +84,7 @@ fun AchievementsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // --- BUSCA: HEADER COM NOME E AVATAR ---
             item {
@@ -280,7 +271,8 @@ fun ActivityCard(userLevel: UserLevel) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -291,7 +283,9 @@ fun ActivityCard(userLevel: UserLevel) {
             Spacer(Modifier.height(12.dp))
             LinearProgressIndicator(
                 progress = { userLevel.progress },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape)
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             )
             Spacer(Modifier.height(8.dp))
             Text(

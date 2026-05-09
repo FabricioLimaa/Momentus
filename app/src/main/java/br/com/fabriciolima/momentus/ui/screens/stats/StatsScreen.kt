@@ -245,19 +245,20 @@ fun BarChartPremium(data: List<BarChartData>) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.5f)
+                            .fillMaxWidth(0.6f)
                             .fillMaxHeight(item.value.toFloat() / maxValue.toFloat().coerceAtLeast(1f))
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                             .background(itemColor)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = item.label,
                         style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }

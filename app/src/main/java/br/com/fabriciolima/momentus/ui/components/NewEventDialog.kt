@@ -14,7 +14,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import br.com.fabriciolima.momentus.ui.theme.EmeraldGreen
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -50,7 +62,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import br.com.fabriciolima.momentus.ui.theme.DeepNavyBackground
+import br.com.fabriciolima.momentus.ui.theme.DeepNavySurface
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import br.com.fabriciolima.momentus.ui.theme.TimePickerDialog
@@ -62,7 +79,7 @@ import java.time.format.DateTimeFormatter
 
 private const val TAG = "NewEventDialog"
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NewEventContent(
     eventoParaEditar: ItemCronograma? = null,
@@ -85,7 +102,6 @@ fun NewEventContent(
     val isTimeInvalid by remember { derivedStateOf { horarioTermino.isBefore(horarioInicio) || horarioTermino == horarioInicio } }
     val isFormValid by remember { derivedStateOf { titulo.isNotBlank() && selectedCategory != null && !isTimeInvalid } }
 
-    var showDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
@@ -153,7 +169,7 @@ fun NewEventContent(
 
     Column(
         modifier = Modifier
-            .padding(16.dp)
+            .padding(20.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Row(
@@ -161,45 +177,29 @@ fun NewEventContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(if (isEditMode) "Editar Evento" else "Nova Rotina", style = MaterialTheme.typography.titleLarge)
+            Text(if (isEditMode) "Editar Rotina" else "Nova Rotina", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
             IconButton(onClick = onDismiss) {
                 Icon(Icons.Default.Close, contentDescription = "Fechar")
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
+        Text("Nome da rotina", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = titulo,
             onValueChange = { titulo = it },
-            label = { Text("Título") },
+            placeholder = { Text("Ex: Estudo de Redes") },
             isError = titulo.isBlank(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Box {
-            OutlinedTextField(
-                value = dataSelecionada.format(dateFormatter),
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Data") },
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = "Selecionar Data") }
-            )
-             Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable { showDatePicker = true }
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = descricao,
-            onValueChange = { descricao = it },
-            label = { Text("Descrição") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text("Horário", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(modifier = Modifier.weight(1f)) {
                 OutlinedTextField(
                     value = horarioInicio.format(timeFormatter),
@@ -208,136 +208,111 @@ fun NewEventContent(
                     label = { Text("Início") },
                     isError = isTimeInvalid,
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") }
+                    shape = RoundedCornerShape(16.dp),
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null) }
                 )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { showStartTimePicker = true }
-                )
+                Box(modifier = Modifier.matchParentSize().clickable { showStartTimePicker = true })
             }
             Box(modifier = Modifier.weight(1f)) {
                 OutlinedTextField(
                     value = horarioTermino.format(timeFormatter),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Término") },
+                    label = { Text("Fim") },
                     isError = isTimeInvalid,
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") }
+                    shape = RoundedCornerShape(16.dp),
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null) }
                 )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { showEndTimePicker = true }
-                )
+                Box(modifier = Modifier.matchParentSize().clickable { showEndTimePicker = true })
             }
         }
-        if (isTimeInvalid) {
-            Text(
-                text = "O horário de término deve ser depois do início",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
 
-        ExposedDropdownMenuBox(
-            expanded = showDropdown,
-            onExpandedChange = { showDropdown = !showDropdown },
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text("Categoria", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedTextField(
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                readOnly = true,
-                value = selectedCategory?.nome ?: "",
-                onValueChange = {},
-                label = { Text("Categoria") },
-                isError = selectedCategory == null,
-                leadingIcon = {
-                    selectedCategory?.cor?.let {
-                        val color = try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { Color.Gray }
-                        Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
-                    }
-                },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
-            )
-            ExposedDropdownMenu(
-                expanded = showDropdown,
-                onDismissRequest = { showDropdown = false },
-            ) {
-                categories.forEach { category ->
-                    val isSelected = category == selectedCategory
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.width(24.dp)) {
-                                    if (isSelected) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = "Selecionado",
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                                val color = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
-                                Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(category.nome)
-                            }
-                        },
-                        onClick = {
-                            selectedCategory = category
-                            showDropdown = false
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+            categories.forEach { category ->
+                val isSelected = selectedCategory?.id == category.id
+                val categoryColor = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
+                
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { selectedCategory = category },
+                    label = { Text(category.nome) },
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(categoryColor)
+                        )
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = categoryColor.copy(alpha = 0.2f),
+                        selectedLabelColor = categoryColor,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                        selectedBorderColor = categoryColor,
+                        borderWidth = 1.dp,
+                        selectedBorderWidth = 2.dp,
+                        enabled = true,
+                        selected = isSelected
                     )
-                }
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text("Descrição (opcional)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = descricao,
+            onValueChange = { descricao = it },
+            placeholder = { Text("Adicione uma descrição...") },
+            modifier = Modifier.fillMaxWidth().height(100.dp),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Salvar na Agenda do Google")
+            Text("Sincronizar com Google Agenda", style = MaterialTheme.typography.bodyMedium)
             Switch(
                 checked = salvarNoGoogle,
-                onCheckedChange = { salvarNoGoogle = it }
+                onCheckedChange = { salvarNoGoogle = it },
+                colors = SwitchDefaults.colors(checkedThumbColor = EmeraldGreen, checkedTrackColor = EmeraldGreen.copy(alpha = 0.3f))
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Button(
             onClick = {
                 if (isFormValid) {
-                    onConfirm(
-                        eventoParaEditar,
-                        titulo,
-                        descricao,
-                        dataSelecionada,
-                        horarioInicio,
-                        horarioTermino,
-                        selectedCategory!!,
-                        salvarNoGoogle
-                    )
+                    onConfirm(eventoParaEditar, titulo, descricao, dataSelecionada, horarioInicio, horarioTermino, selectedCategory!!, salvarNoGoogle)
                 }
             },
             enabled = isFormValid,
-            modifier = Modifier.fillMaxWidth().height(50.dp)
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color.Black)
         ) {
-            Text(if (isEditMode) "Salvar Alterações" else "Criar Rotina")
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = {
-            focusManager.clearFocus()
-            onDismiss()
-        }, modifier = Modifier.fillMaxWidth()) {
-            Text("Cancelar")
+            Text(if (isEditMode) "Salvar Alterações" else "Salvar Rotina", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }
@@ -350,8 +325,17 @@ fun NewEventDialog(
     onDismiss: () -> Unit,
     onConfirm: (ItemCronograma?, String, String?, LocalDate, LocalTime, LocalTime, Category, Boolean) -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = true
+        )
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background // Alterado de DeepNavyBackground para ser dinâmico
+        ) {
             NewEventContent(
                 eventoParaEditar = eventoParaEditar,
                 selectedDate = selectedDate,

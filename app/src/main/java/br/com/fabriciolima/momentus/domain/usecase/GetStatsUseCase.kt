@@ -40,28 +40,46 @@ class GetStatsUseCase @Inject constructor(
         val since = today.minusDays(filter.days.toLong() - 1)
         val sinceMillis = since.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         
-        // Período anterior para comparação de melhora
         val previousSince = since.minusDays(filter.days.toLong())
         val previousSinceMillis = previousSince.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         
         val dayOfWeekCountsInPeriod = getDayOfWeekCounts(since)
 
-        return repository.getStatsSummary(previousSinceMillis).flatMapLatest { allSummaries ->
+        return combine(
+            repository.getStatsSummary(sinceMillis),
+            repository.getAllCategories()
+        ) { summaries, allCategories ->
+            val summariesMap = summaries.associateBy { it.categoryId }
+
+            // Garantir que TODAS as categorias apareçam na lista de taxas de conclusão
+            val allCategorySummaries = allCategories.map { category ->
+                summariesMap[category.id] ?: StatsSummary(
+                    categoryId = category.id,
+                    categoryName = category.nome,
+                    categoryColor = category.cor,
+                    concluidos = 0
+                )
+            }
+
             val allDatesFlow = repository.getAllCompletionDates()
             
-            // Filtra sumários apenas para o período atual para o gráfico de barras
-            val currentSummaries = allSummaries.filter { summary ->
-                // Aqui precisaríamos de uma query que retornasse o total por período, 
-                // mas como o sumário já vem filtrado por 'since' na query original, 
-                // vamos ajustar a lógica para calcular os dois períodos.
-                true 
+            // Busca eventos agendáveis para calcular a taxa de conclusão (esperado vs realizado)
+            val schedulableFlows = allCategorySummaries.map { summary ->
+                repository.getSchedulableEventsForCategory(summary.categoryId, sinceMillis)
+            }
+
+            val combinedEventsFlow: Flow<List<List<ItemCronograma>>> = if (schedulableFlows.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                combine(schedulableFlows) { it.toList() }
             }
 
             combine(
                 allDatesFlow,
-                repository.getAllCategories()
-            ) { datesMillis, categories ->
+                combinedEventsFlow
+            ) { datesMillis, allEventsLists ->
                 val zoneId = ZoneId.systemDefault()
+                
                 val currentPeriodDates = datesMillis.map { 
                     Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate() 
                 }.filter { !it.isBefore(since) && !it.isAfter(today) }
@@ -70,44 +88,58 @@ class GetStatsUseCase @Inject constructor(
                     Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate() 
                 }.filter { !it.isBefore(previousSince) && it.isBefore(since) }
                 
-                val currentCompletions = currentPeriodDates.size
-                val previousCompletions = previousPeriodDates.size
+                val currentCount = currentPeriodDates.size
+                val previousCount = previousPeriodDates.size
 
-                val improvement = if (previousCompletions > 0) {
-                    (((currentCompletions - previousCompletions).toFloat() / previousCompletions.toFloat()) * 100).toInt()
-                } else if (currentCompletions > 0) 100 else 0
+                val improvement = if (previousCount > 0) {
+                    (((currentCount - previousCount).toFloat() / previousCount.toFloat()) * 100).toInt()
+                } else if (currentCount > 0) 100 else 0
 
-                val bestHour = datesMillis.map { 
+                val bestHour = datesMillis.filter { it >= sinceMillis }.map { 
                     Instant.ofEpochMilli(it).atZone(zoneId).toLocalTime().hour 
                 }.groupBy { it }.maxByOrNull { it.value.size }?.key
 
-                // Re-calcula sumário apenas para o período atual (since)
-                val currentSummariesMap = datesMillis.filter { it >= sinceMillis }.map { 
-                    // Mapeia data para categoria (isso exigiria mais dados, 
-                    // mas vamos usar o summaries injetado que já vem do DB filtrado por since)
+                // Cálculo da Taxa de Conclusão (Realizado / Agendado)
+                val completionRates = allCategorySummaries.mapIndexedNotNull { index, summary ->
+                    val events = if (allEventsLists.isNotEmpty() && index < allEventsLists.size) allEventsLists[index] else emptyList()
+                    val totalExpected = events.sumOf { event ->
+                        if (event.diaDaSemana != null) {
+                            dayOfWeekCountsInPeriod[event.diaDaSemana!!.uppercase()] ?: 0
+                        } else { 1 }
+                    }
+
+                    // No Momentus, se há eventos agendados, mostramos a taxa.
+                    // Se não há NADA agendado para a categoria, não faz sentido mostrar taxa de 0%.
+                    if (totalExpected > 0) {
+                        CompletionRate(
+                            categoryName = summary.categoryName,
+                            categoryColor = summary.categoryColor,
+                            percentage = (summary.concluidos.toFloat() / totalExpected.toFloat()).coerceAtMost(1f)
+                        )
+                    } else null
                 }
 
-                // Como a query getStatsSummary(since) já faz o agrupamento por categoria, 
-                // vamos usá-la mas garantir que o 'since' seja o correto.
-                
-                // Nota: O summaries que vem do flatMapLatest acima FOI filtrado por previousSinceMillis.
-                // Idealmente, a query getConcluidosCountByCategory deveria ser chamada duas vezes ou processada aqui.
-                // Para manter simples e funcional agora, vamos filtrar as datas e usar o total.
+                val barChartData = allCategorySummaries.filter { it.concluidos > 0 }.map {
+                    BarChartData(label = it.categoryName, value = it.concluidos, color = it.categoryColor)
+                }
 
-                val data = StatsData(
-                    completionRates = emptyList(), // Será preenchido se necessário
-                    barChartData = allSummaries.map { BarChartData(it.categoryName, it.concluidos, it.categoryColor) },
+                val bestCategory = allCategorySummaries.maxByOrNull { it.concluidos }?.categoryName
+                val activeDays = currentPeriodDates.distinct().size.coerceAtLeast(1)
+
+                StatsData(
+                    completionRates = completionRates.sortedByDescending { it.percentage },
+                    barChartData = barChartData,
                     streakCount = calculateStreakSync(datesMillis),
-                    totalCompletions = currentCompletions,
-                    bestCategory = allSummaries.maxByOrNull { it.concluidos }?.categoryName,
-                    dailyAverage = currentCompletions.toFloat() / currentPeriodDates.distinct().size.coerceAtLeast(1).toFloat(),
+                    totalCompletions = currentCount,
+                    bestCategory = if(currentCount > 0) bestCategory else null,
+                    dailyAverage = currentCount.toFloat() / activeDays.toFloat(),
                     completionDates = currentPeriodDates,
                     improvementPercentage = improvement,
                     bestHour = bestHour
                 )
-                Result.Success(data) as Result<StatsData>
             }
-        }.catch { e ->
+        }.flatMapLatest { it }.map { Result.Success(it) as Result<StatsData> }
+        .catch { e ->
             emit(Result.Error(AppError.UnknownError(e)))
         }.flowOn(dispatcher)
     }
