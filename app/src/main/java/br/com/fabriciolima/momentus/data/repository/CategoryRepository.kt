@@ -24,6 +24,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,9 +64,30 @@ open class CategoryRepository @Inject constructor(
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
 
+    private val repositoryScope = CoroutineScope(dispatcher + SupervisorJob())
+
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private var categoriesListener: ListenerRegistration? = null
+
+    init {
+        observeAuthChanges()
+    }
+
+    private fun observeAuthChanges() {
+        repositoryScope.launch {
+            userRepository.authStateFlow.collect { userId ->
+                if (userId != null) {
+                    Log.d(TAG, "[AUTH_AUTO_SYNC] Usuário detectado: $userId. Iniciando sincronização.")
+                    syncAllDataToLocal()
+                    startListeningForChanges()
+                } else {
+                    Log.d(TAG, "[AUTH_AUTO_SYNC] Usuário deslogado. Parando listeners.")
+                    stopListeningForChanges()
+                }
+            }
+        }
+    }
 
     private val _syncStatus = MutableStateFlow(SyncStatus.OFFLINE)
     val syncStatus = _syncStatus.asStateFlow()

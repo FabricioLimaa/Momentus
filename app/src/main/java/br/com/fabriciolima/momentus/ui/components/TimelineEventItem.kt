@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayCircleFilled
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +27,9 @@ import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
+import androidx.compose.foundation.combinedClickable
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun TimelineEventItem(
     item: ItemCronograma,
@@ -32,8 +37,11 @@ fun TimelineEventItem(
     isChecked: Boolean,
     isFirst: Boolean = false,
     isLast: Boolean = false,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
     onCheckedChange: (Boolean) -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     val formatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val categoryColor = remember(category.cor) {
@@ -46,10 +54,16 @@ fun TimelineEventItem(
         now.isAfter(item.horarioInicio) && now.isBefore(item.horarioTermino)
     }
 
+    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .background(backgroundColor)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(horizontal = 16.dp, vertical = 0.dp),
         verticalAlignment = Alignment.Top
     ) {
@@ -135,29 +149,41 @@ fun TimelineEventItem(
                 .clickable { onCheckedChange(!isChecked) },
             contentAlignment = Alignment.Center
         ) {
-            when {
-                isChecked -> {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Concluído",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                isOngoing -> {
-                    Icon(
-                        imageVector = Icons.Default.PlayCircleFilled,
-                        contentDescription = "Acontecendo agora",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                else -> {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .border(2.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), CircleShape)
-                    )
+            if (isSelectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onClick() },
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                )
+            } else {
+                when {
+                    isChecked -> {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Concluído",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    isOngoing -> {
+                        Icon(
+                            imageVector = Icons.Default.PlayCircleFilled,
+                            contentDescription = "Acontecendo agora",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    else -> {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .border(
+                                    2.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                    CircleShape
+                                )
+                        )
+                    }
                 }
             }
         }

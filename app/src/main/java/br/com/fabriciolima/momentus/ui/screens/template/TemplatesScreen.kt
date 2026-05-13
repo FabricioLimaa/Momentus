@@ -25,8 +25,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import br.com.fabriciolima.momentus.ui.theme.EmeraldGreen
+import androidx.compose.ui.draw.clip
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -74,8 +78,8 @@ fun TemplatesScreen(
             CreateTemplateDialog(
                 categories = uiState.categoriesMap.values.toList(),
                 onDismiss = viewModel::onDialogDismiss,
-                onConfirm = { id, name, events ->
-                    viewModel.salvarTemplateCompleto(id, name, events) { result ->
+                onConfirm = { id, name, description, events ->
+                    viewModel.salvarTemplateCompleto(id, name, description, events) { result ->
                         when (result) {
                             is Result.Success -> {
                                 scope.launch { snackbarHostState.showSnackbar("Template salvo com sucesso!") }
@@ -114,8 +118,8 @@ fun TemplatesScreen(
                 templateToEdit = dialogState.template,
                 categories = uiState.categoriesMap.values.toList(),
                 onDismiss = viewModel::onDialogDismiss,
-                onConfirm = { id, name, events ->
-                    viewModel.salvarTemplateCompleto(id, name, events) { result ->
+                onConfirm = { id, name, description, events ->
+                    viewModel.salvarTemplateCompleto(id, name, description, events) { result ->
                         when (result) {
                             is Result.Success -> {
                                 scope.launch { snackbarHostState.showSnackbar("Template atualizado com sucesso!") }
@@ -273,10 +277,21 @@ fun TemplateCardPremium(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold
                     )
+                    templateComEventos.template.descricao?.let {
+                        if (it.isNotBlank()) {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                     Text(
                         text = "${templateComEventos.eventos.size} atividades configuradas",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     )
                 }
                 
@@ -324,7 +339,8 @@ fun TemplateCardPremium(
                             isFirst = index == 0,
                             isLast = index == templateComEventos.eventos.size - 1 || index == 3,
                             onCheckedChange = {},
-                            onClick = {}
+                            onClick = {},
+                            onLongClick = {}
                         )
                     }
                 }
@@ -498,11 +514,12 @@ fun CreateTemplateDialog(
     templateToEdit: TemplateComEventos? = null,
     categories: List<Category>,
     onDismiss: () -> Unit,
-    onConfirm: (id: String?, name: String, events: List<EventFormData>) -> Unit
+    onConfirm: (id: String?, name: String, description: String?, events: List<EventFormData>) -> Unit
 ) {
     val isEditMode = templateToEdit != null
     val focusManager = LocalFocusManager.current
     var templateName by remember { mutableStateOf(templateToEdit?.template?.nome ?: "") }
+    var templateDescricao by remember { mutableStateOf(templateToEdit?.template?.descricao ?: "") }
 
     val defaultCategory = remember { categories.find { it.nome.equals("Outros", ignoreCase = true) } }
 
@@ -522,112 +539,159 @@ fun CreateTemplateDialog(
         }
     }
 
-    Dialog(onDismissRequest = {
-        focusManager.clearFocus()
-        onDismiss()
-    }) {
-        Card(
-            shape = RoundedCornerShape(16.dp)
+    Dialog(
+        onDismissRequest = {
+            focusManager.clearFocus()
+            onDismiss()
+        },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = true
+        )
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f, fill = false)) {
-                        Text(if(isEditMode) "Editar Template" else "Criar Template de Rotina", style = MaterialTheme.typography.titleLarge)
-                        Text(if(isEditMode) "Ajuste os detalhes do seu template" else "Defina uma rotina com múltiplos eventos", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = if(isEditMode) "Editar Template" else "Criar Template", 
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "Defina uma rotina com múltiplos eventos", 
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Fechar")
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                
+                Spacer(modifier = Modifier.height(32.dp))
 
                 OutlinedTextField(
                     value = templateName,
                     onValueChange = { templateName = it },
                     label = { Text("Nome do Template") },
-                    placeholder = { Text("ex: Dia de trabalho, Fim de semana") },
+                    placeholder = { Text("ex: Dia de Trabalho, Fim de Semana") },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
                     isError = templateName.isBlank()
                 )
+                
                 Spacer(modifier = Modifier.height(16.dp))
 
+                OutlinedTextField(
+                    value = templateDescricao,
+                    onValueChange = { templateDescricao = it },
+                    label = { Text("Descrição do Template (opcional)") },
+                    placeholder = { Text("Ex: Rotina focada em estudos...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+
                 Column(modifier = Modifier.weight(1f)) {
-                    LazyColumn() {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
                         item {
-                            Text("Eventos da Rotina", style = MaterialTheme.typography.titleMedium)
-                        }
-                        itemsIndexed(eventForms) { index, eventData ->
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Evento ${index + 1}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-                                if (eventForms.size > 1) {
-                                    IconButton(onClick = { eventForms = eventForms.toMutableList().also { it.removeAt(index) } }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Remover Evento", tint = MaterialTheme.colorScheme.error)
-                                    }
-                                }
-                            }
-                            EventTemplateForm(
-                                eventData = eventData,
-                                categories = categories,
-                                onDataChange = { updatedData ->
-                                    eventForms = eventForms.toMutableList().also { it[index] = updatedData }
-                                }
+                            Text(
+                                text = "Eventos da Rotina", 
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            if (index < eventForms.lastIndex) {
-                                HorizontalDivider()
+                        }
+                        
+                        itemsIndexed(eventForms) { index, eventData ->
+                            Card(
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Evento ${index + 1}", 
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        if (eventForms.size > 1) {
+                                            IconButton(onClick = { eventForms = eventForms.toMutableList().also { it.removeAt(index) } }) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Remover", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                                            }
+                                        }
+                                    }
+                                    
+                                    EventTemplateForm(
+                                        eventData = eventData,
+                                        categories = categories,
+                                        onDataChange = { updatedData ->
+                                            eventForms = eventForms.toMutableList().also { it[index] = updatedData }
+                                        }
+                                    )
+                                }
                             }
                         }
+                        
                         item {
-                            TextButton(
+                            OutlinedButton(
                                 onClick = { eventForms = eventForms + EventFormData(selectedCategory = defaultCategory) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = "Adicionar Evento ao Template")
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(Icons.Default.Add, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text("Adicionar Evento")
                             }
+                            Spacer(modifier = Modifier.height(40.dp))
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                Button(
+                    onClick = { onConfirm(templateToEdit?.template?.id, templateName, templateDescricao.ifBlank { null }, eventForms) },
+                    enabled = isFormValid,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color.Black)
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Cancelar")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Cancelar")
-                    }
-                    Button(
-                        onClick = { onConfirm(templateToEdit?.template?.id, templateName, eventForms) },
-                        enabled = isFormValid
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = if(isEditMode) "Salvar Alterações" else "Criar Template")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(if(isEditMode) "Salvar Alterações" else "Criar Template")
-                    }
+                    Text(
+                        text = if(isEditMode) "Salvar Alterações" else "Criar Template", 
+                        fontWeight = FontWeight.Bold, 
+                        fontSize = 16.sp
+                    )
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun EventTemplateForm(
     eventData: EventFormData,
     categories: List<Category>,
     onDataChange: (EventFormData) -> Unit
 ) {
-    var showDropdown by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
@@ -662,19 +726,23 @@ fun EventTemplateForm(
         )
     }
 
-    Column(modifier = Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier = Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         OutlinedTextField(
             value = eventData.titulo,
             onValueChange = { onDataChange(eventData.copy(titulo = it)) },
             label = { Text("Título") },
+            placeholder = { Text("Ex: Exercício Físico") },
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
             isError = eventData.titulo.isBlank()
         )
+
         OutlinedTextField(
             value = eventData.descricao,
             onValueChange = { onDataChange(eventData.copy(descricao = it)) },
             label = { Text("Descrição (opcional)") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
         )
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -685,92 +753,57 @@ fun EventTemplateForm(
                     readOnly = true,
                     label = { Text("Início") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Início") },
+                    shape = RoundedCornerShape(12.dp),
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     isError = isTimeInvalid
                 )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { showStartTimePicker = true }
-                )
+                Box(modifier = Modifier.matchParentSize().clickable { showStartTimePicker = true })
             }
             Box(modifier = Modifier.weight(1f)) {
                 OutlinedTextField(
                     value = eventData.horarioTermino.format(timeFormatter),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Término") },
+                    label = { Text("Fim") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Selecionar Término") },
+                    shape = RoundedCornerShape(12.dp),
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     isError = isTimeInvalid
                 )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { showEndTimePicker = true }
-                )
+                Box(modifier = Modifier.matchParentSize().clickable { showEndTimePicker = true })
             }
         }
 
-        if (isTimeInvalid) {
-            Text(
-                text = "O horário de término deve ser depois do início",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-            )
-        }
-
-        ExposedDropdownMenuBox(
-            expanded = showDropdown,
-            onExpandedChange = { showDropdown = !showDropdown },
+        // Seleção de Categoria (Chip Grid como na Nova Rotina)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedTextField(
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                readOnly = true,
-                value = eventData.selectedCategory?.nome ?: "",
-                onValueChange = {},
-                label = { Text("Categoria") },
-                isError = eventData.selectedCategory == null,
-                leadingIcon = {
-                    eventData.selectedCategory?.cor?.let {
-                        val color = try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { Color.Gray }
-                        Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
-                    }
-                },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
-            )
-            ExposedDropdownMenu(
-                expanded = showDropdown,
-                onDismissRequest = { showDropdown = false },
-            ) {
-                categories.forEach { category ->
-                    val isSelected = category == eventData.selectedCategory
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.width(24.dp)) {
-                                    if (isSelected) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = "Selecionado",
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                                val color = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
-                                Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(category.nome)
-                            }
-                        },
-                        onClick = {
-                            onDataChange(eventData.copy(selectedCategory = category))
-                            showDropdown = false
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+            categories.forEach { category ->
+                val isSelected = category.id == eventData.selectedCategory?.id
+                val categoryColor = try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
+                
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onDataChange(eventData.copy(selectedCategory = category)) },
+                    label = { Text(category.nome, fontSize = 11.sp) },
+                    leadingIcon = {
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(categoryColor))
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = categoryColor.copy(alpha = 0.2f),
+                        selectedLabelColor = categoryColor
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                        selectedBorderColor = categoryColor,
+                        selectedBorderWidth = 2.dp,
+                        enabled = true,
+                        selected = isSelected
                     )
-                }
+                )
             }
         }
     }

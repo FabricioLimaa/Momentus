@@ -248,7 +248,13 @@ fun AppNavHost(
                 onShowDetailClicked = sharedViewModel::onShowDetailClicked,
                 onEditRotinaClicked = sharedViewModel::onEditRotinaClicked,
                 onConfirmDeleteClicked = sharedViewModel::onConfirmDeleteClicked,
-                onDialogDismiss = sharedViewModel::onDialogDismiss
+                onDialogDismiss = sharedViewModel::onDialogDismiss,
+                onRotinaLongPressed = sharedViewModel::onRotinaLongPressed,
+                onRotinaClicked = sharedViewModel::onRotinaClicked,
+                onClearSelection = sharedViewModel::onClearSelection,
+                onSelectAll = sharedViewModel::onSelectAll,
+                onConfirmDeleteSelectedRotinas = sharedViewModel::confirmDeleteSelectedRotinas,
+                onDeleteSelectedRotinas = sharedViewModel::deleteSelectedRotinas
             )
         }
 

@@ -158,6 +158,7 @@ class TemplateViewModel @Inject constructor(
     fun salvarTemplateCompleto(
         templateId: String?,
         nomeTemplate: String,
+        descricaoTemplate: String?,
         eventosForm: List<EventFormData>,
         onResult: (Result<Unit>) -> Unit
     ) {
@@ -166,7 +167,7 @@ class TemplateViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val id = templateId ?: UUID.randomUUID().toString()
-                val template = Template(id, nomeTemplate)
+                val template = Template(id, nomeTemplate, descricaoTemplate)
                 val eventos = eventosForm.map {
                     ItemCronograma(
                         titulo = it.titulo,

@@ -22,19 +22,19 @@ import androidx.navigation.NavController
 import br.com.fabriciolima.momentus.ui.Screen
 import br.com.fabriciolima.momentus.ui.viewmodel.CalendarUiState
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(
     navController: NavController,
     uiState: CalendarUiState,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
 ) {
     val firebaseUser = FirebaseAuth.getInstance().currentUser
+    val context = LocalContext.current
 
-    Scaffold(
-
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -100,7 +100,12 @@ fun MoreScreen(
 
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                    Text(text = "Versão 1.4.1", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val versionName = try {
+                        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                        packageInfo.versionName
+                    } catch (_: Exception) { "N/A" }
+
+                    Text(text = "Versão: $versionName", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 30.dp))
                 }
             }
         }

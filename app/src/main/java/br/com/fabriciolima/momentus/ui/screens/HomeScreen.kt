@@ -45,7 +45,13 @@ fun HomeScreen(
     onShowDetailClicked: (ItemCronograma) -> Unit,
     onEditRotinaClicked: (ItemCronograma) -> Unit,
     onConfirmDeleteClicked: (ItemCronograma) -> Unit,
-    onDialogDismiss: () -> Unit
+    onDialogDismiss: () -> Unit,
+    onRotinaLongPressed: (String) -> Unit,
+    onRotinaClicked: (String) -> Unit,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onConfirmDeleteSelectedRotinas: () -> Unit,
+    onDeleteSelectedRotinas: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -141,6 +147,19 @@ fun HomeScreen(
                 }
             )
         }
+        is DialogState.ConfirmDeleteMultiple -> {
+            AlertDialog(
+                onDismissRequest = onDialogDismiss,
+                title = { Text("Excluir Rotinas") },
+                text = { Text("Tem certeza que deseja excluir as ${dialogState.count} rotinas selecionadas?") },
+                confirmButton = {
+                    Button(onClick = { onDeleteSelectedRotinas() }) { Text("Excluir") }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDialogDismiss) { Text("Cancelar") }
+                }
+            )
+        }
         else -> {}
     }
 
@@ -150,7 +169,17 @@ fun HomeScreen(
     val progress = if (totalToday > 0) completionsToday.toFloat() / totalToday.toFloat() else 0f
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }, // Adicionado SnackbarHost aqui também
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            if (uiState.isSelectionModeActive) {
+                SelectionTopAppBar(
+                    selectedCount = uiState.selectedRotinaIds.size,
+                    onClearSelection = onClearSelection,
+                    onSelectAll = onSelectAll,
+                    onDelete = onConfirmDeleteSelectedRotinas
+                )
+            }
+        },
         floatingActionButton = {
             if (!uiState.isSelectionModeActive) {
                 FloatingActionButton(
@@ -219,10 +248,16 @@ fun HomeScreen(
                             isChecked = uiState.completedHabitIds.contains(rotina.id),
                             isFirst = index == 0,
                             isLast = index == eventsForToday.localRotinas.size - 1,
+                            isSelected = uiState.selectedRotinaIds.contains(rotina.id),
+                            isSelectionMode = uiState.isSelectionModeActive,
                             onCheckedChange = { isChecked ->
                                 if (isChecked) onMarkAsCompleted(rotina.id) else onUnmarkAsCompleted(rotina.id)
                             },
-                            onClick = { onShowDetailClicked(rotina) }
+                            onClick = { 
+                                if (uiState.isSelectionModeActive) onRotinaClicked(rotina.id) 
+                                else onShowDetailClicked(rotina) 
+                            },
+                            onLongClick = { onRotinaLongPressed(rotina.id) }
                         )
                     }
                 }

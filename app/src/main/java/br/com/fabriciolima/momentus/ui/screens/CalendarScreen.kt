@@ -357,6 +357,7 @@ fun CalendarScreen(
                                     onRotinaClick = { item ->
                                          if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
                                     },
+                                    onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
                                     onMarkAsCompleted = { id ->
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onMarkAsCompleted(id)
@@ -386,6 +387,7 @@ fun CalendarScreen(
                                 onRotinaClick = { item ->
                                      if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
                                 },
+                                onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
                                 onMarkAsCompleted = { id ->
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onMarkAsCompleted(id)
@@ -703,6 +705,7 @@ fun EventsForDay(
     selectedDate: LocalDate,
     eventsForDate: EventsForDate,
     onRotinaClick: (ItemCronograma) -> Unit,
+    onRotinaLongClick: (ItemCronograma) -> Unit,
     onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit
 ) {
@@ -741,10 +744,13 @@ fun EventsForDay(
                             isChecked = uiState.completedHabitIds.contains(rotina.id),
                             isFirst = index == 0,
                             isLast = index == sortedRotinas.size - 1,
+                            isSelected = uiState.selectedRotinaIds.contains(rotina.id),
+                            isSelectionMode = uiState.isSelectionModeActive,
                             onCheckedChange = { isChecked ->
                                 if (isChecked) onMarkAsCompleted(rotina.id) else onUnmarkAsCompleted(rotina.id)
                             },
-                            onClick = { onRotinaClick(rotina) }
+                            onClick = { onRotinaClick(rotina) },
+                            onLongClick = { onRotinaLongClick(rotina) }
                         )
                     }
                 }

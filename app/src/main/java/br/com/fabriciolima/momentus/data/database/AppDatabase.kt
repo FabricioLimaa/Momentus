@@ -3,6 +3,8 @@ package br.com.fabriciolima.momentus.data.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.HabitoConcluido
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
@@ -12,7 +14,7 @@ import br.com.fabriciolima.momentus.data.model.UnlockedAchievement
 
 @Database(
     entities = [Category::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class, UnlockedAchievement::class],
-    version = 8, // <--- Versão incrementada
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -29,4 +31,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun habitoConcluidoDao(): HabitoConcluidoDao
 
     abstract fun unlockedAchievementDao(): UnlockedAchievementDao
+
+    companion object {
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tabela_templates ADD COLUMN descricao TEXT")
+            }
+        }
+    }
 }

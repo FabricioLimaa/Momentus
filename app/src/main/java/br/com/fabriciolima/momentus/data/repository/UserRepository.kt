@@ -44,7 +44,7 @@ class UserRepository @Inject constructor(
     /**
      * Flow que emite o estado de autenticação (UID) do usuário.
      */
-    private val authStateFlow: Flow<String?> = callbackFlow {
+    val authStateFlow: Flow<String?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { auth ->
             trySend(auth.currentUser?.uid)
         }

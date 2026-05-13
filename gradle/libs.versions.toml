@@ -27,6 +27,7 @@ room = "2.6.1"
 googleGmsServices = "4.4.2"
 workManager = "2.9.0"
 lottie = "6.7.1"
+sqlcipher = "4.6.1"
 
 [libraries]
 # Dependencies for the Android App
@@ -89,6 +90,8 @@ androidx-datastore-rxjava2 = { group = "androidx.datastore", name = "datastore-r
 androidx-datastore-rxjava3 = { group = "androidx.datastore", name = "datastore-rxjava3", version.ref = "datastore" }
 
 # Other
+sqlcipher = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
+androidx-sqlite = { group = "androidx.sqlite", name = "sqlite-ktx", version = "2.4.0" }
 androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "graphicsShapes" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }

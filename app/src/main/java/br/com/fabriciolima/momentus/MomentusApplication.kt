@@ -37,6 +37,7 @@ class MomentusApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        System.loadLibrary("sqlcipher") // Inicializa o SQLCipher 4.6.1+
         FirebaseApp.initializeApp(this)
         val firebaseAppCheck = FirebaseAppCheck.getInstance()
 

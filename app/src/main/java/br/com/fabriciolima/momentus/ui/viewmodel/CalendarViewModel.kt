@@ -170,37 +170,12 @@ class CalendarViewModel @Inject constructor(
         listenForNewAchievements()
         checkIfNeedToShowUpdateBadge()
         listenForUpdateProgress()
-        startFirebaseListeners()
         
-        // Marca o app como carregado após um pequeno delay para garantir que os dados iniciais do Room/Firebase foram processados
+        // Marca o app como carregado
         viewModelScope.launch {
             delay(2000)
             isFullyLoaded = true
             Log.d(TAG, "[ANIMATION_CONTROL] App marcado como totalmente carregado. Animações permitidas.")
-        }
-    }
-
-    private fun startFirebaseListeners() {
-        viewModelScope.launch {
-            // Aguarda um curto período para garantir que o estado de Auth foi propagado no Firebase SDK
-            delay(500)
-            
-            val currentUser = auth.currentUser
-            if (currentUser == null) {
-                Log.w(TAG, "Usuário não logado. Sincronização e listeners abortados.")
-                return@launch
-            }
-
-            try {
-                Log.d(TAG, "Iniciando listeners do Firebase para o usuário: ${currentUser.uid}")
-                // Primeiro, sincroniza todos os dados que podem ter mudado enquanto o app estava fechado.
-                categoryRepository.syncAllDataToLocal()
-                // Só depois, começa a ouvir por mudanças em tempo real.
-                categoryRepository.startListeningForChanges()
-            } catch (e: Exception) {
-                Log.e(TAG, "Erro de permissão ou rede ao iniciar listeners do Firestore", e)
-                _uiState.update { it.copy(error = AppError.SyncError) }
-            }
         }
     }
 
