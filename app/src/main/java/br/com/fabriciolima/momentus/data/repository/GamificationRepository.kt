@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.Date
@@ -91,48 +92,57 @@ class GamificationRepository @Inject constructor(
             return@withContext
         }
         Log.d(TAG, "[SYNC_DIAGNOSTIC] Iniciando sincronização de conquistas para o usuário: $currentUserId")
-        try {
-            val collectionRef = firestore.collection("users").document(currentUserId).collection("unlocked_achievements")
-            
-            // Log de Diagnóstico
-            val snapshot = collectionRef.get().await()
-            Log.d(TAG, "[SYNC_DIAGNOSTIC] Firebase query executada. Documentos encontrados: ${snapshot.size()}. Vazio: ${snapshot.isEmpty}")
-            snapshot.documents.forEach { doc ->
-                Log.d(TAG, "[SYNC_DIAGNOSTIC] Documento: ID=${doc.id}, Dados=${doc.data}")
-            }
+        
+        var retryCount = 0
+        val maxRetries = 3
+        var lastException: Exception? = null
 
-            val cloudAchievements = snapshot.toObjects<UnlockedAchievement>()
-            Log.d(TAG, "[SYNC_DIAGNOSTIC] Documentos convertidos para objetos: ${cloudAchievements.size} objetos.")
+        while (retryCount < maxRetries) {
+            try {
+                val collectionRef = firestore.collection("users").document(currentUserId).collection("unlocked_achievements")
+                
+                // Tentativa de leitura
+                val snapshot = collectionRef.get().await()
+                Log.d(TAG, "[SYNC_DIAGNOSTIC] Firebase query executada. Documentos encontrados: ${snapshot.size()}.")
+                
+                val cloudAchievements = snapshot.toObjects<UnlockedAchievement>()
+                val localAchievements = unlockedAchievementDao.getAllIdsSync().toSet()
+                val cloudAchievementMap = cloudAchievements.associateBy { it.achievementId }
 
-
-            val localAchievements = unlockedAchievementDao.getAllIdsSync().toSet()
-            val cloudAchievementMap = cloudAchievements.associateBy { it.achievementId }
-
-            val achievementsToDownload = cloudAchievements.filter { it.achievementId !in localAchievements }
-            if (achievementsToDownload.isNotEmpty()) {
-                achievementsToDownload.forEach { unlockedAchievementDao.insert(it) }
-                Log.d(TAG, "[SYNC] Baixadas ${achievementsToDownload.size} novas conquistas da nuvem.")
-            }
-
-            val achievementsToUpload = localAchievements.filter { it !in cloudAchievementMap.keys }
-            if (achievementsToUpload.isNotEmpty()) {
-                val batch = firestore.batch()
-                achievementsToUpload.forEach { achievementId ->
-                    val docRef = collectionRef.document(achievementId)
-                    batch.set(docRef, UnlockedAchievement(achievementId, Date()))
+                val achievementsToDownload = cloudAchievements.filter { it.achievementId !in localAchievements }
+                if (achievementsToDownload.isNotEmpty()) {
+                    achievementsToDownload.forEach { unlockedAchievementDao.insert(it) }
+                    Log.d(TAG, "[SYNC] Baixadas ${achievementsToDownload.size} novas conquistas da nuvem.")
                 }
-                batch.commit().await()
-                Log.d(TAG, "[SYNC] Enviadas ${achievementsToUpload.size} novas conquistas para a nuvem.")
-            }
 
-            if (achievementsToDownload.isEmpty() && achievementsToUpload.isEmpty()) {
-                 Log.d(TAG, "[SYNC] Conquistas já estão sincronizadas.")
+                val achievementsToUpload = localAchievements.filter { it !in cloudAchievementMap.keys }
+                if (achievementsToUpload.isNotEmpty()) {
+                    val batch = firestore.batch()
+                    achievementsToUpload.forEach { achievementId ->
+                        val docRef = collectionRef.document(achievementId)
+                        batch.set(docRef, UnlockedAchievement(achievementId, Date()))
+                    }
+                    batch.commit().await()
+                    Log.d(TAG, "[SYNC] Enviadas ${achievementsToUpload.size} novas conquistas para a nuvem.")
+                }
+
+                _syncStatus.value = SyncStatus.CONNECTED
+                return@withContext // Sucesso
+            } catch (e: Exception) {
+                lastException = e
+                if (e is com.google.firebase.firestore.FirebaseFirestoreException && 
+                    e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                    retryCount++
+                    Log.w(TAG, "[SYNC_RETRY] Permissão negada. Tentativa $retryCount de $maxRetries... Aguardando 2s.")
+                    delay(2000)
+                } else {
+                    break // Se não for erro de permissão, não adianta tentar de novo
+                }
             }
-            _syncStatus.value = SyncStatus.CONNECTED
-        } catch (e: Exception) {
-            Log.e(TAG, "[SYNC_DIAGNOSTIC] Erro CRÍTICO ao sincronizar conquistas desbloqueadas.", e)
-            _syncStatus.value = SyncStatus.OFFLINE
-            throw e
         }
+
+        Log.e(TAG, "[SYNC_DIAGNOSTIC] Falha final após retentativas.", lastException)
+        _syncStatus.value = SyncStatus.OFFLINE
+        if (lastException != null) throw lastException
     }
 }

@@ -25,6 +25,7 @@ import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,7 +79,10 @@ open class CategoryRepository @Inject constructor(
         repositoryScope.launch {
             userRepository.authStateFlow.collect { userId ->
                 if (userId != null) {
-                    Log.d(TAG, "[AUTH_AUTO_SYNC] Usuário detectado: $userId. Iniciando sincronização.")
+                    Log.d(TAG, "[AUTH_AUTO_SYNC] Usuário detectado: $userId. Aguardando estabilização do token...")
+                    // Pequeno delay para garantir que o token de autenticação e App Check foram propagados para o Firestore
+                    delay(2000)
+                    Log.d(TAG, "[AUTH_AUTO_SYNC] Iniciando sincronização.")
                     syncAllDataToLocal()
                     startListeningForChanges()
                 } else {
@@ -198,7 +202,10 @@ open class CategoryRepository @Inject constructor(
             _syncMessage.value = "Sincronizando hábitos concluídos..."
             syncCompletedHabits()
             _syncMessage.value = "Sincronizando cronograma..."
-            scheduleRepository.syncSchedule()
+            val scheduleSyncResult = scheduleRepository.syncSchedule()
+            if (scheduleSyncResult is Result.Error) {
+                Log.e(TAG, "Falha na sincronização do cronograma.")
+            }
             _syncMessage.value = "Sincronizando categorias..."
             syncCategories()
             _syncMessage.value = "Sincronizando templates..."

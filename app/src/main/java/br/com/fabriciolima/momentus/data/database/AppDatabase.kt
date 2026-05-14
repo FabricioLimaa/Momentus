@@ -14,7 +14,7 @@ import br.com.fabriciolima.momentus.data.model.UnlockedAchievement
 
 @Database(
     entities = [Category::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class, UnlockedAchievement::class],
-    version = 9,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -35,6 +35,41 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                checkAndAddDescricaoColumn(db)
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                checkAndAddDescricaoColumn(db)
+            }
+        }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                checkAndAddDescricaoColumn(db)
+            }
+        }
+
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tabela_itens_cronograma ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private fun checkAndAddDescricaoColumn(db: SupportSQLiteDatabase) {
+            val cursor = db.query("PRAGMA table_info(tabela_templates)")
+            var hasDescricao = false
+            while (cursor.moveToNext()) {
+                val nameColumnIndex = cursor.getColumnIndex("name")
+                if (nameColumnIndex != -1 && cursor.getString(nameColumnIndex) == "descricao") {
+                    hasDescricao = true
+                    break
+                }
+            }
+            cursor.close()
+            
+            if (!hasDescricao) {
                 db.execSQL("ALTER TABLE tabela_templates ADD COLUMN descricao TEXT")
             }
         }

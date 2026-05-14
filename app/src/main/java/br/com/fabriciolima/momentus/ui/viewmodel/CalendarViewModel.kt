@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -228,10 +229,15 @@ class CalendarViewModel @Inject constructor(
             lastKnownPoints = newPoints
 
             _uiState.update { it.copy(userData = finalData) }
+        }.catch { e ->
+            Log.e(TAG, "Erro ao coletar dados do usuário", e)
+            _uiState.update { it.copy(error = AppError.SyncError) }
         }.launchIn(viewModelScope).also { jobs.add(it) }
 
         categoryRepository.currentStreak.onEach { streak ->
             _uiState.update { it.copy(streak = streak) }
+        }.catch { e ->
+            Log.e(TAG, "Erro ao coletar streak", e)
         }.launchIn(viewModelScope).also { jobs.add(it) }
     }
 

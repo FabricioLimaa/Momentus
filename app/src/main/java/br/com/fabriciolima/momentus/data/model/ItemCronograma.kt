@@ -48,7 +48,9 @@ data class ItemCronograma(
 
     @Serializable(with = DateSerializer::class)
     @ServerTimestamp
-    val lastUpdated: Date? = null
+    val lastUpdated: Date? = null,
+
+    val isDeleted: Boolean = false
 ) {
     // Propriedades para serialização do LocalTime no Firestore
     var horarioInicioString: String

@@ -28,19 +28,28 @@ interface ItemCronogramaDao {
     @Query("DELETE FROM tabela_itens_cronograma WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: Set<String>)
 
-    @Query("SELECT * FROM tabela_itens_cronograma ORDER BY horarioInicio ASC")
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE isDeleted = 0 ORDER BY horarioInicio ASC")
     fun getAllItems(): Flow<List<ItemCronograma>>
 
-    @Query("SELECT * FROM tabela_itens_cronograma")
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE isDeleted = 0")
     fun getAllSync(): List<ItemCronograma>
 
-    @Query("SELECT * FROM tabela_itens_cronograma WHERE id IN (:ids)")
+    @Query("SELECT * FROM tabela_itens_cronograma")
+    fun getAllSyncIncludingDeleted(): List<ItemCronograma>
+
+    @Query("DELETE FROM tabela_itens_cronograma WHERE isDeleted = 1")
+    suspend fun permanentlyDeleteMarkedItems()
+
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE id IN (:ids) AND isDeleted = 0")
     suspend fun getItemsByIds(ids: List<String>): List<ItemCronograma>
 
-    @Query("SELECT * FROM tabela_itens_cronograma WHERE diaDaSemana = :dayOfWeek")
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE id IN (:ids)")
+    suspend fun getItemsByIdsIncludingDeleted(ids: List<String>): List<ItemCronograma>
+
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE diaDaSemana = :dayOfWeek AND isDeleted = 0")
     fun getItemsByDayOfWeek(dayOfWeek: String): Flow<List<ItemCronograma>>
 
-    @Query("SELECT * FROM tabela_itens_cronograma WHERE id = :itemId")
+    @Query("SELECT * FROM tabela_itens_cronograma WHERE id = :itemId AND isDeleted = 0")
     suspend fun getItemById(itemId: String): ItemCronograma?
 
     @Query("SELECT id FROM tabela_itens_cronograma WHERE templateId = :templateId")
@@ -69,6 +78,7 @@ interface ItemCronogramaDao {
         AND thc.dataConclusao BETWEEN :startOfDayMillis AND :endOfDayMillis
         WHERE (tic.data BETWEEN :startOfDayMillis AND :endOfDayMillis OR tic.diaDaSemana = :dayOfWeekName) 
         AND tic.categoryId IN (:allowedCategoryIds) 
+        AND tic.isDeleted = 0
         ORDER BY tic.horarioInicio ASC
         """
     )
@@ -85,7 +95,7 @@ interface ItemCronogramaDao {
     @Query("""
         SELECT * 
         FROM tabela_itens_cronograma
-        WHERE categoryId = :categoryId AND (
+        WHERE categoryId = :categoryId AND isDeleted = 0 AND (
             (data IS NOT NULL AND data >= :since) OR 
             (diaDaSemana IS NOT NULL)
         )

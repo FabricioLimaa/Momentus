@@ -91,14 +91,20 @@ open class ScheduleRepository @Inject constructor(
         val currentUserId = userId ?: return@withContext Result.Error(AppError.AuthRequiredError)
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection(EVENTS_COLLECTION)
-            val localItems = itemCronogramaDao.getAllSync().associateBy { it.id }
+            
+            // 1. Coleta itens locais (incluindo marcados como deletados para sincronizar a remoção)
+            val localItems = itemCronogramaDao.getAllSyncIncludingDeleted().associateBy { it.id }
+            
+            // 2. Coleta itens da nuvem
             val cloudItems = collectionRef.get().await().toObjects<ItemCronograma>().associateBy { it.id }
 
+            // 3. Itens para Upload: Novos, mais recentes ou recém-deletados localmente
             val itemsToUpload = localItems.filter { (id, local) ->
                 val cloud = cloudItems[id]
                 cloud == null || (local.lastUpdated != null && cloud.lastUpdated != null && local.lastUpdated!!.after(cloud.lastUpdated))
             }.values
 
+            // 4. Itens para Download: Novos ou mais recentes da nuvem
             val itemsToDownload = cloudItems.filter { (id, cloud) ->
                 val local = localItems[id]
                 local == null || (cloud.lastUpdated != null && local.lastUpdated != null && cloud.lastUpdated!!.after(local.lastUpdated))
@@ -108,14 +114,21 @@ open class ScheduleRepository @Inject constructor(
                 val batch = firestore.batch()
                 itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
                 batch.commit().await()
+                Log.d(TAG, "[SYNC] Upload de ${itemsToUpload.size} itens concluído.")
             }
 
             if (itemsToDownload.isNotEmpty()) {
                 itemCronogramaDao.insertAll(itemsToDownload.toList())
                 triggerWidgetUpdate()
+                Log.d(TAG, "[SYNC] Download de ${itemsToDownload.size} itens concluído.")
             }
+            
+            // 5. Limpeza local: Após o upload, podemos remover fisicamente os itens marcados como isDeleted
+            itemCronogramaDao.permanentlyDeleteMarkedItems()
+
             Result.Success(Unit)
         } catch (e: Exception) {
+            Log.e(TAG, "[SYNC] Erro ao sincronizar cronograma", e)
             Result.Error(AppError.SyncError)
         }
     }
@@ -162,8 +175,14 @@ open class ScheduleRepository @Inject constructor(
     override suspend fun deleteScheduleItem(item: ItemCronograma): Result<Unit> = withContext(dispatcher) {
         try {
             habitoConcluidoDao.delete(item.id)
-            itemCronogramaDao.delete(item)
+            
+            // Soft Delete: Marca como deletado e atualiza o timestamp
+            val deletedItem = item.copy(isDeleted = true, lastUpdated = java.util.Date())
+            itemCronogramaDao.insert(deletedItem)
+            
+            // Deleta da nuvem imediatamente
             userId?.let { firestore.collection("users").document(it).collection(EVENTS_COLLECTION).document(item.id).delete() }
+
             triggerWidgetUpdate()
             Result.Success(Unit)
         } catch (e: Exception) { Result.Error(AppError.UnknownError(e)) }
@@ -173,7 +192,13 @@ open class ScheduleRepository @Inject constructor(
     override suspend fun deleteItemsByIds(ids: Set<String>) = withContext(dispatcher) {
         if (ids.isEmpty()) return@withContext
         habitoConcluidoDao.deleteByIds(ids)
-        itemCronogramaDao.deleteByIds(ids)
+        
+        val now = java.util.Date()
+        val itemsToDelete = itemCronogramaDao.getItemsByIdsIncludingDeleted(ids.toList()).map {
+            it.copy(isDeleted = true, lastUpdated = now)
+        }
+        itemCronogramaDao.insertAll(itemsToDelete)
+
         userId?.let { userId ->
             val batch = firestore.batch()
             val collection = firestore.collection("users").document(userId).collection(EVENTS_COLLECTION)

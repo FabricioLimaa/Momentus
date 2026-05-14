@@ -11,4 +11,5 @@ plugins {
     // ADICIONADO: Plugin de serialização do Kotlin
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.0" apply false
     alias(libs.plugins.jetbrainsCompose) apply false
+    alias(libs.plugins.secrets.gradle.plugin) apply false
 }
