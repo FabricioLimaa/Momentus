@@ -48,10 +48,21 @@ data class ItemCronograma(
 
     @Serializable(with = DateSerializer::class)
     @ServerTimestamp
-    val lastUpdated: Date? = null,
+    val lastUpdated: java.util.Date? = null,
 
-    val isDeleted: Boolean = false
+    @get:com.google.firebase.firestore.PropertyName("isDeleted")
+    @set:com.google.firebase.firestore.PropertyName("isDeleted")
+    var isDeleted: Boolean = false
 ) {
+    // Construtor vazio para o Firestore
+    constructor() : this(
+        id = java.util.UUID.randomUUID().toString(),
+        titulo = "",
+        horarioInicio = java.time.LocalTime.of(0, 0),
+        horarioTermino = java.time.LocalTime.of(0, 0),
+        categoryId = "",
+        isDeleted = false
+    )
     // Propriedades para serialização do LocalTime no Firestore
     var horarioInicioString: String
         get() = horarioInicio.format(DateTimeFormatter.ISO_LOCAL_TIME)

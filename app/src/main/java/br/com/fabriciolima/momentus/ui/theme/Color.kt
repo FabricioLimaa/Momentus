@@ -29,6 +29,7 @@ val md_theme_light_secondary = DeepNavyBackground
 val md_theme_light_onSecondary = Color.White
 val md_theme_light_error = Color(0xFFEF4444)
 val md_theme_light_background = Color(0xFFF8FAFC) // Branco suave
+val md_theme_light_onBackground = DeepNavyBackground
 val md_theme_light_surface = Color.White
 val md_theme_light_onSurface = DeepNavyBackground
 val md_theme_light_surfaceVariant = Color(0xFFF1F5F9) // Cards ultra claros

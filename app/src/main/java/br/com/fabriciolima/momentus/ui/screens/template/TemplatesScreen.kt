@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Dashboard
@@ -29,33 +27,32 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import br.com.fabriciolima.momentus.ui.theme.EmeraldGreen
 import androidx.compose.ui.draw.clip
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
-import br.com.fabriciolima.momentus.data.model.Template
 import br.com.fabriciolima.momentus.data.model.TemplateComEventos
 import br.com.fabriciolima.momentus.ui.components.ApplyTemplateDialog
 import br.com.fabriciolima.momentus.ui.components.EventFormData
-import br.com.fabriciolima.momentus.ui.theme.TimePickerDialog
+import br.com.fabriciolima.momentus.ui.theme.*
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateDialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateViewModel
 import br.com.fabriciolima.momentus.util.Result
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.ui.components.TimelineEventItem
+import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplatesScreen(
     navController: NavController,
+    windowSizeClass: WindowSizeClass,
     viewModel: TemplateViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -63,186 +60,190 @@ fun TemplatesScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
-            scope.launch {
-                snackbarHostState.showSnackbar(message)
-                viewModel.onErrorShown()
-            }
-        }
-    }
-
-    when (val dialogState = uiState.dialogState) {
-        is TemplateDialogState.CreateNew -> {
-            CreateTemplateDialog(
-                categories = uiState.categoriesMap.values.toList(),
-                onDismiss = viewModel::onDialogDismiss,
-                onConfirm = { id, name, description, events ->
-                    viewModel.salvarTemplateCompleto(id, name, description, events) { result ->
-                        when (result) {
-                            is Result.Success -> {
-                                scope.launch { snackbarHostState.showSnackbar("Template salvo com sucesso!") }
-                            }
-                            is Result.Error -> {
-                                val error = result.error
-                                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
-                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                            }
-                        }
-                    }
-                }
-            )
-        }
-        is TemplateDialogState.Import -> {
-            ImportTemplateDialog(
-                onDismiss = viewModel::onDialogDismiss,
-                onConfirm = { jsonString ->
-                    viewModel.importTemplateFromJson(jsonString) { result ->
-                        when (result) {
-                            is Result.Success -> {
-                                scope.launch { snackbarHostState.showSnackbar("Template importado com sucesso!") }
-                            }
-                            is Result.Error -> {
-                                val error = result.error
-                                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao importar"
-                                scope.launch { snackbarHostState.showSnackbar(message) }
-                            }
-                        }
-                    }
-                }
-            )
-        }
-        is TemplateDialogState.Edit -> {
-            CreateTemplateDialog(
-                templateToEdit = dialogState.template,
-                categories = uiState.categoriesMap.values.toList(),
-                onDismiss = viewModel::onDialogDismiss,
-                onConfirm = { id, name, description, events ->
-                    viewModel.salvarTemplateCompleto(id, name, description, events) { result ->
-                        when (result) {
-                            is Result.Success -> {
-                                scope.launch { snackbarHostState.showSnackbar("Template atualizado com sucesso!") }
-                            }
-                            is Result.Error -> {
-                                val error = result.error
-                                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
-                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                            }
-                        }
-                    }
-                }
-            )
-        }
-        is TemplateDialogState.ConfirmDelete -> {
-            AlertDialog(
-                onDismissRequest = viewModel::onDialogDismiss,
-                icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso") },
-                title = { Text("Deletar Template") },
-                text = { Text("Você tem certeza que quer deletar o template \"${dialogState.template.template.nome}\"? Essa ação não pode ser desfeita.") },
-                confirmButton = {
-                    Button(onClick = { viewModel.deleteTemplate(dialogState.template.template) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Deletar")
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("DELETAR")
-                    }
-                },
-                dismissButton = { TextButton(onClick = viewModel::onDialogDismiss) { Text("Cancelar") } }
-            )
-        }
-        is TemplateDialogState.ApplyTemplate -> {
-            ApplyTemplateDialog(
-                onDismiss = viewModel::onDialogDismiss,
-                onConfirm = { dates, saveToGoogle ->
-                    viewModel.applyTemplateToDates(dialogState.template.template.id, dates, saveToGoogle) { result ->
-                        when (result) {
-                            is Result.Success -> {
-                                scope.launch { snackbarHostState.showSnackbar("Template aplicado com sucesso!") }
-                            }
-                            is Result.Error -> {
-                                val error = result.error
-                                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao aplicar"
-                                scope.launch { snackbarHostState.showSnackbar(message) }
-                            }
-                        }
-                    }
-                }
-            )
-        }
-        is TemplateDialogState.Hidden -> {}
-    }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Meus Templates", fontWeight = FontWeight.ExtraBold) }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = viewModel::onShowCreateDialog,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Novo Template")
-            }
-        }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Ações secundárias
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = viewModel::onShowImportDialog) {
-                    Icon(Icons.Default.ContentPasteGo, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Importar Template")
+    AdaptiveOrientationWrapper(
+        windowSizeClass = windowSizeClass,
+        snackbarHostState = snackbarHostState
+    ) {
+        LaunchedEffect(uiState.error) {
+            uiState.error?.let { error ->
+                val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
+                scope.launch {
+                    snackbarHostState.showSnackbar(message)
+                    viewModel.onErrorShown()
                 }
             }
+        }
 
-            if (uiState.templates.isEmpty() && !uiState.isSyncing) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(Icons.Outlined.Dashboard, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Nenhum template", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = "Crie seu primeiro template para reutilizar rotinas facilmente.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp)
-                ) {
-                    items(uiState.templates) { templateComEventos ->
-                        TemplateCardPremium(
-                            templateComEventos = templateComEventos,
-                            categoriesMap = uiState.categoriesMap,
-                            onEditClick = { viewModel.onShowEditDialog(templateComEventos) },
-                            onDeleteClick = { viewModel.onShowDeleteDialog(templateComEventos) },
-                            onApplyClick = { viewModel.onShowApplyDialog(templateComEventos) },
-                            onShareClick = { 
-                                val shareableJson = viewModel.getShareableJsonForTemplate(templateComEventos.template.id)
-                                if (shareableJson != null) {
-                                    val sendIntent: Intent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, shareableJson)
-                                        type = "text/plain"
-                                    }
-                                    val shareIntent = Intent.createChooser(sendIntent, "Compartilhar Template")
-                                    context.startActivity(shareIntent)
+        when (val dialogState = uiState.dialogState) {
+            is TemplateDialogState.CreateNew -> {
+                CreateTemplateDialog(
+                    categories = uiState.categoriesMap.values.toList(),
+                    onDismiss = viewModel::onDialogDismiss,
+                    onConfirm = { id, name, description, events ->
+                        viewModel.salvarTemplateCompleto(id, name, description, events) { result ->
+                            when (result) {
+                                is Result.Success -> {
+                                    scope.launch { snackbarHostState.showSnackbar("Template salvo com sucesso!") }
                                 }
-                             }
+                                is Result.Error -> {
+                                    val error = result.error
+                                    val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
+                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            is TemplateDialogState.Import -> {
+                ImportTemplateDialog(
+                    onDismiss = viewModel::onDialogDismiss,
+                    onConfirm = { jsonString ->
+                        viewModel.importTemplateFromJson(jsonString) { result ->
+                            when (result) {
+                                is Result.Success -> {
+                                    scope.launch { snackbarHostState.showSnackbar("Template importado com sucesso!") }
+                                }
+                                is Result.Error -> {
+                                    val error = result.error
+                                    val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao importar"
+                                    scope.launch { snackbarHostState.showSnackbar(message) }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            is TemplateDialogState.Edit -> {
+                CreateTemplateDialog(
+                    templateToEdit = dialogState.template,
+                    categories = uiState.categoriesMap.values.toList(),
+                    onDismiss = viewModel::onDialogDismiss,
+                    onConfirm = { id, name, description, events ->
+                        viewModel.salvarTemplateCompleto(id, name, description, events) { result ->
+                            when (result) {
+                                is Result.Success -> {
+                                    scope.launch { snackbarHostState.showSnackbar("Template atualizado com sucesso!") }
+                                }
+                                is Result.Error -> {
+                                    val error = result.error
+                                    val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
+                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            is TemplateDialogState.ConfirmDelete -> {
+                AlertDialog(
+                    onDismissRequest = viewModel::onDialogDismiss,
+                    icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso") },
+                    title = { Text("Deletar Template") },
+                    text = { Text("Você tem certeza que quer deletar o template \"${dialogState.template.template.nome}\"? Essa ação não pode ser desfeita.") },
+                    confirmButton = {
+                        Button(onClick = { viewModel.deleteTemplate(dialogState.template.template) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Deletar")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("DELETAR")
+                        }
+                    },
+                    dismissButton = { TextButton(onClick = viewModel::onDialogDismiss) { Text("Cancelar") } }
+                )
+            }
+            is TemplateDialogState.ApplyTemplate -> {
+                ApplyTemplateDialog(
+                    onDismiss = viewModel::onDialogDismiss,
+                    onConfirm = { dates, saveToGoogle ->
+                        viewModel.applyTemplateToDates(dialogState.template.template.id, dates, saveToGoogle) { result ->
+                            when (result) {
+                                is Result.Success -> {
+                                    scope.launch { snackbarHostState.showSnackbar("Template aplicado com sucesso!") }
+                                }
+                                is Result.Error -> {
+                                    val error = result.error
+                                    val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao aplicar"
+                                    scope.launch { snackbarHostState.showSnackbar(message) }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            is TemplateDialogState.Hidden -> {}
+        }
+
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = { Text("Meus Templates", fontWeight = FontWeight.ExtraBold) }
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = viewModel::onShowCreateDialog,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Novo Template")
+                }
+            }
+        ) { paddingValues ->
+            Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = viewModel::onShowImportDialog) {
+                        Icon(Icons.Default.ContentPasteGo, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Importar Template")
+                    }
+                }
+
+                if (uiState.templates.isEmpty() && !uiState.isSyncing) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Outlined.Dashboard, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Nenhum template", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Crie seu primeiro template para reutilizar rotinas facilmente.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        items(uiState.templates) { templateComEventos ->
+                            TemplateCardPremium(
+                                templateComEventos = templateComEventos,
+                                categoriesMap = uiState.categoriesMap,
+                                onEditClick = { viewModel.onShowEditDialog(templateComEventos) },
+                                onDeleteClick = { viewModel.onShowDeleteDialog(templateComEventos) },
+                                onApplyClick = { viewModel.onShowApplyDialog(templateComEventos) },
+                                onShareClick = { 
+                                    val shareableJson = viewModel.getShareableJsonForTemplate(templateComEventos.template.id)
+                                    if (shareableJson != null) {
+                                        val sendIntent: Intent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, shareableJson)
+                                            type = "text/plain"
+                                        }
+                                        val shareIntent = Intent.createChooser(sendIntent, "Compartilhar Template")
+                                        context.startActivity(shareIntent)
+                                    }
+                                 }
+                            )
+                        }
                     }
                 }
             }
@@ -304,15 +305,12 @@ fun TemplateCardPremium(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Estatísticas do Template (Dados Reais)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // TODO: Adicionar contagem real de uso no Banco de Dados futuramente
                 TemplateStatChip(Icons.Default.History, "Novo template", Modifier.weight(1f))
                 
-                // Cálculo de conclusão (exemplo dinâmico baseado na complexidade ou histórico se houvesse)
                 val complexity = when {
                     templateComEventos.eventos.size > 8 -> "Alta"
                     templateComEventos.eventos.size > 4 -> "Média"
@@ -327,7 +325,6 @@ fun TemplateCardPremium(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Timeline compacta dentro do card
             Column {
                 templateComEventos.eventos.sortedBy { it.horarioInicio }.take(4).forEachIndexed { index, evento ->
                     val category = categoriesMap[evento.categoryId]
@@ -335,7 +332,7 @@ fun TemplateCardPremium(
                         TimelineEventItem(
                             item = evento,
                             category = category,
-                            isChecked = false, // Em template não há check
+                            isChecked = false, 
                             isFirst = index == 0,
                             isLast = index == templateComEventos.eventos.size - 1 || index == 3,
                             onCheckedChange = {},
@@ -360,7 +357,7 @@ fun TemplateCardPremium(
                 onClick = onApplyClick,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(containerColor = EmeraldNeon, contentColor = Color.Black)
             ) {
                 Text("Aplicar Template", fontWeight = FontWeight.Bold)
             }
@@ -672,7 +669,7 @@ fun CreateTemplateDialog(
                     enabled = isFormValid,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color.Black)
+                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldNeon, contentColor = Color.Black)
                 ) {
                     Text(
                         text = if(isEditMode) "Salvar Alterações" else "Criar Template", 
@@ -774,7 +771,6 @@ fun EventTemplateForm(
             }
         }
 
-        // Seleção de Categoria (Chip Grid como na Nova Rotina)
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

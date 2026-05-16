@@ -453,7 +453,7 @@ class CalendarViewModel @Inject constructor(
         salvarNoGoogle: Boolean
     ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, dialogState = DialogState.Hidden) }
             val result = saveScheduleItemUseCase(titulo, descricao, data, horarioInicio, horarioTermino, category, salvarNoGoogle)
             _uiState.update { it.copy(isLoading = false) }
 
@@ -481,7 +481,7 @@ class CalendarViewModel @Inject constructor(
         sincronizarComGoogle: Boolean
     ) {
         viewModelScope.launch {
-             _uiState.update { it.copy(isLoading = true) }
+             _uiState.update { it.copy(isLoading = true, dialogState = DialogState.Hidden) }
             val result = updateScheduleItemUseCase(item, novoTitulo, novaDescricao, novaData, novoHorarioInicio, novoHorarioTermino, novaCategory, sincronizarComGoogle)
             _uiState.update { it.copy(isLoading = false) }
 
@@ -501,7 +501,7 @@ class CalendarViewModel @Inject constructor(
 
     fun deleteRotina(item: ItemCronograma) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, dialogState = DialogState.Hidden) }
             try {
                 alarmScheduler.cancel(item)
                 when (val result = deleteScheduleItemUseCase(item)) {
@@ -540,7 +540,7 @@ class CalendarViewModel @Inject constructor(
 
     fun deleteRotinasByIds(ids: Set<String>) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, dialogState = DialogState.Hidden) }
             try {
                 scheduleRepository.deleteItemsByIds(ids)
                 _uiState.update {

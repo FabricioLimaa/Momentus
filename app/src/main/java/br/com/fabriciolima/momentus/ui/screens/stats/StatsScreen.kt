@@ -40,116 +40,123 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     navController: NavController,
+    windowSizeClass: WindowSizeClass,
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            val messageText = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
-            snackbarHostState.showSnackbar(message = messageText)
-            viewModel.onErrorShown()
+    AdaptiveOrientationWrapper(
+        windowSizeClass = windowSizeClass,
+        snackbarHostState = snackbarHostState
+    ) {
+        LaunchedEffect(uiState.error) {
+            uiState.error?.let { error ->
+                val messageText = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
+                snackbarHostState.showSnackbar(message = messageText)
+                viewModel.onErrorShown()
+            }
         }
-    }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Progresso", fontWeight = FontWeight.Bold) }
-            )
-        }
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                FilterButtons(
-                    selectedFilter = uiState.filter, 
-                    onFilterSelected = viewModel::setFilter 
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = { Text("Progresso", fontWeight = FontWeight.Bold) }
                 )
             }
-
-            // --- INSIGHTS PREMIUM (Mockup Estilo) ---
-            item {
-                Text(
-                    text = "Insights da ${if(uiState.filter == StatsFilter.WEEK) "semana" else if(uiState.filter == StatsFilter.MONTH) "mês" else "ano"}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    InsightCardPremium(
-                        title = if (uiState.improvementPercentage >= 0) "Você melhorou" else "Você caiu",
-                        value = "${kotlin.math.abs(uiState.improvementPercentage)}%",
-                        subtitle = "em relação ao período anterior",
-                        icon = Icons.AutoMirrored.Filled.TrendingUp,
-                        modifier = Modifier.weight(1f),
-                        color = if (uiState.improvementPercentage >= 0) Color(0xFF10B981) else Color(0xFFEF4444)
-                    )
-                    InsightCardPremium(
-                        title = "Melhor horário",
-                        value = uiState.bestHour?.let { "${it}h" } ?: "--",
-                        subtitle = "Período de maior produtividade",
-                        icon = Icons.Default.Schedule,
-                        modifier = Modifier.weight(1f),
-                        color = Color(0xFF6366F1)
+        ) { paddingValues ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FilterButtons(
+                        selectedFilter = uiState.filter, 
+                        onFilterSelected = viewModel::setFilter 
                     )
                 }
-            }
 
-            item {
-                Text(
-                    text = "Total de Hábitos Concluídos",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                if (uiState.barChartData.isNotEmpty()) {
-                    BarChartPremium(data = uiState.barChartData)
-                } else {
-                    Text("Dados insuficientes para o gráfico.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-
-            item {
-                Text(
-                    text = "Taxa de Conclusão",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            if (uiState.completionRates.isEmpty()) {
                 item {
                     Text(
-                        "Nenhuma atividade registrada no período.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Insights da ${if(uiState.filter == StatsFilter.WEEK) "semana" else if(uiState.filter == StatsFilter.MONTH) "mês" else "ano"}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        InsightCardPremium(
+                            title = if (uiState.improvementPercentage >= 0) "Você melhorou" else "Você caiu",
+                            value = "${kotlin.math.abs(uiState.improvementPercentage)}%",
+                            subtitle = "em relação ao período anterior",
+                            icon = Icons.AutoMirrored.Filled.TrendingUp,
+                            modifier = Modifier.weight(1f),
+                            color = if (uiState.improvementPercentage >= 0) Color(0xFF10B981) else Color(0xFFEF4444)
+                        )
+                        InsightCardPremium(
+                            title = "Melhor horário",
+                            value = uiState.bestHour?.let { "${it}h" } ?: "--",
+                            subtitle = "Período de maior produtividade",
+                            icon = Icons.Default.Schedule,
+                            modifier = Modifier.weight(1f),
+                            color = Color(0xFF6366F1)
+                        )
+                    }
+                }
+
+                item {
+                    Text(
+                        text = "Total de Hábitos Concluídos",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (uiState.barChartData.isNotEmpty()) {
+                        BarChartPremium(data = uiState.barChartData)
+                    } else {
+                        Text("Dados insuficientes para o gráfico.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                item {
+                    Text(
+                        text = "Taxa de Conclusão",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            } else {
-                items(uiState.completionRates) { rate ->
-                    CompletionRateItemPremium(rate = rate)
-                }
-            }
 
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+                if (uiState.completionRates.isEmpty()) {
+                    item {
+                        Text(
+                            "Nenhuma atividade registrada no período.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    items(uiState.completionRates) { rate ->
+                        CompletionRateItemPremium(rate = rate)
+                    }
+                }
+
+                item { Spacer(modifier = Modifier.height(32.dp)) }
+            }
         }
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -31,6 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -40,7 +44,7 @@ import br.com.fabriciolima.momentus.R
 import br.com.fabriciolima.momentus.ui.Screen
 import br.com.fabriciolima.momentus.ui.viewmodel.LoginEvent
 import br.com.fabriciolima.momentus.ui.viewmodel.LoginViewModel
-import br.com.fabriciolima.momentus.ui.theme.EmeraldGreen
+import br.com.fabriciolima.momentus.ui.theme.*
 import br.com.fabriciolima.momentus.util.GoogleAuthUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 
@@ -93,170 +97,249 @@ fun LoginScreen(
     fun isEmailValid(): Boolean = android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
     fun isPasswordValid(): Boolean = password.length >= 6
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DeepNavyBackground)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-                val path = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(0f, height * 0.7f)
-                    quadraticBezierTo(width * 0.5f, height * 0.85f, width, height * 0.65f)
-                    lineTo(width, height)
-                    lineTo(0f, height)
-                    close()
-                }
-                drawPath(path = path, color = EmeraldGreen.copy(alpha = 0.05f))
+        // Grafismo de Fundo Premium (Ondas suaves)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val path = androidx.compose.ui.graphics.Path().apply {
+                moveTo(0f, height * 0.7f)
+                quadraticBezierTo(width * 0.5f, height * 0.85f, width, height * 0.65f)
+                lineTo(width, height)
+                lineTo(0f, height)
+                close()
             }
+            drawPath(
+                path = path,
+                brush = Brush.verticalGradient(
+                    listOf(EmeraldNeon.copy(alpha = 0.08f), Color.Transparent)
+                )
+            )
+        }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(32.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Logo com Glow (Mockup 2)
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(EmeraldNeon.copy(alpha = 0.15f), CircleShape)
+                        .blur(30.dp)
+                )
                 Image(
                     painter = painterResource(id = R.drawable.ic_launcher_logo_round),
                     contentDescription = "Logo Momentus",
-                    modifier = Modifier.size(120.dp)
+                    modifier = Modifier.size(100.dp)
                 )
-                
-                Spacer(modifier = Modifier.height(16.dp))
+            }
 
-                Text(
-                    text = "Momentus",
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "Organize suas metas, conquiste seu dia.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(64.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-                Button(
-                    onClick = {
-                        viewModel.setLoading(true)
-                        val gso = GoogleAuthUtils.getGoogleSignInOptions(context)
-                        val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    enabled = !uiState.isLoading,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color.White)
-                ) {
-                    if (uiState.isLoading && !showEmailFields) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                    } else {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_google_logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.Unspecified
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("Entrar com Google", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Momentus",
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Black,
+                color = TextPrimaryDark
+            )
+            Text(
+                text = "Organize suas metas, conquiste seu dia.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondaryDark,
+                textAlign = TextAlign.Center
+            )
 
-                OutlinedButton(
-                    onClick = { showEmailFields = !showEmailFields },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    enabled = !uiState.isLoading,
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                ) {
-                    Icon(imageVector = Icons.Default.Email, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
+            Spacer(modifier = Modifier.height(64.dp))
+
+            // Botão Google Premium com Gradiente (Mockup 2)
+            Button(
+                onClick = {
+                    viewModel.setLoading(true)
+                    val gso = GoogleAuthUtils.getGoogleSignInOptions(context)
+                    val googleSignInClient = GoogleSignIn.getClient(context, gso)
+                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.horizontalGradient(listOf(EmeraldNeon, EmeraldGreen))
+                    ),
+                enabled = !uiState.isLoading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Black
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+            ) {
+                if (uiState.isLoading && !showEmailFields) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_google_logo),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.Unspecified
+                    )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Entrar com E-mail", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Entrar com Google", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
+            }
 
-                AnimatedVisibility(visible = showEmailFields) {
-                    Column(
-                        modifier = Modifier.padding(top = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botão E-mail Glassmorphism
+            OutlinedButton(
+                onClick = { showEmailFields = !showEmailFields },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = !uiState.isLoading,
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    GlassBorder
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = TextPrimaryDark
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Email,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Entrar com E-mail", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+
+            AnimatedVisibility(visible = showEmailFields) {
+                Column(
+                    modifier = Modifier.padding(top = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("E-mail") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EmeraldNeon,
+                            unfocusedBorderColor = GlassBorder,
+                            focusedLabelColor = EmeraldNeon,
+                            unfocusedLabelColor = TextSecondaryDark
+                        ),
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = EmeraldNeon) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    )
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Senha") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = EmeraldNeon,
+                            unfocusedBorderColor = GlassBorder,
+                            focusedLabelColor = EmeraldNeon,
+                            unfocusedLabelColor = TextSecondaryDark
+                        ),
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = EmeraldNeon) },
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = { email = it },
-                            label = { Text("E-mail") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = EmeraldGreen) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                        Checkbox(
+                            checked = rememberMe,
+                            onCheckedChange = { rememberMe = it; viewModel.updatePreferences(email, it) },
+                            colors = CheckboxDefaults.colors(checkedColor = EmeraldNeon, uncheckedColor = GlassBorder)
                         )
-                        
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text("Senha") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = EmeraldGreen) },
-                            visualTransformation = PasswordVisualTransformation()
-                        )
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Checkbox(checked = rememberMe, onCheckedChange = { rememberMe = it; viewModel.updatePreferences(email, it) }, colors = CheckboxDefaults.colors(checkedColor = EmeraldGreen))
-                            Text("Lembrar-me", style = MaterialTheme.typography.bodyMedium)
-                            Spacer(modifier = Modifier.weight(1f))
-                            TextButton(onClick = { navController.navigate(Screen.ForgotPassword.route) }) {
-                                Text("Esqueceu a senha?", color = EmeraldGreen)
-                            }
-                        }
-
-                        Button(
-                            onClick = { viewModel.signInWithEmail(email, password, rememberMe) },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            enabled = !uiState.isLoading && isEmailValid() && isPasswordValid(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen)
-                        ) {
-                            if(uiState.isLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                            } else {
-                                Text("Entrar", fontWeight = FontWeight.Bold)
-                            }
+                        Text("Lembrar-me", style = MaterialTheme.typography.bodyMedium, color = TextSecondaryDark)
+                        Spacer(modifier = Modifier.weight(1f))
+                        TextButton(onClick = { navController.navigate(Screen.ForgotPassword.route) }) {
+                            Text("Esqueceu a senha?", color = EmeraldNeon)
                         }
                     }
-                }
-                
-                Spacer(modifier = Modifier.height(48.dp))
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Comece gratuitamente", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "+10.000 pessoas já estão transformando\nsuas rotinas.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), textAlign = TextAlign.Center, lineHeight = 16.sp)
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = { navController.navigate(Screen.SignUp.route) }) {
-                        Text("Crie uma aqui", fontWeight = FontWeight.Bold, color = EmeraldGreen)
+                    Button(
+                        onClick = { viewModel.signInWithEmail(email, password, rememberMe) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        enabled = !uiState.isLoading && isEmailValid() && isPasswordValid(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldNeon, contentColor = Color.Black)
+                    ) {
+                        if(uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                        } else {
+                            Text("Entrar", fontWeight = FontWeight.ExtraBold)
+                        }
                     }
                 }
             }
 
-            val versionName = try {
-                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-                packageInfo.versionName
-            } catch (e: Exception) { "N/A" }
+            Spacer(modifier = Modifier.height(48.dp))
 
-            Text(text = "Versão: $versionName", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 30.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Comece gratuitamente",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = TextSecondaryDark.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        append("+10.000 pessoas já estão ")
+                        withStyle(SpanStyle(color = EmeraldNeon, fontWeight = FontWeight.Bold)) {
+                            append("transformando")
+                        }
+                        append("\nsuas rotinas.")
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondaryDark.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Não tem uma conta?", color = TextSecondaryDark)
+                TextButton(onClick = { navController.navigate(Screen.SignUp.route) }) {
+                    Text("Crie uma aqui", fontWeight = FontWeight.Bold, color = EmeraldNeon)
+                }
+            }
         }
+
+        val versionName = try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionName
+        } catch (e: Exception) { "N/A" }
+
+        Text(
+            text = "Versão: $versionName",
+            style = MaterialTheme.typography.bodySmall,
+            color = TextSecondaryDark.copy(alpha = 0.3f),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 30.dp)
+        )
     }
 }

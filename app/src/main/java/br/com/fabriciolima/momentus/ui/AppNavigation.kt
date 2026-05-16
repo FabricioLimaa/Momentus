@@ -303,10 +303,25 @@ fun AppNavHost(
                 onConfirmDeleteSelectedRotinas = sharedViewModel::confirmDeleteSelectedRotinas
             )
         }
-        composable(Screen.Templates.route) { TemplatesScreen(navController) }
+        composable(Screen.Templates.route) { 
+            TemplatesScreen(
+                navController = navController, 
+                windowSizeClass = windowSizeClass
+            ) 
+        }
         composable(Screen.Categories.route) { CategoriesScreen(navController) }
-        composable(Screen.Stats.route) { StatsScreen(navController) }
-        composable(Screen.Achievements.route) { AchievementsScreen(navController) }
+        composable(Screen.Stats.route) { 
+            StatsScreen(
+                navController = navController, 
+                windowSizeClass = windowSizeClass
+            ) 
+        }
+        composable(Screen.Achievements.route) { 
+            AchievementsScreen(
+                navController = navController, 
+                windowSizeClass = windowSizeClass
+            ) 
+        }
         composable(Screen.Updates.route) { UpdateNotesScreen(navController) }
         composable(Screen.Legal.route) { LegalScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
@@ -316,7 +331,8 @@ fun AppNavHost(
             MoreScreen(
                 navController = navController,
                 uiState = uiState,
-                onLogout = { sharedViewModel.logout() } // Agora chama a mesma instância!
+                windowSizeClass = windowSizeClass,
+                onLogout = { sharedViewModel.logout() }
             )
         }
     }

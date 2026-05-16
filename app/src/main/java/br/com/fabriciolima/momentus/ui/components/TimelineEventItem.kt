@@ -7,12 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.PlayCircleFilled
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
+import androidx.compose.ui.unit.sp
+import br.com.fabriciolima.momentus.ui.theme.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,6 +25,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -48,7 +46,7 @@ fun TimelineEventItem(
         try { Color(android.graphics.Color.parseColor(category.cor)) } catch (e: Exception) { Color.Gray }
     }
 
-    // Lógica para determinar o status dinâmico (Passo 1 do plano)
+    // Lógica para determinar o status dinâmico
     val now = LocalTime.now()
     val isOngoing = remember(item.horarioInicio, item.horarioTermino, now) {
         now.isAfter(item.horarioInicio) && now.isBefore(item.horarioTermino)
@@ -64,130 +62,118 @@ fun TimelineEventItem(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
-            .padding(horizontal = 16.dp, vertical = 0.dp),
+            .padding(horizontal = 20.dp, vertical = 0.dp),
         verticalAlignment = Alignment.Top
     ) {
-        // 1. Horário (Esquerda)
+        // 1. Horário (Mockup: Texto menor e cinza)
         Text(
             text = item.horarioInicio.format(formatter),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = if (isOngoing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            color = if (isOngoing) EmeraldNeon else TextSecondaryDark,
             modifier = Modifier.width(60.dp).padding(top = 14.dp)
         )
 
-        // 2. Indicador Vertical (Timeline)
+        // 2. Timeline Vertical Conectada (Mockup: Linhas finas e pontos coloridos)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(24.dp).height(IntrinsicSize.Min)
         ) {
-            // Linha superior
             Box(
                 modifier = Modifier
                     .width(2.dp)
                     .height(16.dp)
-                    .background(
-                        if (isFirst) Color.Transparent 
-                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                    )
+                    .background(if (isFirst) Color.Transparent else DeepNavyOutline)
             )
 
-            // Ponto colorido
             Box(
                 modifier = Modifier
                     .size(12.dp)
                     .clip(CircleShape)
                     .background(categoryColor)
+                    .border(1.dp, DeepNavyBackground, CircleShape)
             )
 
-            // Linha inferior
             Box(
                 modifier = Modifier
                     .width(2.dp)
                     .weight(1f)
                     .minHeight(30.dp)
-                    .background(
-                        if (isLast) Color.Transparent 
-                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                    )
+                    .background(if (isLast) Color.Transparent else DeepNavyOutline)
             )
         }
 
-        // 3. Conteúdo (Título)
+        // 3. Card de Conteúdo (Mockup: Título em destaque e categoria em chip)
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 12.dp, top = 10.dp, bottom = 20.dp),
-            verticalArrangement = Arrangement.Center
+                .padding(start = 12.dp, top = 10.dp, bottom = 20.dp)
         ) {
-            Text(
-                text = item.titulo,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = if (isChecked) MaterialTheme.colorScheme.onSurfaceVariant 
-                        else if (isOngoing) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.alpha(if (isChecked) 0.6f else 1f)
-            )
-            item.descricao?.let {
-                if (it.isNotBlank()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = item.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isChecked) TextPrimaryDark.copy(alpha = 0.5f) else TextPrimaryDark,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // Chip de Categoria Minimalista
+                Surface(
+                    color = categoryColor.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
                     Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        text = category.nome,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = categoryColor,
+                        fontSize = 10.sp
                     )
                 }
             }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Text(
+                text = "${item.horarioInicio.format(formatter)} - ${item.horarioTermino.format(formatter)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondaryDark
+            )
         }
 
-        // 4. Status Icon Dinâmico (Lógica conforme Mockup)
+        // 4. Status Icon (Check) ou Checkbox de seleção
         Box(
             modifier = Modifier
-                .padding(top = 10.dp)
+                .padding(top = 12.dp, start = 8.dp)
                 .size(24.dp)
-                .clickable { onCheckedChange(!isChecked) },
+                .clickable { if (!isSelectionMode) onCheckedChange(!isChecked) },
             contentAlignment = Alignment.Center
         ) {
             if (isSelectionMode) {
                 Checkbox(
                     checked = isSelected,
                     onCheckedChange = { onClick() },
-                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                    colors = CheckboxDefaults.colors(checkedColor = EmeraldNeon)
+                )
+            } else if (isChecked) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = EmeraldNeon,
+                    modifier = Modifier.size(24.dp)
                 )
             } else {
-                when {
-                    isChecked -> {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Concluído",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    isOngoing -> {
-                        Icon(
-                            imageVector = Icons.Default.PlayCircleFilled,
-                            contentDescription = "Acontecendo agora",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    else -> {
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .border(
-                                    2.dp,
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                                    CircleShape
-                                )
-                        )
-                    }
-                }
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .border(1.dp, TextSecondaryDark.copy(alpha = 0.5f), CircleShape)
+                )
             }
         }
     }
 }
+
 
 private fun Modifier.minHeight(height: androidx.compose.ui.unit.Dp) = this.defaultMinSize(minHeight = height)

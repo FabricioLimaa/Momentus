@@ -29,7 +29,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import br.com.fabriciolima.momentus.domain.model.UserLevel
-import br.com.fabriciolima.momentus.ui.Screen
 import br.com.fabriciolima.momentus.ui.screens.UserAvatar
 import br.com.fabriciolima.momentus.ui.screens.getStreakColor
 import br.com.fabriciolima.momentus.ui.viewmodel.AchievementUiInfo
@@ -37,19 +36,20 @@ import br.com.fabriciolima.momentus.ui.viewmodel.AchievementsViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
+import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 
-// --- BUSCA: MAPEAMENTO DE ÍCONES ÚNICOS PARA CADA CONQUISTA ---
 @Composable
 fun getIconForAchievement(achievementId: String): ImageVector {
     return when (achievementId) {
-        "FIRST_HABIT" -> Icons.Default.RocketLaunch       // Foguete: Início
-        "FIRST_TEMPLATE" -> Icons.Default.AutoAwesome      // Brilho: Organização
-        "STREAK_3" -> Icons.Default.Bolt                 // Raio: Energia
-        "STREAK_7" -> Icons.Default.Stars                // Estrelas: Consistência
-        "STREAK_30" -> Icons.Default.EmojiEvents         // Troféu: Maestria
-        "COMPLETED_10" -> Icons.Default.DoneAll           // Check Duplo: Progresso (Resolvido erro Filter10)
-        "COMPLETED_50" -> Icons.Default.WorkspacePremium  // Selo: Premium
-        "COMPLETED_100" -> Icons.Default.Diamond          // Diamante: Raro
+        "FIRST_HABIT" -> Icons.Default.RocketLaunch
+        "FIRST_TEMPLATE" -> Icons.Default.AutoAwesome
+        "STREAK_3" -> Icons.Default.Bolt
+        "STREAK_7" -> Icons.Default.Stars
+        "STREAK_30" -> Icons.Default.EmojiEvents
+        "COMPLETED_10" -> Icons.Default.DoneAll
+        "COMPLETED_50" -> Icons.Default.WorkspacePremium
+        "COMPLETED_100" -> Icons.Default.Diamond
         else -> Icons.Default.Star
     }
 }
@@ -58,142 +58,140 @@ fun getIconForAchievement(achievementId: String): ImageVector {
 @Composable
 fun AchievementsScreen(
     navController: NavController,
+    windowSizeClass: WindowSizeClass,
     viewModel: AchievementsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val firebaseUser = FirebaseAuth.getInstance().currentUser
     val userLevel = UserLevel.fromPoints(uiState.points)
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // --- BUSCA: DIÁLOGO DE DETALHES DA MEDALHA ---
-    uiState.selectedAchievement?.let {
-        AchievementDetailDialog(
-            info = it,
-            onDismiss = { viewModel.onDialogDismiss() }
-        )
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Conquistas", fontWeight = FontWeight.ExtraBold) },
+    AdaptiveOrientationWrapper(
+        windowSizeClass = windowSizeClass,
+        snackbarHostState = snackbarHostState
+    ) {
+        uiState.selectedAchievement?.let {
+            AchievementDetailDialog(
+                info = it,
+                onDismiss = { viewModel.onDialogDismiss() }
             )
         }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            // --- BUSCA: HEADER COM NOME E AVATAR ---
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = firebaseUser?.displayName ?: "Usuário",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = "Nível ${userLevel.level}", 
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Text(text = userLevel.rankName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    UserAvatar(
-                        displayName = firebaseUser?.displayName ?: "U",
-                        photoUrl = firebaseUser?.photoUrl?.toString(),
-                        modifier = Modifier.size(80.dp).border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                    )
-                }
-            }
 
-            // --- BUSCA: STATUS DE SEQUÊNCIA E PONTOS ---
-            item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Card da Chama de Sequência
-                    Surface(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = { Text("Conquistas", fontWeight = FontWeight.ExtraBold) },
+                )
+            }
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Icon(
-                                Icons.Default.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = getStreakColor(uiState.streakCount),
-                                modifier = Modifier.size(28.dp)
+                        Column {
+                            Text(
+                                text = firebaseUser?.displayName ?: "Usuário",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
                             )
-                            Spacer(Modifier.height(8.dp))
-                            Text(text = uiState.streakCount.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                            Text(text = "Dias seguidos", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = "Nível ${userLevel.level}", 
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                Text(text = userLevel.rankName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
+                        UserAvatar(
+                            displayName = firebaseUser?.displayName ?: "U",
+                            photoUrl = firebaseUser?.photoUrl?.toString(),
+                            modifier = Modifier.size(80.dp).border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        )
                     }
-                    // Card de Pontos Totais
-                    Surface(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFD4AF37), modifier = Modifier.size(28.dp))
-                            Spacer(Modifier.height(8.dp))
-                            Text(text = uiState.points.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                            Text(text = "Pontos totais", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                item {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Icon(
+                                    Icons.Default.LocalFireDepartment,
+                                    contentDescription = null,
+                                    tint = getStreakColor(uiState.streakCount),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(text = uiState.streakCount.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                                Text(text = "Dias seguidos", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFD4AF37), modifier = Modifier.size(28.dp))
+                                Spacer(Modifier.height(8.dp))
+                                Text(text = uiState.points.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                                Text(text = "Pontos totais", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
-            }
 
-            // --- BUSCA: SEÇÃO DE MEDALHAS CLICÁVEIS (HORIZONTAL) ---
-            item {
-                Column {
-                    Text(text = "Minhas Medalhas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(12.dp))
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(bottom = 8.dp)
-                    ) {
-                        items(uiState.achievements) { info ->
-                            MedalItem(info, onClick = { viewModel.onAchievementClicked(info) })
+                item {
+                    Column {
+                        Text(text = "Minhas Medalhas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(12.dp))
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(bottom = 8.dp)
+                        ) {
+                            items(uiState.achievements) { info ->
+                                MedalItem(info, onClick = { viewModel.onAchievementClicked(info) })
+                            }
                         }
                     }
                 }
-            }
 
-            // --- BUSCA: CARD DE PROGRESSO XP ---
-            item {
-                Text(text = "Progresso", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                ActivityCard(userLevel)
-            }
+                item {
+                    Text(text = "Progresso", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
+                    ActivityCard(userLevel)
+                }
 
-            item { Spacer(Modifier.height(32.dp)) }
+                item { Spacer(Modifier.height(32.dp)) }
+            }
         }
     }
 }
 
-/**
- * Representa uma medalha individual no carrossel.
- */
 @Composable
 fun MedalItem(info: AchievementUiInfo, onClick: () -> Unit) {
     val icon = getIconForAchievement(info.achievement.id)
@@ -228,9 +226,6 @@ fun MedalItem(info: AchievementUiInfo, onClick: () -> Unit) {
     }
 }
 
-/**
- * Diálogo que exibe os detalhes de uma conquista específica.
- */
 @Composable
 fun AchievementDetailDialog(info: AchievementUiInfo, onDismiss: () -> Unit) {
     val icon = if (info.isUnlocked) getIconForAchievement(info.achievement.id) else Icons.Default.Lock
@@ -263,9 +258,6 @@ fun AchievementDetailDialog(info: AchievementUiInfo, onDismiss: () -> Unit) {
     )
 }
 
-/**
- * Card de progresso visual de experiência (XP).
- */
 @Composable
 fun ActivityCard(userLevel: UserLevel) {
     Card(
@@ -280,14 +272,14 @@ fun ActivityCard(userLevel: UserLevel) {
                 Spacer(Modifier.width(12.dp))
                 Text(text = "Caminho para o Nível ${userLevel.level + 1}", fontWeight = FontWeight.Bold)
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             LinearProgressIndicator(
                 progress = { userLevel.progress },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "${userLevel.currentXp} / ${userLevel.nextLevelXp} XP",
                 style = MaterialTheme.typography.bodySmall,

@@ -112,18 +112,28 @@ open class ScheduleRepository @Inject constructor(
 
             if (itemsToUpload.isNotEmpty()) {
                 val batch = firestore.batch()
-                itemsToUpload.forEach { batch.set(collectionRef.document(it.id), it) }
+                itemsToUpload.forEach { item ->
+                    if (item.isDeleted) {
+                        // Se está deletado localmente, remove da nuvem
+                        batch.delete(collectionRef.document(item.id))
+                    } else {
+                        // Senão, atualiza/insere
+                        batch.set(collectionRef.document(item.id), item)
+                    }
+                }
                 batch.commit().await()
                 Log.d(TAG, "[SYNC] Upload de ${itemsToUpload.size} itens concluído.")
             }
 
             if (itemsToDownload.isNotEmpty()) {
-                itemCronogramaDao.insertAll(itemsToDownload.toList())
+                // Filtrar apenas o que não está deletado na nuvem (se houver essa marcação lá)
+                val activeDownloads = itemsToDownload.filter { !it.isDeleted }
+                itemCronogramaDao.insertAll(activeDownloads)
                 triggerWidgetUpdate()
-                Log.d(TAG, "[SYNC] Download de ${itemsToDownload.size} itens concluído.")
+                Log.d(TAG, "[SYNC] Download de ${activeDownloads.size} itens concluído.")
             }
             
-            // 5. Limpeza local: Após o upload, podemos remover fisicamente os itens marcados como isDeleted
+            // 5. Limpeza local: Após o upload/delete bem sucedido, removemos do banco local
             itemCronogramaDao.permanentlyDeleteMarkedItems()
 
             Result.Success(Unit)
@@ -180,12 +190,19 @@ open class ScheduleRepository @Inject constructor(
             val deletedItem = item.copy(isDeleted = true, lastUpdated = java.util.Date())
             itemCronogramaDao.insert(deletedItem)
             
-            // Deleta da nuvem imediatamente
-            userId?.let { firestore.collection("users").document(it).collection(EVENTS_COLLECTION).document(item.id).delete() }
+            // Tentativa de delete na nuvem (sem bloquear se falhar por rede)
+            userId?.let { uid ->
+                firestore.collection("users").document(uid)
+                    .collection(EVENTS_COLLECTION).document(item.id).delete()
+                    .addOnFailureListener { Log.w(TAG, "Falha ao deletar da nuvem, será sincronizado depois.") }
+            }
 
             triggerWidgetUpdate()
             Result.Success(Unit)
-        } catch (e: Exception) { Result.Error(AppError.UnknownError(e)) }
+        } catch (e: Exception) { 
+            Log.e(TAG, "Erro ao deletar item", e)
+            Result.Error(AppError.UnknownError(e)) 
+        }
     }
     override suspend fun excluirEventoCompleto(item: ItemCronograma) = deleteScheduleItem(item)
 
