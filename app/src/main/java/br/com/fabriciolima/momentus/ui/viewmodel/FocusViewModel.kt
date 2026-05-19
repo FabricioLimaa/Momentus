@@ -18,7 +18,11 @@ data class FocusUiState(
     val isRunning: Boolean = false,
     val mode: FocusMode = FocusMode.FOCUS,
     val completedSessions: Int = 0,
-    val xpGained: Int = 0
+    val xpGained: Int = 0,
+    val focusDurationMinutes: Int = 25,
+    val shortBreakMinutes: Int = 5,
+    val longBreakMinutes: Int = 15,
+    val showSettingsDialog: Boolean = false
 )
 
 enum class FocusMode {
@@ -61,11 +65,7 @@ class FocusViewModel @Inject constructor(
 
     fun resetTimer() {
         pauseTimer()
-        val defaultSeconds = when (_uiState.value.mode) {
-            FocusMode.FOCUS -> 25 * 60
-            FocusMode.SHORT_BREAK -> 5 * 60
-            FocusMode.LONG_BREAK -> 15 * 60
-        }
+        val defaultSeconds = getDurationForMode(_uiState.value.mode)
         _uiState.update { it.copy(timeLeftSeconds = defaultSeconds, totalSeconds = defaultSeconds) }
     }
 
@@ -97,11 +97,7 @@ class FocusViewModel @Inject constructor(
 
     fun setMode(mode: FocusMode) {
         pauseTimer()
-        val seconds = when (mode) {
-            FocusMode.FOCUS -> 25 * 60
-            FocusMode.SHORT_BREAK -> 5 * 60
-            FocusMode.LONG_BREAK -> 15 * 60
-        }
+        val seconds = getDurationForMode(mode)
         _uiState.update { 
             it.copy(
                 mode = mode, 
@@ -110,5 +106,29 @@ class FocusViewModel @Inject constructor(
                 isRunning = false
             )
         }
+    }
+
+    private fun getDurationForMode(mode: FocusMode): Int {
+        return when (mode) {
+            FocusMode.FOCUS -> _uiState.value.focusDurationMinutes * 60
+            FocusMode.SHORT_BREAK -> _uiState.value.shortBreakMinutes * 60
+            FocusMode.LONG_BREAK -> _uiState.value.longBreakMinutes * 60
+        }
+    }
+
+    fun setShowSettingsDialog(show: Boolean) {
+        _uiState.update { it.copy(showSettingsDialog = show) }
+    }
+
+    fun updateDurations(focus: Int, shortBreak: Int, longBreak: Int) {
+        _uiState.update { 
+            it.copy(
+                focusDurationMinutes = focus,
+                shortBreakMinutes = shortBreak,
+                longBreakMinutes = longBreak,
+                showSettingsDialog = false
+            )
+        }
+        resetTimer()
     }
 }
