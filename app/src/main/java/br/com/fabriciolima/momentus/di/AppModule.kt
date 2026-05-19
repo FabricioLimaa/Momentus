@@ -6,6 +6,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import br.com.fabriciolima.momentus.BuildConfig
 import br.com.fabriciolima.momentus.data.database.AppDatabase
 import br.com.fabriciolima.momentus.data.database.CategoryDao
@@ -117,11 +119,57 @@ object AppModule {
             dbName
         )
         .openHelperFactory(factory)
+        .addCallback(object : RoomDatabase.Callback() {
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                try {
+                    // Reparação defensiva para evitar o crash de schema invalid
+                    val itemsColumns = mutableSetOf<String>()
+                    val cursorItems = db.query("PRAGMA table_info(tabela_itens_cronograma)")
+                    while (cursorItems.moveToNext()) {
+                        val nameIdx = cursorItems.getColumnIndex("name")
+                        if (nameIdx != -1) itemsColumns.add(cursorItems.getString(nameIdx))
+                    }
+                    cursorItems.close()
+
+                    if ("isDeleted" !in itemsColumns) {
+                        db.execSQL("ALTER TABLE tabela_itens_cronograma ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+                    }
+                    if ("ordem" !in itemsColumns) {
+                        db.execSQL("ALTER TABLE tabela_itens_cronograma ADD COLUMN ordem INTEGER NOT NULL DEFAULT 0")
+                    }
+
+                    // Checagem de categorias
+                    val catColumns = mutableSetOf<String>()
+                    val cursorCat = db.query("PRAGMA table_info(categories)")
+                    while (cursorCat.moveToNext()) {
+                        val nameIdx = cursorCat.getColumnIndex("name")
+                        if (nameIdx != -1) catColumns.add(cursorCat.getString(nameIdx))
+                    }
+                    cursorCat.close()
+
+                    if ("duracaoPadraoMinutos" !in catColumns) {
+                        db.execSQL("ALTER TABLE categories ADD COLUMN duracaoPadraoMinutos INTEGER NOT NULL DEFAULT 60")
+                    }
+                    if ("tag" !in catColumns) {
+                        db.execSQL("ALTER TABLE categories ADD COLUMN tag TEXT")
+                    }
+                    if ("lastUpdated" !in catColumns) {
+                        db.execSQL("ALTER TABLE categories ADD COLUMN lastUpdated INTEGER")
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("AppModule", "Auto-reparo falhou: ${e.message}")
+                }
+            }
+        })
         .addMigrations(
             AppDatabase.MIGRATION_8_9, 
             AppDatabase.MIGRATION_9_10, 
             AppDatabase.MIGRATION_10_11,
-            AppDatabase.MIGRATION_11_12
+            AppDatabase.MIGRATION_11_12,
+            AppDatabase.MIGRATION_12_13,
+            AppDatabase.MIGRATION_13_14
         )
         .fallbackToDestructiveMigration()
         .build()

@@ -38,7 +38,6 @@ data class ItemCronograma(
     @get:Exclude @set:Exclude
     var horarioTermino: LocalTime = LocalTime.of(0, 0),
 
-    @ColumnInfo(defaultValue = "0")
     val ordem: Int = 0,
 
     val categoryId: String = "", // Corrigido
