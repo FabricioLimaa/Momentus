@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.dagger.hilt.android)
     id("org.jetbrains.kotlin.plugin.serialization")
     alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.secrets.gradle.plugin)
 }
 
 // Força a resolução de conflitos de dependências do Compose
@@ -50,8 +51,8 @@ android {
         applicationId = "br.com.fabriciolima.momentus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 39
-        versionName = "1.4.1"
+        versionCode = 43
+        versionName = "1.5.12"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -109,6 +110,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.biometric)
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
@@ -166,6 +168,8 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.sqlcipher)
+    implementation("androidx.sqlite:sqlite:2.4.0")
 
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)

@@ -116,11 +116,12 @@ fun CalendarScreen(
         val surfaceColor = MaterialTheme.colorScheme.surface.toArgb()
         val selectionColor = MaterialTheme.colorScheme.primary.toArgb()
 
+        val activity = androidx.compose.ui.platform.LocalContext.current as Activity
+
         val configuration = LocalConfiguration.current
         val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
         val isMedium = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium
         val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-        val activity = androidx.compose.ui.platform.LocalContext.current as Activity
 
         val useSidePanel = isExpanded || (isMedium && isLandscape)
 
@@ -247,96 +248,66 @@ fun CalendarScreen(
             else -> {}
         }
 
-        Box(modifier = Modifier.fillMaxSize().background(DeepNavyBackground)) {
-            Scaffold(
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-                topBar = {
-                    if (uiState.isSelectionModeActive) {
-                        SelectionTopAppBar(
-                            selectedCount = uiState.selectedRotinaIds.size,
-                            onClearSelection = onClearSelection,
-                            onSelectAll = onSelectAll,
-                            onDelete = onConfirmDeleteSelectedRotinas
-                        )
-                    }
-                },
-                floatingActionButton = {
-                    if (!uiState.isSelectionModeActive) {
-                        FloatingActionButton(
-                            onClick = onAddNewRotinaClicked,
-                            containerColor = EmeraldNeon,
-                            contentColor = Color.Black,
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            if (uiState.isLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
-                            } else {
-                                Icon(Icons.Default.Add, contentDescription = "Nova Rotina")
-                            }
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                if (uiState.isSelectionModeActive) {
+                    SelectionTopAppBar(
+                        selectedCount = uiState.selectedRotinaIds.size,
+                        onClearSelection = onClearSelection,
+                        onSelectAll = onSelectAll,
+                        onDelete = onConfirmDeleteSelectedRotinas
+                    )
+                }
+            },
+            floatingActionButton = {
+                if (!uiState.isSelectionModeActive) {
+                    FloatingActionButton(
+                        onClick = onAddNewRotinaClicked,
+                        containerColor = EmeraldNeon,
+                        contentColor = Color.Black,
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                        } else {
+                            Icon(Icons.Default.Add, contentDescription = "Nova Rotina")
                         }
                     }
-                },
-                containerColor = Color.Transparent
-            ) { paddingValues ->
-                Row(
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            Row(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize()
+            ) {
+                Column(
                     modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize()
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        if (useSidePanel) {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.spacedBy(24.dp)
-                            ) {
-                                Column(modifier = Modifier.weight(1.2f).fillMaxHeight()) {
-                                    CalendarContent(
-                                        uiState = uiState,
-                                        selectedDate = selectedDate,
-                                        onDateSelected = onDateSelected
-                                    )
-                                }
-
-                                VerticalDivider(
-                                    modifier = Modifier.fillMaxHeight().padding(vertical = 16.dp),
-                                    color = DeepNavyOutline.copy(alpha = 0.5f)
+                    if (useSidePanel) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1.2f).fillMaxHeight()) {
+                                CalendarContent(
+                                    uiState = uiState,
+                                    selectedDate = selectedDate,
+                                    onDateSelected = onDateSelected
                                 )
-
-                                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                    EventsForDay(
-                                        uiState = uiState,
-                                        selectedDate = selectedDate,
-                                        eventsForDate = eventsForSelectedDate,
-                                        onRotinaClick = { item ->
-                                            if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
-                                        },
-                                        onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
-                                        onMarkAsCompleted = { id ->
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            onMarkAsCompleted(id)
-                                        },
-                                        onUnmarkAsCompleted = onUnmarkAsCompleted
-                                    )
-                                }
                             }
-                        } else {
-                            CalendarContent(
-                                uiState = uiState,
-                                selectedDate = selectedDate,
-                                onDateSelected = onDateSelected,
-                                modifier = Modifier.fillMaxWidth().wrapContentHeight()
+
+                            VerticalDivider(
+                                modifier = Modifier.fillMaxHeight().padding(vertical = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             )
 
-                            Spacer(modifier = Modifier.height(16.dp))
-                            HorizontalDivider(color = DeepNavyOutline.copy(alpha = 0.3f))
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Box(modifier = Modifier.weight(1f)) {
+                            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                                 EventsForDay(
                                     uiState = uiState,
                                     selectedDate = selectedDate,
@@ -353,61 +324,89 @@ fun CalendarScreen(
                                 )
                             }
                         }
-                    }
+                    } else {
+                        CalendarContent(
+                            uiState = uiState,
+                            selectedDate = selectedDate,
+                            onDateSelected = onDateSelected,
+                            modifier = Modifier.fillMaxWidth().wrapContentHeight()
+                        )
 
-                    AnimatedVisibility(
-                        visible = useSidePanel && uiState.dialogState != DialogState.Hidden,
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Box(modifier = Modifier.weight(1f)) {
+                            EventsForDay(
+                                uiState = uiState,
+                                selectedDate = selectedDate,
+                                eventsForDate = eventsForSelectedDate,
+                                onRotinaClick = { item ->
+                                    if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
+                                },
+                                onRotinaLongClick = { item -> onRotinaLongPressed(item.id) },
+                                onMarkAsCompleted = { id ->
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onMarkAsCompleted(id)
+                                },
+                                onUnmarkAsCompleted = onUnmarkAsCompleted
+                            )
+                        }
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = useSidePanel && uiState.dialogState != DialogState.Hidden,
+                    enter = fadeIn() + expandHorizontally(),
+                    exit = fadeOut() + shrinkHorizontally()
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .width(400.dp)
+                            .fillMaxHeight(),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 2.dp,
+                        shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)
                     ) {
-                        Surface(
-                            modifier = Modifier
-                                .width(400.dp)
-                                .fillMaxHeight(),
-                            color = DeepNavySurface,
-                            tonalElevation = 2.dp,
-                            shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize().border(1.dp, DeepNavyOutline, RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp))) {
-                                when (val dialogState = uiState.dialogState) {
-                                    is DialogState.ShowDetail -> {
-                                        val category = uiState.categoriesMap[dialogState.rotina.categoryId]
-                                        if (category != null) {
-                                            EventDetailContent(
-                                                event = dialogState.rotina,
-                                                category = category,
-                                                onEditClick = { onEditRotinaClicked(dialogState.rotina) },
-                                                onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) },
-                                                onCloseClick = onDialogDismiss,
-                                                showCloseButton = true
-                                            )
-                                        }
-                                    }
-                                    is DialogState.AddNewRotina -> {
-                                        NewEventContent(
-                                            selectedDate = selectedDate,
-                                            categories = allCategories,
-                                            onDismiss = onDialogDismiss,
-                                            onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
-                                                onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
-                                            }
+                        Box(modifier = Modifier.fillMaxSize().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp))) {
+                            when (val dialogState = uiState.dialogState) {
+                                is DialogState.ShowDetail -> {
+                                    val category = uiState.categoriesMap[dialogState.rotina.categoryId]
+                                    if (category != null) {
+                                        EventDetailContent(
+                                            event = dialogState.rotina,
+                                            category = category,
+                                            onEditClick = { onEditRotinaClicked(dialogState.rotina) },
+                                            onDeleteClick = { onConfirmDeleteClicked(dialogState.rotina) },
+                                            onCloseClick = onDialogDismiss,
+                                            showCloseButton = true
                                         )
                                     }
-                                    is DialogState.EditRotina -> {
-                                        NewEventContent(
-                                            eventoParaEditar = dialogState.rotina,
-                                            selectedDate = selectedDate,
-                                            categories = allCategories,
-                                            onDismiss = onDialogDismiss,
-                                            onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
-                                                if (item != null) {
-                                                    onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
-                                                }
-                                            }
-                                        )
-                                    }
-                                    else -> {}
                                 }
+                                is DialogState.AddNewRotina -> {
+                                    NewEventContent(
+                                        selectedDate = selectedDate,
+                                        categories = allCategories,
+                                        onDismiss = onDialogDismiss,
+                                        onConfirm = { _, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                                            onSaveRotina(titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                                        }
+                                    )
+                                }
+                                is DialogState.EditRotina -> {
+                                    NewEventContent(
+                                        eventoParaEditar = dialogState.rotina,
+                                        selectedDate = selectedDate,
+                                        categories = allCategories,
+                                        onDismiss = onDialogDismiss,
+                                        onConfirm = { item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle ->
+                                            if (item != null) {
+                                                onUpdateRotina(item, titulo, descricao, data, inicio, fim, category, salvarNoGoogle)
+                                            }
+                                        }
+                                    )
+                                }
+                                else -> {}
                             }
                         }
                     }
@@ -429,19 +428,19 @@ fun CalendarScreen(
 fun AchievementUnlockedDialog(achievement: Achievement, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DeepNavySurface,
+        containerColor = MaterialTheme.colorScheme.surface,
         icon = {
             Box(contentAlignment = Alignment.Center) {
                 SuccessCelebration(onFinished = {})
                 Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(64.dp), tint = EmeraldNeon)
             }
         },
-        title = { Text("Conquista Desbloqueada!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, color = TextPrimaryDark, modifier = Modifier.fillMaxWidth()) },
+        title = { Text("Conquista Desbloqueada!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth()) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Text(achievement.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = EmeraldNeon, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(achievement.description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = TextSecondaryDark)
+                Text(achievement.description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(16.dp))
                 Surface(
                     color = EmeraldDeep.copy(alpha = 0.3f),
@@ -506,7 +505,7 @@ fun CalendarContent(
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Black,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 1.sp
                 )
             }
@@ -550,21 +549,21 @@ fun CalendarHeader(
             text = month.format(monthFormatter).replaceFirstChar { it.titlecase(Locale.getDefault()) },
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Black,
-            color = TextPrimaryDark
+            color = MaterialTheme.colorScheme.onSurface
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(
                 onClick = onPreviousMonth,
-                modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.05f))
+                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             ) {
-                Icon(Icons.Default.ChevronLeft, "Anterior", tint = TextPrimaryDark)
+                Icon(Icons.Default.ChevronLeft, "Anterior", tint = MaterialTheme.colorScheme.onSurface)
             }
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = onNextMonth,
-                modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.05f))
+                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             ) {
-                Icon(Icons.Default.ChevronRight, "Próximo", tint = TextPrimaryDark)
+                Icon(Icons.Default.ChevronRight, "Próximo", tint = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
@@ -583,8 +582,8 @@ fun DayCell(
     val textColor = when {
         isSelected && isCurrentMonth -> Color.Black
         isToday && isCurrentMonth -> EmeraldNeon
-        isCurrentMonth -> TextPrimaryDark
-        else -> TextSecondaryDark.copy(alpha = 0.2f)
+        isCurrentMonth -> MaterialTheme.colorScheme.onSurface
+        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
     }
 
     val backgroundColor = if (isSelected && isCurrentMonth) EmeraldNeon else Color.Transparent
@@ -661,7 +660,7 @@ fun EventsForDay(
                     text = formattedDate,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
-                    color = TextPrimaryDark
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -669,7 +668,7 @@ fun EventsForDay(
                 Text(
                     text = "${eventsForDate.localRotinas.size} itens",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondaryDark
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -684,13 +683,13 @@ fun EventsForDay(
                         imageVector = Icons.Default.EventAvailable,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = TextSecondaryDark.copy(alpha = 0.2f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
                         text = "Dia livre! Aproveite.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondaryDark
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

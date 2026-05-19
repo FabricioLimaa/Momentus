@@ -83,7 +83,7 @@ fun TimelineEventItem(
                 modifier = Modifier
                     .width(2.dp)
                     .height(16.dp)
-                    .background(if (isFirst) Color.Transparent else DeepNavyOutline)
+                    .background(if (isFirst) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             )
 
             Box(
@@ -91,7 +91,7 @@ fun TimelineEventItem(
                     .size(12.dp)
                     .clip(CircleShape)
                     .background(categoryColor)
-                    .border(1.dp, DeepNavyBackground, CircleShape)
+                    .border(1.dp, MaterialTheme.colorScheme.background, CircleShape)
             )
 
             Box(
@@ -99,7 +99,7 @@ fun TimelineEventItem(
                     .width(2.dp)
                     .weight(1f)
                     .minHeight(30.dp)
-                    .background(if (isLast) Color.Transparent else DeepNavyOutline)
+                    .background(if (isLast) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             )
         }
 
@@ -114,7 +114,7 @@ fun TimelineEventItem(
                     text = item.titulo,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isChecked) TextPrimaryDark.copy(alpha = 0.5f) else TextPrimaryDark,
+                    color = if (isChecked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 

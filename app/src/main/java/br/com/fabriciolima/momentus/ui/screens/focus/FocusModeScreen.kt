@@ -1,0 +1,279 @@
+package br.com.fabriciolima.momentus.ui.screens.focus
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.fabriciolima.momentus.ui.theme.*
+import br.com.fabriciolima.momentus.ui.viewmodel.FocusMode
+import br.com.fabriciolima.momentus.ui.viewmodel.FocusViewModel
+import java.util.Locale
+
+@Composable
+fun FocusModeScreen(
+    viewModel: FocusViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DeepNavyBackground)
+    ) {
+        // Sutil gradiente de fundo
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, EmeraldNeon.copy(alpha = 0.05f))
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Header Minimalista
+            Text(
+                text = "Modo Foco",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = TextPrimaryDark,
+                letterSpacing = 1.sp
+            )
+            
+            Text(
+                text = when (uiState.mode) {
+                    FocusMode.FOCUS -> "Hora de concentrar"
+                    FocusMode.SHORT_BREAK -> "Pausa curta"
+                    FocusMode.LONG_BREAK -> "Pausa longa"
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = EmeraldNeon,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Timer Circular (Mockup Estilo Premium)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(280.dp)
+            ) {
+                val progress = uiState.timeLeftSeconds.toFloat() / uiState.totalSeconds.toFloat()
+                val animatedProgress by animateFloatAsState(
+                    targetValue = progress,
+                    animationSpec = tween(durationMillis = 1000),
+                    label = "timerProgress"
+                )
+
+                // Trilho do progresso
+                CircularProgressIndicator(
+                    progress = { 1f },
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.White.copy(alpha = 0.05f),
+                    strokeWidth = 12.dp,
+                    strokeCap = StrokeCap.Round
+                )
+
+                // Progresso Ativo
+                CircularProgressIndicator(
+                    progress = { animatedProgress },
+                    modifier = Modifier.fillMaxSize(),
+                    color = EmeraldNeon,
+                    strokeWidth = 12.dp,
+                    trackColor = Color.Transparent,
+                    strokeCap = StrokeCap.Round
+                )
+
+                // Glow sutil atrás do tempo
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .background(EmeraldNeon.copy(alpha = 0.03f), CircleShape)
+                )
+
+                // Tempo Restante
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val minutes = uiState.timeLeftSeconds / 60
+                    val seconds = uiState.timeLeftSeconds % 60
+                    Text(
+                        text = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds),
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 64.sp),
+                        fontWeight = FontWeight.Black,
+                        color = TextPrimaryDark
+                    )
+                    
+                    if (uiState.isRunning) {
+                        Text(
+                            text = "EM ANDAMENTO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = EmeraldNeon,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Controles de Modo
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                ModeButton(
+                    label = "Foco", 
+                    isSelected = uiState.mode == FocusMode.FOCUS,
+                    onClick = { viewModel.setMode(FocusMode.FOCUS) }
+                )
+                ModeButton(
+                    label = "Pausa", 
+                    isSelected = uiState.mode == FocusMode.SHORT_BREAK,
+                    onClick = { viewModel.setMode(FocusMode.SHORT_BREAK) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Botões de Ação Principais
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Reiniciar
+                IconButton(
+                    onClick = { viewModel.resetTimer() },
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.05f))
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Reiniciar", tint = TextPrimaryDark)
+                }
+
+                // Iniciar / Pausar
+                Button(
+                    onClick = { viewModel.toggleTimer() },
+                    modifier = Modifier
+                        .height(72.dp)
+                        .width(160.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (uiState.isRunning) Color(0xFFEF4444) else EmeraldNeon,
+                        contentColor = Color.Black
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (uiState.isRunning) "PAUSAR" else "FOCO",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp
+                    )
+                }
+
+                // Configurações (Simulado)
+                IconButton(
+                    onClick = { /* TODO */ },
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.05f))
+                ) {
+                    Icon(Icons.Default.Tune, contentDescription = "Ajustes", tint = TextPrimaryDark)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Stats de Sessão (Glassmorphism)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                FocusStatCard(
+                    title = "XP Ganhos", 
+                    value = "+${uiState.xpGained}", 
+                    icon = Icons.Default.Bolt,
+                    modifier = Modifier.weight(1f)
+                )
+                FocusStatCard(
+                    title = "Sessões", 
+                    value = uiState.completedSessions.toString(), 
+                    icon = Icons.Default.CheckCircle,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+fun ModeButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) EmeraldNeon else Color.Transparent,
+            contentColor = if (isSelected) Color.Black else TextSecondaryDark
+        ),
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+        elevation = null
+    ) {
+        Text(text = label, fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium)
+    }
+}
+
+@Composable
+fun FocusStatCard(title: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    GlassCard(modifier = modifier) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = EmeraldNeon, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = TextPrimaryDark)
+                Text(text = title, style = MaterialTheme.typography.labelSmall, color = TextSecondaryDark)
+            }
+        }
+    }
+}

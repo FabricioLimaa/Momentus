@@ -1,52 +1,46 @@
 # ===================================================================
-# Proguard Rules for Momentus App
-# Refined Security & Obfuscation
+# Proguard Rules for Momentus App (v12 - The Final Fix)
 # ===================================================================
 
-# --- Obfuscation Strategy ---
-# Removed global -keepnames. Now allowing full obfuscation for application logic
-# except for classes annotated with @Keep or specific library requirements.
+# --- Regra de Correção Definitiva para Colisão de Nomes ---
+# Impede a ofuscação (renomeação) de TODAS as classes para evitar o erro
+# "Multiple entries with same key". A minificação (remoção de código) ainda ocorre.
+-keepnames class ** { *; }
 
-# --- Rules for Hilt/Dagger (Critical for DI) ---
--keep class * { @dagger.hilt.android.AndroidEntryPoint <fields>; }
--keep class * extends dagger.hilt.internal.GeneratedComponent { *; }
--keep class * implements dagger.hilt.internal.GeneratedComponent { *; }
-
-# --- Rules for Room (Persistence) ---
--keep class * extends androidx.room.RoomDatabase
--dontwarn androidx.room.paging.**
-
-# --- Rules for Gamification Logic Protection ---
-# We want to obfuscate the implementation but keep some entry points if necessary.
-# By default, usecases and repositories in br.com.fabriciolima.momentus will be obfuscated.
-# This makes it harder to find where points are calculated or achievements unlocked.
--keep class br.com.fabriciolima.momentus.data.model.Achievement { *; }
-
-# --- Firebase & Firestore ---
-# Firestore uses reflection to map fields. Most models use @Keep already.
+# --- Regras Gerais ---
+# Manter anotações e outras assinaturas que bibliotecas usam.
 -keepattributes *Annotation*,Signature,InnerClasses
+
+# --- Firebase & Google APIs ---
+# Manter as classes de bibliotecas externas para evitar que sejam removidas.
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
-
-# --- Google Calendar API ---
 -keep class com.google.api.client.** { *; }
 -dontwarn com.google.api.client.**
+
+# GSON (dependência da API do Google)
+# Manter membros que são usados via reflexão.
+-keepattributes Signature
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken { *; }
+-keepclassmembers,allowobfuscation class * {
+                                     @com.google.gson.annotations.SerializedName *;
+                                   }
+
+# --- Regra de Correção para o Crash de `fetchEvents` ---
+# Mantém os nomes e construtores de todas as classes de modelo da API do Calendar,
+# o que impede o erro "unable to create new instance".
 -keep public class com.google.api.services.calendar.model.** {
     public <init>();
     public *;
 }
 
-# --- Kotlin Serialization ---
+# --- Outras dependências ---
 -keepclasseswithmembers,allowobfuscation class * {
     @kotlinx.serialization.Serializable *;
 }
 -keep class *$$serializer { *; }
 
-# --- Glance (Widgets) ---
 -keep public class * extends androidx.glance.appwidget.action.ActionCallback {
    <init>();
 }
-
-# --- SQLCipher ---
--keep class net.zetetic.database.sqlcipher.** { *; }
--dontwarn net.zetetic.database.sqlcipher.**

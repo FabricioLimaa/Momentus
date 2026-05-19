@@ -11,6 +11,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.awaitClose
@@ -129,6 +130,18 @@ class UserRepository @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Falha ao atualizar streak na nuvem.", e)
+            }
+        }
+    }
+
+    suspend fun incrementPoints(points: Long) = withContext(dispatcher) {
+        userId?.let { uid ->
+            try {
+                val userDocRef = firestore.collection("users").document(uid)
+                userDocRef.update("points", FieldValue.increment(points)).await()
+                Log.d(TAG, "Pontuação incrementada em +$points")
+            } catch (e: Exception) {
+                Log.e(TAG, "Falha ao incrementar pontos.", e)
             }
         }
     }

@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.ui.components.TimelineEventItem
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import br.com.fabriciolima.momentus.ui.theme.EmeraldNeon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -183,8 +184,8 @@ fun TemplatesScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = viewModel::onShowCreateDialog,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = EmeraldNeon,
+                    contentColor = Color.Black
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Novo Template")
                 }

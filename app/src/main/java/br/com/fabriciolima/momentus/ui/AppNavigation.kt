@@ -37,6 +37,7 @@ import br.com.fabriciolima.momentus.ui.screens.auth.ForgotPasswordScreen
 import br.com.fabriciolima.momentus.ui.screens.auth.LoginScreen
 import br.com.fabriciolima.momentus.ui.screens.auth.SignUpScreen
 import br.com.fabriciolima.momentus.ui.screens.category.CategoriesScreen
+import br.com.fabriciolima.momentus.ui.screens.focus.FocusModeScreen
 import br.com.fabriciolima.momentus.ui.screens.legal.LegalScreen
 import br.com.fabriciolima.momentus.ui.screens.onboarding.OnboardingScreen
 import br.com.fabriciolima.momentus.ui.screens.settings.SettingsScreen
@@ -60,6 +61,7 @@ sealed class Screen(val route: String, val label: String = "", val icon: android
 
     object Home : Screen("home", "Hoje", Icons.Default.Home)
     object Calendar : Screen("calendar", "Agenda", Icons.Default.CalendarToday)
+    object Focus : Screen("focus", "Foco", Icons.Default.Timer)
     object Templates : Screen("templates", "Templates", Icons.Default.GridView)
     object Stats : Screen("stats", "Estatísticas", Icons.Default.Assessment)
     object More : Screen("more", "Mais", Icons.Default.Menu)
@@ -128,7 +130,7 @@ fun AppScaffold(
                 }
             ) {
                 Column(modifier = Modifier.fillMaxHeight().weight(1f), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    val railItems = listOf(Screen.Home, Screen.Calendar, Screen.Templates, Screen.Stats, Screen.More)
+                    val railItems = listOf(Screen.Home, Screen.Calendar, Screen.Focus, Screen.Templates, Screen.Stats, Screen.More)
                     railItems.forEach { screen ->
                         NavigationRailItem(
                             selected = currentRoute == screen.route,
@@ -169,7 +171,7 @@ fun AppScaffold(
             bottomBar = {
                 if (!isAuthScreen) {
                     NavigationBar(tonalElevation = 8.dp) {
-                        val items = listOf(Screen.Home, Screen.Calendar, Screen.Templates, Screen.Stats, Screen.More)
+                        val items = listOf(Screen.Home, Screen.Calendar, Screen.Focus, Screen.Stats, Screen.More)
                         items.forEach { screen ->
                             val isSelected = currentRoute == screen.route
                             NavigationBarItem(
@@ -302,6 +304,10 @@ fun AppNavHost(
                 onDeleteSelectedRotinas = sharedViewModel::deleteSelectedRotinas,
                 onConfirmDeleteSelectedRotinas = sharedViewModel::confirmDeleteSelectedRotinas
             )
+        }
+
+        composable(Screen.Focus.route) {
+            FocusModeScreen()
         }
         composable(Screen.Templates.route) { 
             TemplatesScreen(

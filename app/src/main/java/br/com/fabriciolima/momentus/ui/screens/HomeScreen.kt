@@ -174,7 +174,7 @@ fun HomeScreen(
                     }
                 }
             },
-            containerColor = DeepNavyBackground
+            containerColor = MaterialTheme.colorScheme.background
         ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
@@ -212,7 +212,7 @@ fun HomeScreen(
                                 Text(
                                     text = "Sequência Atual",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = TextSecondaryDark
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
@@ -226,7 +226,7 @@ fun HomeScreen(
                                         text = "${uiState.streak} dias",
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = FontWeight.Black,
-                                        color = TextPrimaryDark
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 Text(
@@ -242,14 +242,14 @@ fun HomeScreen(
                                     modifier = Modifier.size(80.dp),
                                     color = EmeraldNeon,
                                     strokeWidth = 8.dp,
-                                    trackColor = Color.White.copy(alpha = 0.1f),
+                                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                                     strokeCap = StrokeCap.Round
                                 )
                                 Text(
                                     text = "${(progress * 100).toInt()}%",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimaryDark
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -262,7 +262,7 @@ fun HomeScreen(
                         text = "Seu dia",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimaryDark
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     
                     Spacer(modifier = Modifier.height(24.dp))
@@ -316,13 +316,13 @@ fun HomeHeader(
             Text(
                 text = "Bom dia,",
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextSecondaryDark
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "$userName 👋",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Black,
-                color = TextPrimaryDark
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
         
@@ -330,12 +330,12 @@ fun HomeHeader(
             onClick = onNotificationsClick,
             modifier = Modifier
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.05f))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
         ) {
             Icon(
                 imageVector = Icons.Default.Notifications,
                 contentDescription = "Notificações",
-                tint = TextPrimaryDark
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -353,18 +353,18 @@ fun HomeEmptyState() {
             imageVector = Icons.AutoMirrored.Filled.EventNote,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
-            tint = TextSecondaryDark.copy(alpha = 0.3f)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Nada agendado para hoje",
             style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondaryDark
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = "Toque no + para começar sua jornada.",
             style = MaterialTheme.typography.bodySmall,
-            color = TextSecondaryDark.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )
     }
 }

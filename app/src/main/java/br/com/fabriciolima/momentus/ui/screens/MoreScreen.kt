@@ -89,6 +89,7 @@ fun MoreScreen(
                 // 2. Menu Items
                 item { MoreMenuItem("Perfil", Icons.Default.Person) { /* TODO */ } }
                 item { MoreMenuItem("Minhas Conquistas", Icons.Default.EmojiEvents) { navController.navigate(Screen.Achievements.route) } }
+                item { MoreMenuItem("Templates", Icons.Default.GridView) { navController.navigate(Screen.Templates.route) } }
                 item { MoreMenuItem("Categorias", Icons.Default.Category) { navController.navigate(Screen.Categories.route) } }
                 item { MoreMenuItem("Ajustes", Icons.Default.Settings) { navController.navigate(Screen.Settings.route) } }
                 item { MoreMenuItem("Novidades", Icons.Default.NewReleases) { navController.navigate(Screen.Updates.route) } }
