@@ -370,7 +370,7 @@ fun PrimaryColorGrid(
     onColorSelected: (String) -> Unit
 ) {
     val colors = listOf(
-        "#10B981" to "Verde",
+        "#34D399" to "Verde",
         "#6366F1" to "Azul",
         "#A855F7" to "Violeta",
         "#EC4899" to "Rosa",

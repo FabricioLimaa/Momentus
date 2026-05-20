@@ -13,7 +13,7 @@ data class UserData(
     var displayName: String? = null,
     
     var email: String? = null,
-    var points: Int = 0,
+    var points: Long = 0,
     var streak: Int = 0,
 
     @get:PropertyName("terms_accepted")

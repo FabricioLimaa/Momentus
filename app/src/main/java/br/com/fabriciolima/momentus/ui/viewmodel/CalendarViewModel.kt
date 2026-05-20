@@ -137,7 +137,7 @@ class CalendarViewModel @Inject constructor(
     private val _showCompletionAnimation = MutableSharedFlow<Unit>()
     val showCompletionAnimation = _showCompletionAnimation.asSharedFlow()
 
-    private var lastKnownPoints: Int = 0
+    private var lastKnownPoints: Long = 0
     private val jobs = mutableListOf<Job>()
     
     // Flag de controle para evitar animações indesejadas na inicialização

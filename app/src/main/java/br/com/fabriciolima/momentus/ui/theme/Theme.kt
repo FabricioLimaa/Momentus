@@ -87,7 +87,7 @@ fun MomentusTheme(
     } else {
         lightColorScheme(
             primary = customPrimaryColor ?: md_theme_light_primary,
-            onPrimary = md_theme_light_onPrimary,
+            onPrimary = md_theme_dark_onPrimary,
             primaryContainer = (customPrimaryColor ?: md_theme_light_primary).copy(alpha = 0.1f),
             onPrimaryContainer = md_theme_light_onPrimaryContainer,
             secondary = md_theme_light_secondary,

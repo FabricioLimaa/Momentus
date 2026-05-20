@@ -53,7 +53,7 @@ class GamificationRepository @Inject constructor(
         _syncStatus.value = SyncStatus.OFFLINE
     }
 
-    suspend fun unlockAchievement(achievementId: String, points: Int) = withContext(dispatcher) {
+    suspend fun unlockAchievement(achievementId: String, points: Long) = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
         Log.d(TAG, "[ACHIEVEMENT_FLOW] 6. Desbloqueando conquista '$achievementId' para o usuário.")
 
@@ -71,7 +71,7 @@ class GamificationRepository @Inject constructor(
             .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao salvar conquista no Firestore.", e) }
 
         Log.d(TAG, "[ACHIEVEMENT_FLOW] 9. Atualizando pontuação com +$points pontos.")
-        userDocRef.update("points", FieldValue.increment(points.toLong()))
+        userDocRef.update("points", FieldValue.increment(points))
             .addOnSuccessListener { Log.d(TAG, "[FIREBASE] Pontuação do usuário atualizada.") }
             .addOnFailureListener { e -> Log.w(TAG, "[FIREBASE] Falha ao atualizar a pontuação.", e) }
 

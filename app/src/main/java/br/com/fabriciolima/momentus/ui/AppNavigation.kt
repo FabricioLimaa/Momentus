@@ -32,6 +32,7 @@ import br.com.fabriciolima.momentus.ui.screens.HomeScreen
 import br.com.fabriciolima.momentus.ui.screens.MoreScreen
 import br.com.fabriciolima.momentus.ui.screens.MainActivity
 import br.com.fabriciolima.momentus.ui.screens.UserAvatar
+import br.com.fabriciolima.momentus.ui.screens.market.MarketScreen
 import br.com.fabriciolima.momentus.ui.screens.achievements.AchievementsScreen
 import br.com.fabriciolima.momentus.ui.screens.auth.ForgotPasswordScreen
 import br.com.fabriciolima.momentus.ui.screens.auth.LoginScreen
@@ -71,6 +72,7 @@ sealed class Screen(val route: String, val label: String = "", val icon: android
     object Updates : Screen("updates", "Novidades", Icons.Default.NewReleases)
     object Legal : Screen("legal", "Informações", Icons.Default.Info)
     object Settings : Screen("settings", "Ajustes", Icons.Default.Settings)
+    object Market : Screen("market", "Loja", Icons.Default.ShoppingBag)
 }
 
 @Composable
@@ -170,7 +172,10 @@ fun AppScaffold(
         Scaffold(
             bottomBar = {
                 if (!isAuthScreen) {
-                    NavigationBar(tonalElevation = 8.dp) {
+                    NavigationBar(
+                        tonalElevation = 0.dp,
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ) {
                         val items = listOf(Screen.Home, Screen.Calendar, Screen.Focus, Screen.Stats, Screen.More)
                         items.forEach { screen ->
                             val isSelected = currentRoute == screen.route
@@ -198,16 +203,36 @@ fun AppScaffold(
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
-                                }
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
                             )
                         }
                     }
                 }
             },
+            containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { paddingValues ->
-            Box(modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding())) {
-                AppNavHost(navController, startDestination, googleAccount, inAppUpdateManager, windowSizeClass, calendarViewModel, {})
+            Box(
+                modifier = Modifier.fillMaxSize()
+                // Padding removido daqui para evitar a "tarja" no background
+            ) {
+                AppNavHost(
+                    navController = navController,
+                    startDestination = startDestination,
+                    googleAccount = googleAccount,
+                    inAppUpdateManager = inAppUpdateManager,
+                    windowSizeClass = windowSizeClass,
+                    sharedViewModel = calendarViewModel,
+                    onMenuClick = {},
+                    modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
+                )
             }
         }
     }
@@ -220,10 +245,11 @@ fun AppNavHost(
     googleAccount: GoogleSignInAccount?,
     inAppUpdateManager: InAppUpdateManager,
     windowSizeClass: WindowSizeClass,
-    sharedViewModel: CalendarViewModel, // Recebe o ViewModel compartilhado
-    onMenuClick: () -> Unit
+    sharedViewModel: CalendarViewModel,
+    onMenuClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(navController = navController, startDestination = startDestination, modifier = modifier) {
         composable(Screen.Onboarding.route) { OnboardingScreen(navController) }
         composable(Screen.Login.route) { LoginScreen(navController) }
         composable(Screen.SignUp.route) { SignUpScreen(navController) }
@@ -331,6 +357,7 @@ fun AppNavHost(
         composable(Screen.Updates.route) { UpdateNotesScreen(navController) }
         composable(Screen.Legal.route) { LegalScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
+        composable(Screen.Market.route) { MarketScreen(navController) }
         
         composable(Screen.More.route) {
             val uiState by sharedViewModel.uiState.collectAsStateWithLifecycle()

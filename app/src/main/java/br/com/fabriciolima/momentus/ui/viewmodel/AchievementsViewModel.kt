@@ -28,7 +28,7 @@ data class AchievementsUiState(
     val unlockedCount: Int = 0,
     val totalCount: Int = 0,
     val streakCount: Int = 0,
-    val points: Int = 0,
+    val points: Long = 0L,
     val selectedAchievement: AchievementUiInfo? = null // Para o dialog
 )
 
@@ -64,7 +64,7 @@ class AchievementsViewModel @Inject constructor(
                     unlockedCount = unlockedMap.size,
                     totalCount = AchievementsList.allAchievements.size,
                     streakCount = streak,
-                    points = userData?.points ?: 0
+                    points = userData?.points ?: 0L
                 )
             }
         }.launchIn(viewModelScope) // Corrigido: Coletando o Flow

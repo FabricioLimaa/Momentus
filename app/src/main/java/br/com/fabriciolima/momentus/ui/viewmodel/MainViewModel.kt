@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class MainUiState(
-    val points: Int = 0,
+    val points: Long = 0,
     val streak: Int = 0
 )
 
@@ -40,7 +40,7 @@ class MainViewModel @Inject constructor(
         categoryRepository.currentStreak
     ) { userData, streak ->
         MainUiState(
-            points = userData?.points ?: 0,
+            points = userData?.points ?: 0L,
             streak = streak
         )
     }.stateIn(

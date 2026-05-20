@@ -160,4 +160,15 @@ class UserRepository @Inject constructor(
             return@withContext userDoc.getBoolean("terms_accepted") ?: false
         } ?: false
     }
+
+    suspend fun getUserDataSync(): UserData? = withContext(dispatcher) {
+        userId?.let { uid ->
+            try {
+                val snapshot = firestore.collection("users").document(uid).get().await()
+                snapshot.toObject(UserData::class.java)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
 }

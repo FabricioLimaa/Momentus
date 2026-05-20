@@ -10,7 +10,7 @@ val DeepNavyOutline = Color(0xFF334155)    // Bordas e Elementos
 
 val EmeraldGreen = Color(0xFF10B981)       // Verde Secundário/Ação
 val EmeraldNeon = Color(0xFF34D399)        // Verde Principal/Destaque
-val EmeraldDeep = Color(0xFF065F46)        // Primária Principal
+val EmeraldDeep = Color(0xFF34D399)        // Primária Principal
 
 val TextPrimaryDark = Color(0xFFF8FAFC)    // Texto Claro
 val TextSecondaryDark = Color(0xFF94A3B8)  // Texto Secundário
@@ -38,7 +38,7 @@ val md_theme_light_outline = Color(0xFFE2E8F0) // Bordas discretas
 
 // Cores do Tema Escuro (Dark Theme - Deep Navy)
 val md_theme_dark_primary = EmeraldNeon
-val md_theme_dark_onPrimary = Color(0xFF064E3B)
+val md_theme_dark_onPrimary = Color(0xFF001A14)
 val md_theme_dark_primaryContainer = EmeraldDeep.copy(alpha = 0.4f)
 val md_theme_dark_onPrimaryContainer = EmeraldNeon
 val md_theme_dark_secondary = Color(0xFF38BDF8)
