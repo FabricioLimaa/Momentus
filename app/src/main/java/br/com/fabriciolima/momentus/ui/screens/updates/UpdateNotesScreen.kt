@@ -86,15 +86,15 @@ fun UpdateNotesScreen(
                 } catch (_: Exception) { "2.0.0" }
 
                 Surface(
-                    color = EmeraldNeon.copy(alpha = 0.1f),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldNeon.copy(alpha = 0.2f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                 ) {
                     Text(
                         text = "Versão $versionName • Premium Experience",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelLarge,
-                        color = EmeraldNeon,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
@@ -189,14 +189,14 @@ fun UpdateSectionItem(
         Surface(
             modifier = Modifier.size(52.dp),
             shape = CircleShape,
-            color = EmeraldNeon.copy(alpha = 0.1f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldNeon.copy(alpha = 0.1f))
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = EmeraldNeon,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(26.dp)
                 )
             }

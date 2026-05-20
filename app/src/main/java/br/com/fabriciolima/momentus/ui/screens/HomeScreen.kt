@@ -159,12 +159,12 @@ fun HomeScreen(
                 if (!uiState.isSelectionModeActive) {
                     FloatingActionButton(
                         onClick = onAddNewRotinaClicked,
-                        containerColor = EmeraldNeon,
-                        contentColor = Color.Black,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         if (uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Add,
@@ -232,7 +232,7 @@ fun HomeScreen(
                                 Text(
                                     text = "Incrível! Continue assim!",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = EmeraldNeon
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
 
@@ -240,7 +240,7 @@ fun HomeScreen(
                                 CircularProgressIndicator(
                                     progress = { progress },
                                     modifier = Modifier.size(80.dp),
-                                    color = EmeraldNeon,
+                                    color = MaterialTheme.colorScheme.primary,
                                     strokeWidth = 8.dp,
                                     trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                                     strokeCap = StrokeCap.Round

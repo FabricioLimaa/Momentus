@@ -264,12 +264,12 @@ fun CalendarScreen(
                 if (!uiState.isSelectionModeActive) {
                     FloatingActionButton(
                         onClick = onAddNewRotinaClicked,
-                        containerColor = EmeraldNeon,
-                        contentColor = Color.Black,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         if (uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Icon(Icons.Default.Add, contentDescription = "Nova Rotina")
                         }
@@ -414,7 +414,7 @@ fun CalendarScreen(
             }
 
             if (uiState.isLoading && !uiState.isSelectionModeActive) {
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = EmeraldNeon) }
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
             }
 
             if (showSuccessCelebration) {
@@ -432,27 +432,27 @@ fun AchievementUnlockedDialog(achievement: Achievement, onDismiss: () -> Unit) {
         icon = {
             Box(contentAlignment = Alignment.Center) {
                 SuccessCelebration(onFinished = {})
-                Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(64.dp), tint = EmeraldNeon)
+                Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
             }
         },
         title = { Text("Conquista Desbloqueada!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth()) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text(achievement.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = EmeraldNeon, textAlign = TextAlign.Center)
+                Text(achievement.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(achievement.description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(16.dp))
                 Surface(
-                    color = EmeraldDeep.copy(alpha = 0.3f),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                     shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldNeon.copy(alpha = 0.2f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                 ) {
-                    Text("+${achievement.points} pontos", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = EmeraldNeon, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    Text("+${achievement.points} pontos", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = EmeraldNeon, contentColor = Color.Black)) {
+            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)) {
                 Text("Continuar", fontWeight = FontWeight.Bold)
             }
         }
@@ -580,13 +580,13 @@ fun DayCell(
     val isCurrentMonth = day.position == DayPosition.MonthDate
 
     val textColor = when {
-        isSelected && isCurrentMonth -> Color.Black
-        isToday && isCurrentMonth -> EmeraldNeon
+        isSelected && isCurrentMonth -> MaterialTheme.colorScheme.onPrimary
+        isToday && isCurrentMonth -> MaterialTheme.colorScheme.primary
         isCurrentMonth -> MaterialTheme.colorScheme.onSurface
         else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
     }
 
-    val backgroundColor = if (isSelected && isCurrentMonth) EmeraldNeon else Color.Transparent
+    val backgroundColor = if (isSelected && isCurrentMonth) MaterialTheme.colorScheme.primary else Color.Transparent
 
     Box(
         modifier = Modifier
@@ -596,7 +596,7 @@ fun DayCell(
             .background(backgroundColor)
             .then(
                 if (isToday && !isSelected && isCurrentMonth) {
-                    Modifier.border(1.dp, EmeraldNeon.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    Modifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
                 } else Modifier
             )
             .clickable(enabled = isCurrentMonth, onClick = { onDateSelected(day) }),
@@ -619,7 +619,7 @@ fun DayCell(
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(if (isSelected) Color.Black else EmeraldNeon)
+                        .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary)
                 )
             }
         }
@@ -653,7 +653,7 @@ fun EventsForDay(
                 Text(
                     text = dayOfWeek,
                     style = MaterialTheme.typography.labelMedium,
-                    color = EmeraldNeon,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
                 Text(

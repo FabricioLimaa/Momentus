@@ -219,12 +219,23 @@ class TemplateViewModel @Inject constructor(
                 val templateComEventos = templateRepository.todosOsTemplatesComEventos.first().find { it.template.id == templateId }
                 if (templateComEventos != null) {
                     val novosEventos = mutableListOf<ItemCronograma>()
+                    
+                    // 1. DEDUPLICAÇÃO: Garante que o template base não tenha eventos duplicados por erro de sync anterior
+                    val eventosBaseUnicos = templateComEventos.eventos.distinctBy { 
+                        "${it.titulo}-${it.horarioInicioString}-${it.horarioTerminoString}-${it.categoryId}" 
+                    }
+
                     dates.forEach { date ->
-                        templateComEventos.eventos.forEach { eventoTemplate ->
+                        eventosBaseUnicos.forEach { eventoTemplate ->
+                            // 2. ID DETERMINÍSTICO: Cria um ID baseado no evento original + data
+                            // Isso impede que, se o processo rodar duas vezes para a mesma data, o Room duplique o item.
+                            val deterministicId = "applied_${eventoTemplate.id}_${date}"
+                            
                             val novoEvento = eventoTemplate.copy(
-                                id = UUID.randomUUID().toString(),
+                                id = deterministicId,
                                 data = date.atStartOfDay().toInstant(java.time.ZoneOffset.UTC).toEpochMilli(),
-                                templateId = null
+                                templateId = null,
+                                lastUpdated = java.util.Date()
                             )
                             novosEventos.add(novoEvento)
                         }

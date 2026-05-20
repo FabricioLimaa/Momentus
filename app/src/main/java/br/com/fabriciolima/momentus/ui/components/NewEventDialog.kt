@@ -295,7 +295,7 @@ fun NewEventContent(
             Switch(
                 checked = salvarNoGoogle,
                 onCheckedChange = { salvarNoGoogle = it },
-                colors = SwitchDefaults.colors(checkedThumbColor = EmeraldGreen, checkedTrackColor = EmeraldGreen.copy(alpha = 0.3f))
+                colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary, checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
             )
         }
 
@@ -310,7 +310,7 @@ fun NewEventContent(
             enabled = isFormValid,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color.Black)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
         ) {
             Text(if (isEditMode) "Salvar Alterações" else "Salvar Rotina", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }

@@ -74,7 +74,7 @@ fun SplashScreen(syncMessage: String) {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(DeepNavyBackground, Color.Black)
+                    listOf(DeepNavyBackground, MaterialTheme.colorScheme.onPrimary)
                 )
             ),
         contentAlignment = Alignment.Center
@@ -86,7 +86,7 @@ fun SplashScreen(syncMessage: String) {
                 .scale(glowScale)
                 .alpha(glowAlpha * startAnimation.value)
                 .blur(40.dp)
-                .background(EmeraldNeon.copy(alpha = 0.6f), CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
         )
 
         Column(
@@ -127,7 +127,7 @@ fun SplashScreen(syncMessage: String) {
             Text(
                 text = syncMessage.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = EmeraldNeon.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp
             )

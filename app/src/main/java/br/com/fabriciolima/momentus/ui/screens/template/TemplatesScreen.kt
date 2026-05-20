@@ -184,14 +184,18 @@ fun TemplatesScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = viewModel::onShowCreateDialog,
-                    containerColor = EmeraldNeon,
-                    contentColor = Color.Black
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Novo Template")
                 }
             }
         ) { paddingValues ->
-            Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
+            Column(modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxHeight()
+                .padding(horizontal = 16.dp))
+            {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -358,7 +362,7 @@ fun TemplateCardPremium(
                 onClick = onApplyClick,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = EmeraldNeon, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
             ) {
                 Text("Aplicar Template", fontWeight = FontWeight.Bold)
             }
@@ -559,7 +563,7 @@ fun CreateTemplateDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f, fill = false)) {
                         Text(
-                            text = if(isEditMode) "Editar Template" else "Criar Template", 
+                            text = if(isEditMode) "Editar Template" else "Criar Template",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Black
                         )
@@ -574,7 +578,7 @@ fun CreateTemplateDialog(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
                     value = templateName,
@@ -670,7 +674,7 @@ fun CreateTemplateDialog(
                     enabled = isFormValid,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldNeon, contentColor = Color.Black)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
                     Text(
                         text = if(isEditMode) "Salvar Alterações" else "Criar Template", 

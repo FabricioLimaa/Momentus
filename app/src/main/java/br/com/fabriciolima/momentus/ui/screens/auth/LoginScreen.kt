@@ -116,7 +116,7 @@ fun LoginScreen(
             drawPath(
                 path = path,
                 brush = Brush.verticalGradient(
-                    listOf(EmeraldNeon.copy(alpha = 0.08f), Color.Transparent)
+                    listOf(Color.Black.copy(alpha = 0.08f), Color.Transparent)
                 )
             )
         }
@@ -134,7 +134,7 @@ fun LoginScreen(
                 Box(
                     modifier = Modifier
                         .size(100.dp)
-                        .background(EmeraldNeon.copy(alpha = 0.15f), CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape)
                         .blur(30.dp)
                 )
                 Image(
@@ -174,17 +174,17 @@ fun LoginScreen(
                     .height(56.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        Brush.horizontalGradient(listOf(EmeraldNeon, EmeraldGreen))
+                        Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, EmeraldGreen))
                     ),
                 enabled = !uiState.isLoading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent,
-                    contentColor = Color.Black
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
                 if (uiState.isLoading && !showEmailFields) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google_logo),
@@ -237,12 +237,12 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = EmeraldNeon,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = GlassBorder,
-                            focusedLabelColor = EmeraldNeon,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
                             unfocusedLabelColor = TextSecondaryDark
                         ),
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = EmeraldNeon) },
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
@@ -253,12 +253,12 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = EmeraldNeon,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = GlassBorder,
-                            focusedLabelColor = EmeraldNeon,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
                             unfocusedLabelColor = TextSecondaryDark
                         ),
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = EmeraldNeon) },
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         visualTransformation = PasswordVisualTransformation()
                     )
 
@@ -269,12 +269,12 @@ fun LoginScreen(
                         Checkbox(
                             checked = rememberMe,
                             onCheckedChange = { rememberMe = it; viewModel.updatePreferences(email, it) },
-                            colors = CheckboxDefaults.colors(checkedColor = EmeraldNeon, uncheckedColor = GlassBorder)
+                            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary, uncheckedColor = GlassBorder)
                         )
                         Text("Lembrar-me", style = MaterialTheme.typography.bodyMedium, color = TextSecondaryDark)
                         Spacer(modifier = Modifier.weight(1f))
                         TextButton(onClick = { navController.navigate(Screen.ForgotPassword.route) }) {
-                            Text("Esqueceu a senha?", color = EmeraldNeon)
+                            Text("Esqueceu a senha?", color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -285,10 +285,10 @@ fun LoginScreen(
                             .height(56.dp),
                         enabled = !uiState.isLoading && isEmailValid() && isPasswordValid(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldNeon, contentColor = Color.Black)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                     ) {
                         if(uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.Black)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Text("Entrar", fontWeight = FontWeight.ExtraBold)
                         }
@@ -308,7 +308,7 @@ fun LoginScreen(
                 Text(
                     text = buildAnnotatedString {
                         append("+10.000 pessoas já estão ")
-                        withStyle(SpanStyle(color = EmeraldNeon, fontWeight = FontWeight.Bold)) {
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
                             append("transformando")
                         }
                         append("\nsuas rotinas.")
@@ -325,7 +325,7 @@ fun LoginScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Não tem uma conta?", color = TextSecondaryDark)
                 TextButton(onClick = { navController.navigate(Screen.SignUp.route) }) {
-                    Text("Crie uma aqui", fontWeight = FontWeight.Bold, color = EmeraldNeon)
+                    Text("Crie uma aqui", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }

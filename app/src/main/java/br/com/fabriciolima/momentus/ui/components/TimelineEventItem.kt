@@ -70,7 +70,7 @@ fun TimelineEventItem(
             text = item.horarioInicio.format(formatter),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = if (isOngoing) EmeraldNeon else TextSecondaryDark,
+            color = if (isOngoing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(60.dp).padding(top = 14.dp)
         )
 
@@ -155,13 +155,13 @@ fun TimelineEventItem(
                 Checkbox(
                     checked = isSelected,
                     onCheckedChange = { onClick() },
-                    colors = CheckboxDefaults.colors(checkedColor = EmeraldNeon)
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                 )
             } else if (isChecked) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = EmeraldNeon,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
             } else {

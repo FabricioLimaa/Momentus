@@ -70,10 +70,19 @@ open class ScheduleRepository @Inject constructor(
                     Log.e(TAG, "Erro no SnapshotListener de eventos: ${e.code}", e)
                     return@addSnapshotListener
                 }
-                snapshots?.toObjects<ItemCronograma>()?.let {
+                snapshots?.toObjects<ItemCronograma>()?.let { cloudItems ->
                     CoroutineScope(dispatcher).launch {
-                        itemCronogramaDao.insertAll(it)
-                        triggerWidgetUpdate()
+                        // Filtra itens para não sobrescrever o isDeleted local com false vindo da nuvem se o local for mais novo
+                        val localItems = itemCronogramaDao.getAllSyncIncludingDeleted().associateBy { it.id }
+                        val filteredItems = cloudItems.filter { cloud ->
+                            val local = localItems[cloud.id]
+                            local == null || local.lastUpdated == null || cloud.lastUpdated == null || cloud.lastUpdated!!.after(local.lastUpdated)
+                        }
+                        
+                        if (filteredItems.isNotEmpty()) {
+                            itemCronogramaDao.insertAll(filteredItems)
+                            triggerWidgetUpdate()
+                        }
                     }
                 }
             }

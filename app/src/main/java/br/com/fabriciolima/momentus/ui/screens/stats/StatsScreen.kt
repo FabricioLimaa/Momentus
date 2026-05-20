@@ -102,8 +102,8 @@ fun StatsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .padding(horizontal = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(32.dp)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -131,7 +131,7 @@ fun StatsScreen(
                                 subtitle = "Vs. período anterior",
                                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                                 modifier = Modifier.weight(1f),
-                                color = if (uiState.improvementPercentage >= 0) EmeraldNeon else Color(0xFFEF4444)
+                                color = if (uiState.improvementPercentage >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                             )
                             InsightCardPremium(
                                 title = "Horário Ápice",
@@ -139,7 +139,7 @@ fun StatsScreen(
                                 subtitle = "Maior produtividade",
                                 icon = Icons.Default.Schedule,
                                 modifier = Modifier.weight(1f),
-                                color = Color(0xFF6366F1)
+                                color = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }
@@ -192,7 +192,7 @@ fun StatsScreen(
                         }
                     }
 
-                    item { Spacer(modifier = Modifier.height(48.dp)) }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
             }
         }
@@ -217,8 +217,8 @@ fun FilterButtonsPremium(selectedFilter: StatsFilter, onFilterSelected: (StatsFi
                     modifier = Modifier.weight(1f).height(40.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSelected) EmeraldNeon else Color.Transparent,
-                        contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     contentPadding = PaddingValues(0.dp),
                     elevation = null
@@ -305,7 +305,7 @@ fun BarChartPremium(data: List<BarChartData>) {
             ) {
                 data.forEach { item ->
                     val itemColor = remember(item.color) {
-                        try { Color(android.graphics.Color.parseColor(item.color)) } catch (e: Exception) { EmeraldNeon }
+                        try { Color(android.graphics.Color.parseColor(item.color)) } catch (e: Exception) { Color.Black }
                     }
 
                     Column(

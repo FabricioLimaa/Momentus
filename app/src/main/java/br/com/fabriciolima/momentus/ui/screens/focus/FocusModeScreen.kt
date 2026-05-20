@@ -43,14 +43,6 @@ fun FocusModeScreen(
         )
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
             // Sutil gradiente de fundo adaptativo
             Box(
                 modifier = Modifier
@@ -89,7 +81,7 @@ fun FocusModeScreen(
                         FocusMode.LONG_BREAK -> "Pausa longa"
                     },
                     style = MaterialTheme.typography.bodyLarge,
-                    color = EmeraldNeon,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -120,7 +112,7 @@ fun FocusModeScreen(
                     CircularProgressIndicator(
                         progress = { animatedProgress },
                         modifier = Modifier.fillMaxSize(),
-                        color = EmeraldNeon,
+                        color = MaterialTheme.colorScheme.primary,
                         strokeWidth = 12.dp,
                         trackColor = Color.Transparent,
                         strokeCap = StrokeCap.Round
@@ -130,7 +122,7 @@ fun FocusModeScreen(
                     Box(
                         modifier = Modifier
                             .size(200.dp)
-                            .background(EmeraldNeon.copy(alpha = 0.03f), CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.03f), CircleShape)
                     )
 
                     // Tempo Restante
@@ -148,7 +140,7 @@ fun FocusModeScreen(
                             Text(
                                 text = "EM ANDAMENTO",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = EmeraldNeon,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 2.sp
                             )
@@ -209,8 +201,8 @@ fun FocusModeScreen(
                             .width(160.dp),
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (uiState.isRunning) MaterialTheme.colorScheme.error else EmeraldNeon,
-                            contentColor = if (uiState.isRunning) Color.White else Color.Black
+                            containerColor = if (uiState.isRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            contentColor = if (uiState.isRunning) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                     ) {
@@ -260,22 +252,22 @@ fun FocusModeScreen(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(100.dp))
             }
         }
-    }
-}
+
+
 
 @Composable
 fun ModeButton(label: String, isSelected: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) EmeraldNeon else Color.Transparent,
-            contentColor = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
         ),
         shape = RoundedCornerShape(16.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
         elevation = null
     ) {
         Text(text = label, fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium, fontSize = 12.sp)
@@ -289,7 +281,7 @@ fun FocusStatCard(title: String, value: String, icon: ImageVector, modifier: Mod
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null, tint = EmeraldNeon, modifier = Modifier.size(24.dp))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
@@ -332,7 +324,7 @@ fun FocusSettingsDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(focus.toInt(), shortBreak.toInt(), longBreak.toInt()) }) {
-                Text("Salvar", color = EmeraldNeon, fontWeight = FontWeight.Bold)
+                Text("Salvar", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -350,15 +342,15 @@ fun TimeSlider(label: String, value: Float, onValueChange: (Float) -> Unit, rang
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(text = label, style = MaterialTheme.typography.labelLarge)
-            Text(text = "${value.toInt()} min", fontWeight = FontWeight.Bold, color = EmeraldNeon)
+            Text(text = "${value.toInt()} min", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = range,
             colors = SliderDefaults.colors(
-                thumbColor = EmeraldNeon,
-                activeTrackColor = EmeraldNeon,
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
                 inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
             )
         )
