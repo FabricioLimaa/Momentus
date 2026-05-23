@@ -64,6 +64,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import br.com.fabriciolima.momentus.ui.theme.DeepNavyBackground
@@ -169,22 +172,36 @@ fun NewEventContent(
 
     Column(
         modifier = Modifier
-            .padding(20.dp)
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding()
             .verticalScroll(rememberScrollState())
+            .padding(24.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(if (isEditMode) "Editar Rotina" else "Nova Rotina", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-            IconButton(onClick = onDismiss) {
+            Text(
+                text = if (isEditMode) "Editar Rotina" else "Nova Rotina", 
+                style = MaterialTheme.typography.headlineSmall, 
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+            ) {
                 Icon(Icons.Default.Close, contentDescription = "Fechar")
             }
         }
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        Text("Nome da rotina", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text("Nome da rotina", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = titulo,
@@ -195,9 +212,9 @@ fun NewEventContent(
             shape = RoundedCornerShape(16.dp)
         )
         
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Text("Horário", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text("Horário", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(modifier = Modifier.weight(1f)) {
@@ -209,7 +226,7 @@ fun NewEventContent(
                     isError = isTimeInvalid,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null) }
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(20.dp)) }
                 )
                 Box(modifier = Modifier.matchParentSize().clickable { showStartTimePicker = true })
             }
@@ -222,7 +239,7 @@ fun NewEventContent(
                     isError = isTimeInvalid,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null) }
+                    trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(20.dp)) }
                 )
                 Box(modifier = Modifier.matchParentSize().clickable { showEndTimePicker = true })
             }
@@ -230,7 +247,7 @@ fun NewEventContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text("Categoria", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text("Categoria", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(12.dp))
         
         FlowRow(
@@ -245,7 +262,7 @@ fun NewEventContent(
                 FilterChip(
                     selected = isSelected,
                     onClick = { selectedCategory = category },
-                    label = { Text(category.nome) },
+                    label = { Text(category.nome, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Medium) },
                     leadingIcon = {
                         Box(
                             modifier = Modifier
@@ -275,32 +292,44 @@ fun NewEventContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text("Descrição (opcional)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text("Descrição (opcional)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = descricao,
             onValueChange = { descricao = it },
             placeholder = { Text("Adicione uma descrição...") },
-            modifier = Modifier.fillMaxWidth().height(100.dp),
+            modifier = Modifier.fillMaxWidth().height(120.dp),
             shape = RoundedCornerShape(16.dp)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
         ) {
-            Text("Sincronizar com Google Agenda", style = MaterialTheme.typography.bodyMedium)
-            Switch(
-                checked = salvarNoGoogle,
-                onCheckedChange = { salvarNoGoogle = it },
-                colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary, checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Google Agenda", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text("Sincronizar esta rotina", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(
+                    checked = salvarNoGoogle,
+                    onCheckedChange = { salvarNoGoogle = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.primary, 
+                        checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    )
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
         Button(
             onClick = {
@@ -311,10 +340,21 @@ fun NewEventContent(
             enabled = isFormValid,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary, 
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         ) {
-            Text(if (isEditMode) "Salvar Alterações" else "Salvar Rotina", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Icon(Icons.Default.Check, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = if (isEditMode) "Salvar Alterações" else "Salvar Rotina", 
+                fontWeight = FontWeight.ExtraBold, 
+                fontSize = 16.sp
+            )
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -330,12 +370,12 @@ fun NewEventDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = true
+            decorFitsSystemWindows = false // Ajustado para permitir que statusBarsPadding funcione
         )
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background // Alterado de DeepNavyBackground para ser dinâmico
+            color = MaterialTheme.colorScheme.background
         ) {
             NewEventContent(
                 eventoParaEditar = eventoParaEditar,

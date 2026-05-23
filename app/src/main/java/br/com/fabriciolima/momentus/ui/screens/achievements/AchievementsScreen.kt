@@ -179,7 +179,7 @@ fun AchievementsScreen(
                 item {
                     Column {
                         Text(text = "Minhas Medalhas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             contentPadding = PaddingValues(bottom = 8.dp)
@@ -193,7 +193,7 @@ fun AchievementsScreen(
 
                 item {
                     Text(text = "Progresso", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     ActivityCard(userLevel)
                 }
 
@@ -247,27 +247,42 @@ fun AchievementUnlockedDialog(achievement: br.com.fabriciolima.momentus.data.mod
                 Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
             }
         },
-        title = { Text("Conquista Desbloqueada!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth()) },
+        title = { 
+            Text(
+                "Conquista Desbloqueada!", 
+                style = MaterialTheme.typography.headlineSmall, 
+                fontWeight = FontWeight.Black, 
+                textAlign = TextAlign.Center, 
+                color = MaterialTheme.colorScheme.onSurface, 
+                modifier = Modifier.fillMaxWidth()
+            ) 
+        },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Text(achievement.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(achievement.description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                 ) {
-                    Text("+${achievement.points} pontos", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    Text("+${achievement.points} pontos", fontWeight = FontWeight.Black, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)) {
-                Text("Continuar", fontWeight = FontWeight.Bold)
+            Button(
+                onClick = onDismiss, 
+                modifier = Modifier.fillMaxWidth().height(56.dp), 
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
+            ) {
+                Text("Continuar", fontWeight = FontWeight.ExtraBold)
             }
-        }
+        },
+        shape = RoundedCornerShape(28.dp)
     )
 }
 
@@ -280,26 +295,58 @@ fun AchievementDetailDialog(info: AchievementUiInfo, onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(48.dp).alpha(alpha), tint = titleColor) },
-        title = { Text(info.achievement.name, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = titleColor) },
+        icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(56.dp).alpha(alpha), tint = titleColor) },
+        title = { 
+            Text(
+                info.achievement.name, 
+                textAlign = TextAlign.Center, 
+                fontWeight = FontWeight.Black, 
+                color = titleColor,
+                style = MaterialTheme.typography.headlineSmall
+            ) 
+        },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text(info.achievement.description, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = info.achievement.description, 
+                    textAlign = TextAlign.Center, 
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 if (info.isUnlocked) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("+${info.achievement.points} pts", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        Text(
+                            text = "+${info.achievement.points} pts", 
+                            fontWeight = FontWeight.Bold, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        )
+                    }
                     info.unlockedDate?.let {
-                        Text("Conquistado em: ${dateFormatter.format(it)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = "Conquistado em: ${dateFormatter.format(it)}", 
+                            style = MaterialTheme.typography.labelSmall, 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
                     }
                 } else {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Continue focado para desbloquear!", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("Continue focado para desbloquear!", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Entendido") }
-        }
+            TextButton(onClick = onDismiss) { 
+                Text("Entendido", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) 
+            }
+        },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 

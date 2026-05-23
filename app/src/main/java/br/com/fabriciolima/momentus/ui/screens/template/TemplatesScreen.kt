@@ -143,17 +143,24 @@ fun TemplatesScreen(
             is TemplateDialogState.ConfirmDelete -> {
                 AlertDialog(
                     onDismissRequest = viewModel::onDialogDismiss,
-                    icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso") },
-                    title = { Text("Deletar Template") },
+                    icon = { Icon(Icons.Outlined.Warning, contentDescription = "Aviso", tint = MaterialTheme.colorScheme.error) },
+                    title = { Text("Deletar Template", fontWeight = FontWeight.Black) },
                     text = { Text("Você tem certeza que quer deletar o template \"${dialogState.template.template.nome}\"? Essa ação não pode ser desfeita.") },
                     confirmButton = {
-                        Button(onClick = { viewModel.deleteTemplate(dialogState.template.template) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Deletar")
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("DELETAR")
+                        Button(
+                            onClick = { viewModel.deleteTemplate(dialogState.template.template) },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("DELETAR", fontWeight = FontWeight.Bold)
                         }
                     },
-                    dismissButton = { TextButton(onClick = viewModel::onDialogDismiss) { Text("Cancelar") } }
+                    dismissButton = { 
+                        TextButton(onClick = viewModel::onDialogDismiss) { 
+                            Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) 
+                        } 
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
             is TemplateDialogState.ApplyTemplate -> {
@@ -211,10 +218,13 @@ fun TemplatesScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = viewModel::onShowImportDialog) {
+                    TextButton(
+                        onClick = viewModel::onShowImportDialog,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    ) {
                         Icon(Icons.Default.ContentPasteGo, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Importar Template")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Importar Template", fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -224,9 +234,9 @@ fun TemplatesScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Outlined.Dashboard, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Outlined.Dashboard, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Nenhum template", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text("Nenhum template", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
                         Text(
                             text = "Crie seu primeiro template para reutilizar rotinas facilmente.",
                             style = MaterialTheme.typography.bodyLarge,
@@ -238,7 +248,7 @@ fun TemplatesScreen(
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(20.dp),
-                        contentPadding = PaddingValues(bottom = bottomBarPadding + 40.dp)
+                        contentPadding = PaddingValues(bottom = bottomBarPadding + 80.dp)
                     ) {
                         items(uiState.templates) { templateComEventos ->
                             TemplateCardPremium(
@@ -309,7 +319,8 @@ fun TemplateCardPremium(
                     Text(
                         text = "${templateComEventos.eventos.size} atividades configuradas",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.Bold
                     )
                 }
                 
@@ -363,6 +374,7 @@ fun TemplateCardPremium(
                         text = "+ ${templateComEventos.eventos.size - 4} atividades...",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 50.dp)
                     )
                 }
@@ -372,11 +384,13 @@ fun TemplateCardPremium(
 
             Button(
                 onClick = onApplyClick,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
             ) {
-                Text("Aplicar Template", fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.ContentPasteGo, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Aplicar Template", fontWeight = FontWeight.ExtraBold)
             }
         }
     }
@@ -397,7 +411,7 @@ fun TemplateStatChip(icon: ImageVector, label: String, modifier: Modifier = Modi
         ) {
             Icon(icon, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(6.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, maxLines = 1)
+            Text(label, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
@@ -411,30 +425,37 @@ fun ImportTemplateDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Importar Template") },
+        title = { Text("Importar Template", fontWeight = FontWeight.Black) },
         text = {
-            Column {
+            Column(modifier = Modifier.imePadding()) {
                 Text("Cole o código do template compartilhado abaixo para adicioná-lo à sua lista.")
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 OutlinedTextField(
                     value = jsonString,
                     onValueChange = { jsonString = it },
                     label = { Text("Código do Template (JSON)") },
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
-                    maxLines = 10
+                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    maxLines = 8
                 )
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(jsonString) }, enabled = jsonString.isNotBlank()) {
-                Text("Importar")
+            Button(
+                onClick = { onConfirm(jsonString) }, 
+                enabled = jsonString.isNotBlank(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Importar", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }
+        },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
@@ -560,14 +581,21 @@ fun CreateTemplateDialog(
         },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = true
+            decorFitsSystemWindows = false
         )
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(24.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -577,7 +605,8 @@ fun CreateTemplateDialog(
                         Text(
                             text = if(isEditMode) "Editar Template" else "Criar Template",
                             style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Black
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "Defina uma rotina com múltiplos eventos", 
@@ -585,12 +614,17 @@ fun CreateTemplateDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                    ) {
                         Icon(Icons.Default.Close, contentDescription = "Fechar")
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 OutlinedTextField(
                     value = templateName,
@@ -613,7 +647,7 @@ fun CreateTemplateDialog(
                     shape = RoundedCornerShape(16.dp)
                 )
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     LazyColumn(
@@ -624,7 +658,8 @@ fun CreateTemplateDialog(
                             Text(
                                 text = "Eventos da Rotina", 
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                         
@@ -647,8 +682,11 @@ fun CreateTemplateDialog(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                         if (eventForms.size > 1) {
-                                            IconButton(onClick = { eventForms = eventForms.toMutableList().also { it.removeAt(index) } }) {
-                                                Icon(Icons.Default.Delete, contentDescription = "Remover", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                                            IconButton(
+                                                onClick = { eventForms = eventForms.toMutableList().also { it.removeAt(index) } },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Remover", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                                             }
                                         }
                                     }
@@ -667,12 +705,13 @@ fun CreateTemplateDialog(
                         item {
                             OutlinedButton(
                                 onClick = { eventForms = eventForms + EventFormData(selectedCategory = defaultCategory) },
-                                modifier = Modifier.fillMaxWidth().height(50.dp),
-                                shape = RoundedCornerShape(12.dp)
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null)
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Adicionar Evento")
+                                Text("Adicionar Evento", fontWeight = FontWeight.Bold)
                             }
                             Spacer(modifier = Modifier.height(40.dp))
                         }
@@ -686,20 +725,20 @@ fun CreateTemplateDialog(
                     enabled = isFormValid,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .navigationBarsPadding(),
+                        .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
+                    Icon(Icons.Default.Check, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = if(isEditMode) "Salvar Alterações" else "Criar Template", 
-                        fontWeight = FontWeight.Bold, 
+                        fontWeight = FontWeight.ExtraBold, 
                         fontSize = 16.sp
                     )
                 }
-
-                // Respiro extra para garantir que o botão não pareça sufocado mesmo com a barra do sistema
-                Spacer(modifier = Modifier.height(50.dp))
+                
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
@@ -750,7 +789,7 @@ fun EventTemplateForm(
         OutlinedTextField(
             value = eventData.titulo,
             onValueChange = { onDataChange(eventData.copy(titulo = it)) },
-            label = { Text("Título") },
+            label = { Text("Título do Evento") },
             placeholder = { Text("Ex: Exercício Físico") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -760,7 +799,7 @@ fun EventTemplateForm(
         OutlinedTextField(
             value = eventData.descricao,
             onValueChange = { onDataChange(eventData.copy(descricao = it)) },
-            label = { Text("Descrição (opcional)") },
+            label = { Text("Notas (opcional)") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
         )
@@ -806,7 +845,7 @@ fun EventTemplateForm(
                 FilterChip(
                     selected = isSelected,
                     onClick = { onDataChange(eventData.copy(selectedCategory = category)) },
-                    label = { Text(category.nome, fontSize = 11.sp) },
+                    label = { Text(category.nome, fontSize = 11.sp, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Medium) },
                     leadingIcon = {
                         Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(categoryColor))
                     },

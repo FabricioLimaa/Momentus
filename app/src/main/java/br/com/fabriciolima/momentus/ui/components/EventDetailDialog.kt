@@ -23,6 +23,7 @@ import androidx.compose.ui.window.Dialog
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
 import java.time.format.DateTimeFormatter
+import br.com.fabriciolima.momentus.ui.util.getIconForMarketItem
 
 @Composable
 fun EventDetailContent(
@@ -31,7 +32,7 @@ fun EventDetailContent(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onCloseClick: () -> Unit,
-    showCloseButton: Boolean = false // Mantido para compatibilidade, mas ignorado no novo design
+    showCloseButton: Boolean = false 
 ) {
     val eventColor = try {
         Color(android.graphics.Color.parseColor(category.cor))
@@ -45,68 +46,87 @@ fun EventDetailContent(
             .fillMaxWidth()
             .padding(24.dp)
     ) {
-        // 1. Header: Ícone Info + "Detalhes"
+        // 1. Header: Ícone da Categoria (Sticker ou Info) + "Detalhes"
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val stickerIcon = getIconForMarketItem(category.stickerId)
             Icon(
-                imageVector = Icons.Default.Info,
+                imageVector = stickerIcon ?: Icons.Default.Info,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
+                tint = if (stickerIcon != null) eventColor else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Detalhes",
+                text = "Detalhes da Atividade",
                 style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         // 2. Título da Tarefa
         Text(
             text = event.titulo,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Black,
             color = MaterialTheme.colorScheme.onSurface
         )
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
-        // 3. Categoria com Ponto de Cor
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(eventColor)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = category.nome,
-                style = MaterialTheme.typography.bodyLarge,
-                color = eventColor,
-                fontWeight = FontWeight.Bold
-            )
+        // 3. Categoria em Chip
+        Surface(
+            color = eventColor.copy(alpha = 0.1f),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(eventColor)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = category.nome,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = eventColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
         // 4. Horário com Ícone de Relógio
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Schedule,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(10.dp))
+            Surface(
+                modifier = Modifier.size(36.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "${event.horarioInicio.format(timeFormatter)} - ${event.horarioTermino.format(timeFormatter)}",
+                text = "${event.horarioInicio.format(timeFormatter)} às ${event.horarioTermino.format(timeFormatter)}",
                 style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
@@ -114,44 +134,59 @@ fun EventDetailContent(
         // 5. Descrição (Se houver)
         if (!event.descricao.isNullOrEmpty()) {
             Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = event.descricao,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 22.sp
-            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = event.descricao,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 22.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
-        // 6. Ações (Rodapé - Conforme mockup)
+        // 6. Ações
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onEditClick) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Editar",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(onClick = onDeleteClick) {
+            IconButton(
+                onClick = onDeleteClick,
+                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.error.copy(alpha = 0.05f))
+            ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Excluir",
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            IconButton(
+                onClick = onEditClick,
+                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Editar",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
-            TextButton(onClick = onCloseClick) {
+            Button(
+                onClick = onCloseClick,
+                shape = RoundedCornerShape(12.dp)
+            ) {
                 Text(
                     text = "Fechar",
-                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -170,7 +205,8 @@ fun EventDetailDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface, // Respeita modo claro/escuro
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         ) {
             EventDetailContent(

@@ -41,6 +41,7 @@ import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import java.time.LocalDate
 import java.time.LocalTime
 import androidx.compose.ui.unit.Dp
+import androidx.compose.material.icons.outlined.Warning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,27 +120,39 @@ fun HomeScreen(
             is DialogState.ConfirmDelete -> {
                 AlertDialog(
                     onDismissRequest = onDialogDismiss,
-                    title = { Text("Excluir Rotina") },
-                    text = { Text("Tem certeza que deseja excluir esta rotina?") },
+                    icon = { Icon(Icons.Outlined.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    title = { Text("Excluir Rotina", fontWeight = FontWeight.Black) },
+                    text = { Text("Deseja realmente remover esta rotina? Esta ação não poderá ser desfeita.") },
                     confirmButton = {
-                        Button(onClick = { onDeleteRotina(dialogState.rotina) }) { Text("Excluir") }
+                        Button(
+                            onClick = { onDeleteRotina(dialogState.rotina) },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) { Text("Excluir", fontWeight = FontWeight.Bold) }
                     },
                     dismissButton = {
-                        TextButton(onClick = onDialogDismiss) { Text("Cancelar") }
-                    }
+                        TextButton(onClick = onDialogDismiss) { Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
             is DialogState.ConfirmDeleteMultiple -> {
                 AlertDialog(
                     onDismissRequest = onDialogDismiss,
-                    title = { Text("Excluir Rotinas") },
+                    icon = { Icon(Icons.Outlined.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    title = { Text("Excluir Selecionadas", fontWeight = FontWeight.Black) },
                     text = { Text("Tem certeza que deseja excluir as ${dialogState.count} rotinas selecionadas?") },
                     confirmButton = {
-                        Button(onClick = { onDeleteSelectedRotinas() }) { Text("Excluir") }
+                        Button(
+                            onClick = { onDeleteSelectedRotinas() },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) { Text("Excluir Todas", fontWeight = FontWeight.Bold) }
                     },
                     dismissButton = {
-                        TextButton(onClick = onDialogDismiss) { Text("Cancelar") }
-                    }
+                        TextButton(onClick = onDialogDismiss) { Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
             else -> {}

@@ -12,21 +12,15 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
@@ -73,12 +68,25 @@ fun ApplyTemplateDialog(
     )
 
     Dialog(onDismissRequest = onDismiss) {
-        Card {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Aplicar Template", style = MaterialTheme.typography.headlineSmall)
-                Text("Selecione uma ou mais datas para aplicar este template.")
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = "Aplicar Template", 
+                    style = MaterialTheme.typography.headlineSmall, 
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Escolha os dias para agendar esta rotina.", 
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Header do Calendário
                 CalendarHeader(state.firstVisibleMonth.yearMonth, onPrev = {
@@ -86,6 +94,8 @@ fun ApplyTemplateDialog(
                 }, onNext = {
                     scope.launch { state.animateScrollToMonth(state.firstVisibleMonth.yearMonth.plusMonths(1)) }
                 })
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 HorizontalCalendar(
                     state = state,
@@ -102,29 +112,45 @@ fun ApplyTemplateDialog(
                     monthHeader = { DaysOfWeekHeader() }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Salvar na Agenda do Google")
-                    Switch(
-                        checked = saveToGoogle,
-                        onCheckedChange = { saveToGoogle = it }
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("Google Agenda", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            Text("Sincronizar datas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = saveToGoogle,
+                            onCheckedChange = { saveToGoogle = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            )
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text("Cancelar") }
+                    TextButton(onClick = onDismiss) { 
+                        Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) 
+                    }
+                    Spacer(Modifier.width(12.dp))
                     Button(
                         onClick = { onConfirm(selectedDates, saveToGoogle) },
-                        enabled = selectedDates.isNotEmpty()
+                        enabled = selectedDates.isNotEmpty(),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Aplicar")
+                        Text("Aplicar", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -139,29 +165,39 @@ private fun CalendarHeader(yearMonth: YearMonth, onPrev: () -> Unit, onNext: () 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(onClick = onPrev) {
-            Icon(Icons.Default.ChevronLeft, contentDescription = "Mês anterior")
+        IconButton(
+            onClick = onPrev,
+            modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+        ) {
+            Icon(Icons.Default.ChevronLeft, contentDescription = "Mês anterior", modifier = Modifier.size(20.dp))
         }
         Text(
             text = "${yearMonth.month.getDisplayName(TextStyle.FULL, Locale("pt", "BR")).replaceFirstChar { it.titlecase() }} ${yearMonth.year}",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        IconButton(onClick = onNext) {
-            Icon(Icons.Default.ChevronRight, contentDescription = "Próximo mês")
+        IconButton(
+            onClick = onNext,
+            modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+        ) {
+            Icon(Icons.Default.ChevronRight, contentDescription = "Próximo mês", modifier = Modifier.size(20.dp))
         }
     }
 }
 
 @Composable
 private fun DaysOfWeekHeader() {
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         val daysOfWeek = remember { (1..7).map { firstDayOfWeekFromLocale().plus(it.toLong() - 1) } }
         daysOfWeek.forEach { dayOfWeek ->
             Text(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
-                text = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("pt", "BR"))
+                text = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("pt", "BR")).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
             )
         }
     }
@@ -171,8 +207,8 @@ private fun DaysOfWeekHeader() {
 private fun Day(day: CalendarDay, isSelected: Boolean, onClick: (CalendarDay) -> Unit) {
     Box(
         modifier = Modifier
-            .aspectRatio(1f) // Makes the box square
-            .padding(4.dp)
+            .aspectRatio(1f)
+            .padding(2.dp)
             .clip(CircleShape)
             .background(
                 color = when {
@@ -180,10 +216,10 @@ private fun Day(day: CalendarDay, isSelected: Boolean, onClick: (CalendarDay) ->
                     else -> Color.Transparent
                 }
             )
-            .border(
-                width = if (day.date == LocalDate.now()) 2.dp else 0.dp,
-                color = if (day.date == LocalDate.now()) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = CircleShape
+            .then(
+                if (day.date == LocalDate.now() && !isSelected) {
+                    Modifier.border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                } else Modifier
             )
             .clickable(enabled = day.position == DayPosition.MonthDate) {
                 onClick(day)
@@ -192,9 +228,11 @@ private fun Day(day: CalendarDay, isSelected: Boolean, onClick: (CalendarDay) ->
     ) {
         Text(
             text = day.date.dayOfMonth.toString(),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             color = when {
                 isSelected -> MaterialTheme.colorScheme.onPrimary
-                day.position != DayPosition.MonthDate -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                day.position != DayPosition.MonthDate -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 else -> MaterialTheme.colorScheme.onSurface
             }
         )

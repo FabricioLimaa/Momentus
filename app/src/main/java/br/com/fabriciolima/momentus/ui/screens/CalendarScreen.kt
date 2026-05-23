@@ -89,6 +89,7 @@ fun CalendarScreen(
     onConfirmDeleteClicked: (ItemCronograma) -> Unit,
     onDeleteRotina: (ItemCronograma) -> Unit,
     onMarkAsCompleted: (String) -> Unit,
+    onDeleteSelectedRotinas: () -> Unit,
     onUnmarkAsCompleted: (String) -> Unit,
     onErrorShown: () -> Unit,
     onSuccessMessageShown: () -> Unit,
@@ -101,8 +102,7 @@ fun CalendarScreen(
     onRotinaClicked: (String) -> Unit,
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
-    onConfirmDeleteSelectedRotinas: () -> Unit,
-    onDeleteSelectedRotinas: () -> Unit
+    onConfirmDeleteSelectedRotinas: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -230,21 +230,43 @@ fun CalendarScreen(
             is DialogState.ConfirmDelete -> {
                 AlertDialog(
                     onDismissRequest = onDialogDismiss,
-                    icon = { Icon(imageVector = Icons.Outlined.Warning, contentDescription = "Aviso de Exclusão") },
-                    title = { Text("Excluir Rotina") },
-                    text = { Text("Tem certeza que deseja excluir a rotina \"${dialogState.rotina.titulo}\"? Essa ação não pode ser desfeita.") },
-                    confirmButton = { Button(onClick = { onDeleteRotina(dialogState.rotina) }) { Text("Excluir") } },
-                    dismissButton = { TextButton(onClick = onDialogDismiss) { Text("Cancelar") } }
+                    icon = { Icon(imageVector = Icons.Outlined.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    title = { Text("Excluir Rotina", fontWeight = FontWeight.Black) },
+                    text = { Text("Deseja realmente remover a rotina \"${dialogState.rotina.titulo}\"? Esta ação não poderá ser desfeita.") },
+                    confirmButton = { 
+                        Button(
+                            onClick = { onDeleteRotina(dialogState.rotina) },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) { Text("Excluir", fontWeight = FontWeight.Bold) } 
+                    },
+                    dismissButton = { 
+                        TextButton(onClick = onDialogDismiss) { 
+                            Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) 
+                        } 
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
             is DialogState.ConfirmDeleteMultiple -> {
                 AlertDialog(
                     onDismissRequest = onDialogDismiss,
-                    icon = { Icon(imageVector = Icons.Outlined.Warning, contentDescription = "Aviso de Exclusão Múltipla") },
-                    title = { Text("Excluir Rotinas") },
-                    text = { Text("Tem certeza que deseja excluir as ${dialogState.count} rotinas selecionadas? Essa ação não pode ser desfeita.") },
-                    confirmButton = { Button(onClick = { onDeleteSelectedRotinas() }) { Text("Excluir") } },
-                    dismissButton = { TextButton(onClick = onDialogDismiss) { Text("Cancelar") } }
+                    icon = { Icon(imageVector = Icons.Outlined.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    title = { Text("Excluir Selecionadas", fontWeight = FontWeight.Black) },
+                    text = { Text("Tem certeza que deseja excluir as ${dialogState.count} rotinas selecionadas?") },
+                    confirmButton = { 
+                        Button(
+                            onClick = { onDeleteSelectedRotinas() },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) { Text("Excluir Todas", fontWeight = FontWeight.Bold) } 
+                    },
+                    dismissButton = { 
+                        TextButton(onClick = onDialogDismiss) { 
+                            Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) 
+                        } 
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
             else -> {}
