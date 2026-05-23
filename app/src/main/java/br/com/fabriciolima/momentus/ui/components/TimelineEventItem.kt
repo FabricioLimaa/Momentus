@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.data.model.Category
 import br.com.fabriciolima.momentus.data.model.ItemCronograma
+import br.com.fabriciolima.momentus.ui.util.getIconForMarketItem
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -110,6 +111,16 @@ fun TimelineEventItem(
                 .padding(start = 12.dp, top = 10.dp, bottom = 20.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val stickerIcon = getIconForMarketItem(category.stickerId)
+                if (stickerIcon != null) {
+                    Icon(
+                        imageVector = stickerIcon,
+                        contentDescription = null,
+                        tint = categoryColor,
+                        modifier = Modifier.size(18.dp).padding(end = 6.dp)
+                    )
+                }
+
                 Text(
                     text = item.titulo,
                     style = MaterialTheme.typography.titleMedium,

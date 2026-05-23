@@ -26,9 +26,11 @@ import br.com.fabriciolima.momentus.ui.theme.*
 import br.com.fabriciolima.momentus.ui.viewmodel.FocusMode
 import br.com.fabriciolima.momentus.ui.viewmodel.FocusViewModel
 import java.util.Locale
+import androidx.compose.ui.unit.Dp
 
 @Composable
 fun FocusModeScreen(
+    bottomBarPadding: Dp = 0.dp,
     viewModel: FocusViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -43,6 +45,14 @@ fun FocusModeScreen(
         )
     }
 
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.statusBars
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
             // Sutil gradiente de fundo adaptativo
             Box(
                 modifier = Modifier
@@ -50,8 +60,8 @@ fun FocusModeScreen(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                Color.Transparent, 
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                MaterialTheme.colorScheme.background,
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.05f)
                             )
                         )
                     )
@@ -60,7 +70,8 @@ fun FocusModeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(top = paddingValues.calculateTopPadding())
+                    .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(40.dp))
@@ -87,7 +98,7 @@ fun FocusModeScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Timer Circular (Design Premium Adaptativo)
+                // Timer Circular
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.size(280.dp)
@@ -116,13 +127,6 @@ fun FocusModeScreen(
                         strokeWidth = 12.dp,
                         trackColor = Color.Transparent,
                         strokeCap = StrokeCap.Round
-                    )
-
-                    // Glow sutil atrás do tempo
-                    Box(
-                        modifier = Modifier
-                            .size(200.dp)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.03f), CircleShape)
                     )
 
                     // Tempo Restante
@@ -182,7 +186,6 @@ fun FocusModeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    // Reiniciar
                     IconButton(
                         onClick = { viewModel.resetTimer() },
                         modifier = Modifier
@@ -193,7 +196,6 @@ fun FocusModeScreen(
                         Icon(Icons.Default.Refresh, contentDescription = "Reiniciar", tint = MaterialTheme.colorScheme.onSurface)
                     }
 
-                    // Iniciar / Pausar
                     Button(
                         onClick = { viewModel.toggleTimer() },
                         modifier = Modifier
@@ -219,7 +221,6 @@ fun FocusModeScreen(
                         )
                     }
 
-                    // Botão de Ajustes (Agora Funcional)
                     IconButton(
                         onClick = { viewModel.setShowSettingsDialog(true) },
                         modifier = Modifier
@@ -252,11 +253,11 @@ fun FocusModeScreen(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(100.dp))
+                Spacer(modifier = Modifier.height(bottomBarPadding + 20.dp))
             }
         }
-
-
+    }
+}
 
 @Composable
 fun ModeButton(label: String, isSelected: Boolean, onClick: () -> Unit) {

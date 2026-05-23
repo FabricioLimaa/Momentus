@@ -157,6 +157,9 @@ object AppModule {
                     if ("lastUpdated" !in catColumns) {
                         db.execSQL("ALTER TABLE categories ADD COLUMN lastUpdated INTEGER")
                     }
+                    if ("stickerId" !in catColumns) {
+                        db.execSQL("ALTER TABLE categories ADD COLUMN stickerId TEXT")
+                    }
 
                 } catch (e: Exception) {
                     Log.e("AppModule", "Auto-reparo falhou: ${e.message}")
@@ -169,7 +172,8 @@ object AppModule {
             AppDatabase.MIGRATION_10_11,
             AppDatabase.MIGRATION_11_12,
             AppDatabase.MIGRATION_12_13,
-            AppDatabase.MIGRATION_13_14
+            AppDatabase.MIGRATION_13_14,
+            AppDatabase.MIGRATION_14_15
         )
         .fallbackToDestructiveMigration()
         .build()

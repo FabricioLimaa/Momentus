@@ -22,11 +22,13 @@ import br.com.fabriciolima.momentus.ui.components.EditCategoryDialog
 import br.com.fabriciolima.momentus.ui.viewmodel.CategoryDialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.CategoryViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesScreen(
     navController: NavController,
+    bottomBarPadding: Dp = 0.dp,
     viewModel: CategoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -48,6 +50,7 @@ fun CategoriesScreen(
         is CategoryDialogState.CreateNew -> {
             EditCategoryDialog(
                 category = null,
+                ownedStickers = uiState.ownedStickers,
                 onDismiss = viewModel::onDialogDismiss,
                 onConfirm = viewModel::upsertCategory
             )
@@ -55,6 +58,7 @@ fun CategoriesScreen(
         is CategoryDialogState.Edit -> {
             EditCategoryDialog(
                 category = dialogState.category,
+                ownedStickers = uiState.ownedStickers,
                 onDismiss = viewModel::onDialogDismiss,
                 onConfirm = viewModel::upsertCategory
             )
@@ -80,18 +84,24 @@ fun CategoriesScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Gerenciar Categorias") },
+                title = { Text("Gerenciar Categorias", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
                     }
                 }
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.statusBars
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(top = paddingValues.calculateTopPadding())
+            .padding(horizontal = 16.dp)) {
+            
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Categorias", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("Categorias", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
             Text(
                 text = "Crie suas categorias para melhor organização",
                 style = MaterialTheme.typography.bodyLarge,
@@ -101,15 +111,20 @@ fun CategoriesScreen(
 
             Button(
                 onClick = viewModel::onShowCreateDialog,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = MaterialTheme.shapes.medium
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Categoria")
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Nova Categoria", fontSize = 16.sp)
+                Text("Nova Categoria", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(24.dp))
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = bottomBarPadding + 32.dp)
+            ) {
                 items(uiState.categories) { category ->
                     CategoryListItem(
                         item = CategoryWithMeta(category, null),

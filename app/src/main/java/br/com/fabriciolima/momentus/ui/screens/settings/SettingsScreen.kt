@@ -29,11 +29,13 @@ import androidx.navigation.NavController
 import br.com.fabriciolima.momentus.data.repository.AppThemeMode
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.SettingsViewModel
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     navController: NavController,
+    bottomBarPadding: Dp = 0.dp,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -70,21 +72,24 @@ fun SettingsScreen(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
-                    title = { Text("Configurações") },
+                    title = { Text("Configurações", fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                         }
                     }
                 )
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.statusBars
         ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(top = paddingValues.calculateTopPadding())
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                contentPadding = PaddingValues(bottom = bottomBarPadding + 32.dp)
             ) {
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -99,7 +104,7 @@ fun SettingsScreen(
                         Text(
                             text = "Personalização",
                             style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Black
                         )
                     }
                 }
@@ -155,7 +160,11 @@ fun SettingsScreen(
                         Slider(
                             value = uiState.fontSizeMultiplier,
                             onValueChange = { viewModel.setFontSize(it) },
-                            valueRange = 0.8f..1.4f
+                            valueRange = 0.8f..1.4f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = MaterialTheme.colorScheme.primary,
+                                activeTrackColor = MaterialTheme.colorScheme.primary
+                            )
                         )
                     }
                 }
@@ -189,15 +198,15 @@ fun SettingsScreen(
                     ) {
                         Button(
                             onClick = viewModel::saveThemeSettings,
-                            modifier = Modifier.weight(1f).height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            Text("Salvar")
+                            Text("Salvar", fontWeight = FontWeight.Bold)
                         }
                         OutlinedButton(
                             onClick = viewModel::resetToDefaults,
-                            modifier = Modifier.weight(1f).height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -206,7 +215,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item { HorizontalDivider() }
+                item { HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)) }
 
                 // Sincronização
                 item {
@@ -244,8 +253,8 @@ fun SettingsScreen(
                         
                         Button(
                             onClick = viewModel::syncNow,
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
                             enabled = !uiState.isLoading
                         ) {
                             if (uiState.isLoading) {
@@ -253,7 +262,7 @@ fun SettingsScreen(
                             } else {
                                 Icon(Icons.Default.Sync, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Sincronizar Agora")
+                                Text("Sincronizar Agora", fontWeight = FontWeight.Bold)
                             }
                         }
                         
@@ -261,8 +270,8 @@ fun SettingsScreen(
                         
                         OutlinedButton(
                             onClick = { showDeleteConfirmDialog = true },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                         ) {
                             Icon(Icons.Default.DeleteForever, contentDescription = null)
@@ -313,7 +322,15 @@ fun SettingsSwitchRow(
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        Switch(
+            checked = checked, 
+            onCheckedChange = onCheckedChange, 
+            enabled = enabled,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+            )
+        )
     }
 }
 

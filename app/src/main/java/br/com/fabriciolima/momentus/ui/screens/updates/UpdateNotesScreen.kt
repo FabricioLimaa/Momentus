@@ -24,30 +24,29 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import br.com.fabriciolima.momentus.ui.theme.*
 import androidx.compose.ui.platform.LocalContext
+import br.com.fabriciolima.momentus.ui.screens.market.XPBadge
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateNotesScreen(
-    navController: NavController
+    navController: NavController,
+    bottomBarPadding: Dp = 0.dp
 ) {
     val context = LocalContext.current
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notas de Atualização", fontWeight = FontWeight.Black) },
+                title = { Text("Notas de Atualização", fontWeight = FontWeight.ExtraBold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
-                )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.statusBars
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Fundo com gradiente sutil
@@ -67,10 +66,12 @@ fun UpdateNotesScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(top = paddingValues.calculateTopPadding())
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(horizontal = 20.dp)
             ) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Text(
                     text = "O que há de novo?",
                     style = MaterialTheme.typography.displaySmall,
@@ -83,7 +84,7 @@ fun UpdateNotesScreen(
                 val versionName = try {
                     val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
                     packageInfo.versionName
-                } catch (_: Exception) { "2.0.0" }
+                } catch (_: Exception) { "2.1.0" }
 
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
@@ -91,7 +92,7 @@ fun UpdateNotesScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                 ) {
                     Text(
-                        text = "Versão $versionName • Premium Experience",
+                        text = "Versão $versionName • Store & Personalização",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
@@ -99,37 +100,37 @@ fun UpdateNotesScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-                // Seções de Novidades Amigáveis ao Usuário
+                // Seções de Novidades
                 UpdateSectionItem(
                     icon = Icons.Default.AutoAwesome,
-                    title = "Design Moderno e Fluido",
-                    description = "Uma interface redesenhada para ser mais moderna, rápida e elegante, com animações suaves em cada toque."
+                    title = "Stickers com Utilidade!",
+                    description = "Agora você pode aplicar os stickers comprados às suas categorias. Eles aparecerão na timeline para destacar suas tarefas mais importantes."
                 )
 
                 UpdateSectionItem(
-                    icon = Icons.Default.Shield,
-                    title = "Privacidade e Proteção",
-                    description = "Sua segurança é nossa prioridade. Implementamos tecnologias de ponta para garantir que seus dados estejam sempre protegidos."
-                )
-
-                UpdateSectionItem(
-                    icon = Icons.Default.Sync,
-                    title = "Sincronização Inteligente",
-                    description = "Seus dados são salvos e sincronizados automaticamente em tempo real, garantindo que você nunca perca seus planos."
+                    icon = Icons.Default.ShoppingBag,
+                    title = "Momentus Store",
+                    description = "Use seu XP para adquirir colecionáveis exclusivos. Personalize seu perfil e mostre sua dedicação à produtividade."
                 )
 
                 UpdateSectionItem(
                     icon = Icons.Default.Devices,
-                    title = "Feito para todo lugar",
-                    description = "Experiência otimizada para smartphones e tablets, garantindo sua produtividade onde quer que você esteja."
+                    title = "Layout Universal Premium",
+                    description = "Refizemos toda a arquitetura visual para garantir uma experiência fluida em qualquer aparelho, respeitando 100% as barras do sistema."
                 )
 
                 UpdateSectionItem(
-                    icon = Icons.Default.EmojiEvents,
-                    title = "Suas Conquistas em Destaque",
-                    description = "Novo sistema de metas e celebrações incríveis para motivar você a conquistar o seu dia, todos os dias."
+                    icon = Icons.Default.Bolt,
+                    title = "Economia de XP 2.0",
+                    description = "Migramos nosso sistema de pontos para suportar acúmulos massivos. Ganhe recompensas sem limites enquanto foca nos seus objetivos."
+                )
+
+                UpdateSectionItem(
+                    icon = Icons.Default.Timer,
+                    title = "Foco Personalizado",
+                    description = "Ajuste os tempos de foco e pausas conforme sua necessidade. Introduzimos o acompanhamento de ciclos para sessões de trabalho profundo."
                 )
 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -168,7 +169,7 @@ fun UpdateNotesScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(bottomBarPadding + 48.dp))
             }
         }
     }
@@ -180,44 +181,49 @@ fun UpdateSectionItem(
     title: String,
     description: String
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.Top
+    GlassCard(
+        modifier = Modifier.padding(vertical = 8.dp),
+        cornerRadius = 20.dp
     ) {
-        Surface(
-            modifier = Modifier.size(52.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(26.dp)
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.width(20.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 22.sp
-            )
         }
     }
 }

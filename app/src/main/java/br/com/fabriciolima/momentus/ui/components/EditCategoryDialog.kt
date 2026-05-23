@@ -12,7 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,10 +27,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.data.model.MarketItem
 import br.com.fabriciolima.momentus.ui.theme.googleCalendarColors
+import br.com.fabriciolima.momentus.ui.util.getIconForMarketItem
 
 fun Color.toHexString(): String {
     return String.format("#%06X", 0xFFFFFF and this.toArgb())
@@ -40,10 +44,12 @@ fun Color.toHexString(): String {
 @Composable
 fun EditCategoryDialog(
     category: Category?,
+    ownedStickers: List<MarketItem> = emptyList(),
     onDismiss: () -> Unit,
-    onConfirm: (id: String?, name: String, color: String) -> Unit
+    onConfirm: (id: String?, name: String, color: String, stickerId: String?) -> Unit
 ) {
     var name by remember { mutableStateOf(category?.nome ?: "") }
+    var selectedStickerId by remember { mutableStateOf(category?.stickerId) }
 
     val initialColor = category?.cor?.let { colorString ->
         googleCalendarColors.entries.find { it.value.toHexString() == colorString }?.value
@@ -57,7 +63,7 @@ fun EditCategoryDialog(
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                Text(if (category == null) "Nova Categoria" else "Editar Categoria", style = MaterialTheme.typography.titleLarge)
+                Text(if (category == null) "Nova Categoria" else "Editar Categoria", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
@@ -66,12 +72,12 @@ fun EditCategoryDialog(
                     label = { Text("Nome da Categoria") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                Text("Cor", style = MaterialTheme.typography.titleMedium)
+                Text("Cor da Categoria", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(6),
-                    modifier = Modifier.padding(vertical = 8.dp).height(100.dp), // Altura fixa para evitar rolagem infinita
+                    modifier = Modifier.padding(vertical = 8.dp).height(100.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -91,7 +97,63 @@ fun EditCategoryDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                if (ownedStickers.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("Sticker da Categoria (Opcional)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(5),
+                        modifier = Modifier.height(70.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { selectedStickerId = null }
+                                    .border(2.dp, if (selectedStickerId == null) MaterialTheme.colorScheme.primary else Color.Transparent, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Block, contentDescription = "Nenhum", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        
+                        items(ownedStickers) { sticker ->
+                            val icon = getIconForMarketItem(sticker.id)
+                            if (icon != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
+                                        .clickable { selectedStickerId = sticker.id }
+                                        .border(2.dp, if (selectedStickerId == sticker.id) MaterialTheme.colorScheme.primary else Color.Transparent, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = icon, 
+                                        contentDescription = sticker.name, 
+                                        tint = if (selectedStickerId == sticker.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Adquira stickers na loja para personalizar suas categorias!",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -99,16 +161,16 @@ fun EditCategoryDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) { 
-                        Icon(Icons.Default.Close, contentDescription = "Cancelar")
-                        Spacer(modifier = Modifier.width(4.dp))
                         Text("Cancelar") 
                     }
+                    Spacer(Modifier.width(8.dp))
                     Button(
-                        onClick = { onConfirm(category?.id, name, selectedColor.toHexString()) },
-                        enabled = name.isNotBlank()
+                        onClick = { onConfirm(category?.id, name, selectedColor.toHexString(), selectedStickerId) },
+                        enabled = name.isNotBlank(),
+                        shape = MaterialTheme.shapes.medium
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = "Salvar")
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text("Salvar")
                     }
                 }

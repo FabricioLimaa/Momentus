@@ -40,6 +40,7 @@ import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import java.time.LocalDate
 import java.time.LocalTime
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +49,7 @@ fun HomeScreen(
     eventsForToday: EventsForDate,
     allCategories: List<Category>,
     windowSizeClass: WindowSizeClass,
+    bottomBarPadding: Dp = 0.dp,
     onNavigateToAchievements: () -> Unit,
     onMarkAsCompleted: (String) -> Unit,
     onUnmarkAsCompleted: (String) -> Unit,
@@ -161,7 +163,8 @@ fun HomeScreen(
                         onClick = onAddNewRotinaClicked,
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.padding(bottom = bottomBarPadding)
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
@@ -174,14 +177,15 @@ fun HomeScreen(
                     }
                 }
             },
-            containerColor = MaterialTheme.colorScheme.background
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.statusBars
         ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(top = paddingValues.calculateTopPadding())
                     .padding(horizontal = 20.dp),
-                contentPadding = PaddingValues(bottom = 100.dp)
+                contentPadding = PaddingValues(bottom = bottomBarPadding + 32.dp)
             ) {
                 item {
                     Spacer(modifier = Modifier.height(32.dp))

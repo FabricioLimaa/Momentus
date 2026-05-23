@@ -6,6 +6,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -53,7 +54,7 @@ fun Modifier.glassmorphism(
     )
 
 /**
- * Um Container pré-configurado com efeito Glassmorphism.
+ * Um Container pré-configurado com efeito Glassmorphism adaptativo.
  */
 @Composable
 fun GlassCard(
@@ -62,6 +63,7 @@ fun GlassCard(
     content: @Composable () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
+    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
     
     Box(
         modifier = modifier
@@ -70,8 +72,8 @@ fun GlassCard(
                 brush = Brush.verticalGradient(
                     colors = if (isDark) {
                         listOf(
-                            DeepNavySurface.copy(alpha = 0.7f),
-                            DeepNavySurface.copy(alpha = 0.4f)
+                            surfaceColor.copy(alpha = 0.7f),
+                            surfaceColor.copy(alpha = 0.4f)
                         )
                     } else {
                         listOf(
@@ -85,8 +87,8 @@ fun GlassCard(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.15f),
-                        Color.White.copy(alpha = 0.05f)
+                        MaterialTheme.colorScheme.outline.copy(alpha = if (isDark) 0.15f else 0.3f),
+                        Color.Transparent
                     )
                 ),
                 shape = RoundedCornerShape(cornerRadius)

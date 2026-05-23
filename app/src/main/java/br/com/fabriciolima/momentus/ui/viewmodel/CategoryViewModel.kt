@@ -3,6 +3,8 @@ package br.com.fabriciolima.momentus.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.data.model.MarketItem
+import br.com.fabriciolima.momentus.data.repository.MarketRepository
 import br.com.fabriciolima.momentus.domain.error.AppError
 import br.com.fabriciolima.momentus.domain.usecase.DeleteCategoryUseCase
 import br.com.fabriciolima.momentus.domain.usecase.GetCategoriesUseCase
@@ -10,10 +12,9 @@ import br.com.fabriciolima.momentus.domain.usecase.UpsertCategoryUseCase
 import br.com.fabriciolima.momentus.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,6 +28,7 @@ sealed interface CategoryDialogState {
 
 data class CategoryUiState(
     val categories: List<Category> = emptyList(),
+    val ownedStickers: List<MarketItem> = emptyList(),
     val dialogState: CategoryDialogState = CategoryDialogState.Hidden,
     val error: AppError? = null
 )
@@ -35,24 +37,22 @@ data class CategoryUiState(
 class CategoryViewModel @Inject constructor(
     getCategoriesUseCase: GetCategoriesUseCase,
     private val upsertCategoryUseCase: UpsertCategoryUseCase,
-    private val deleteCategoryUseCase: DeleteCategoryUseCase
+    private val deleteCategoryUseCase: DeleteCategoryUseCase,
+    private val marketRepository: MarketRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CategoryUiState())
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
-    val allCategories: StateFlow<List<Category>> = getCategoriesUseCase()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
     init {
         viewModelScope.launch {
-            allCategories.collect { categories ->
-                _uiState.update { it.copy(categories = categories) }
-            }
+            combine(
+                getCategoriesUseCase(),
+                marketRepository.getAvailableItems()
+            ) { categories, marketItems ->
+                val ownedStickers = marketItems.filter { it.isOwned && it.type == br.com.fabriciolima.momentus.data.model.ItemType.STICKER }
+                _uiState.update { it.copy(categories = categories, ownedStickers = ownedStickers) }
+            }.collect {}
         }
     }
 
@@ -76,12 +76,10 @@ class CategoryViewModel @Inject constructor(
         id: String?,
         nome: String,
         cor: String,
-        descricao: String? = null,
-        tag: String? = null,
-        duracaoPadraoMinutos: Int = 0
+        stickerId: String? = null
     ) {
         viewModelScope.launch {
-            val result = upsertCategoryUseCase(id, nome, cor)
+            val result = upsertCategoryUseCase(id, nome, cor, stickerId)
             
             when (result) {
                 is Result.Success -> onDialogDismiss()
@@ -90,20 +88,6 @@ class CategoryViewModel @Inject constructor(
         }
     }
     
-    fun insertCategory(category: Category) {
-        viewModelScope.launch {
-            val result = upsertCategoryUseCase(
-                id = category.id,
-                nome = category.nome,
-                cor = category.cor
-            )
-            
-            if (result is Result.Error) {
-                _uiState.update { it.copy(error = result.error) }
-            }
-        }
-    }
-
     fun deleteCategory(category: Category) {
         viewModelScope.launch {
             val result = deleteCategoryUseCase(category)

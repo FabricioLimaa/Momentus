@@ -9,8 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,16 +33,17 @@ import br.com.fabriciolima.momentus.ui.viewmodel.CompletionRate
 import br.com.fabriciolima.momentus.ui.viewmodel.StatsFilter
 import br.com.fabriciolima.momentus.ui.viewmodel.StatsViewModel
 import br.com.fabriciolima.momentus.ui.theme.*
-import java.time.LocalDate
 import java.util.Locale
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
+    bottomBarPadding: Dp = 0.dp,
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,10 +80,11 @@ fun StatsScreen(
                     )
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.statusBars
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize()) {
-                // Sutil gradiente de fundo
+                // 1. O Fundo ocupa a tela inteira (incluindo o espaço atrás do menu)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -98,12 +98,17 @@ fun StatsScreen(
                         )
                 )
 
+                // 2. A Lista usa o padding da TopAppBar (paddingValues) 
+                // e o padding do menu (bottomBarPadding) no contentPadding
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
+                        .padding(top = paddingValues.calculateTopPadding())
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    contentPadding = PaddingValues(
+                        bottom = bottomBarPadding + 32.dp // Menu + Respiro
+                    )
                 ) {
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -191,8 +196,6 @@ fun StatsScreen(
                             CompletionRateItemPremium(rate = rate)
                         }
                     }
-
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
             }
         }

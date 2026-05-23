@@ -14,10 +14,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import java.io.IOException
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LegalScreen(navController: NavController) {
+fun LegalScreen(
+    navController: NavController,
+    bottomBarPadding: Dp = 0.dp
+) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Termos de Uso", "Política de Privacidade", "Licença")
 
@@ -31,9 +37,14 @@ fun LegalScreen(navController: NavController) {
                     }
                 }
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(top = paddingValues.calculateTopPadding())
+        ) {
             PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
@@ -43,16 +54,16 @@ fun LegalScreen(navController: NavController) {
                 }
             }
             when (selectedTabIndex) {
-                0 -> LegalContentViewer(fileName = "TERMS_AND_CONDITIONS.txt")
-                1 -> LegalContentViewer(fileName = "PRIVACY_POLICY.txt")
-                2 -> LegalContentViewer(fileName = "LICENSE.txt")
+                0 -> LegalContentViewer(fileName = "TERMS_AND_CONDITIONS.txt", bottomPadding = bottomBarPadding)
+                1 -> LegalContentViewer(fileName = "PRIVACY_POLICY.txt", bottomPadding = bottomBarPadding)
+                2 -> LegalContentViewer(fileName = "LICENSE.txt", bottomPadding = bottomBarPadding)
             }
         }
     }
 }
 
 @Composable
-fun LegalContentViewer(fileName: String) {
+fun LegalContentViewer(fileName: String, bottomPadding: Dp) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     var text by remember { mutableStateOf("Carregando...") }
@@ -68,7 +79,11 @@ fun LegalContentViewer(fileName: String) {
         }
     }
 
-    Column(modifier = Modifier.verticalScroll(scrollState).padding(16.dp)) {
+    Column(modifier = Modifier
+        .verticalScroll(scrollState)
+        .padding(horizontal = 16.dp, vertical = 16.dp)
+        .padding(bottom = bottomPadding + 32.dp)
+    ) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,

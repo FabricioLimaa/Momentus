@@ -258,7 +258,8 @@ fun NewEventContent(
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = categoryColor.copy(alpha = 0.2f),
                         selectedLabelColor = categoryColor,
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedLeadingIconColor = categoryColor
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),

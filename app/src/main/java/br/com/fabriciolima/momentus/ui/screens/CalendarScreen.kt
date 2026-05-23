@@ -63,6 +63,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +76,7 @@ fun CalendarScreen(
     showCompletionAnimation: Flow<Unit>,
     account: GoogleSignInAccount?,
     windowSizeClass: WindowSizeClass,
+    bottomBarPadding: Dp = 0.dp,
     onNavigateToAchievements: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
     onMenuClick: () -> Unit,
@@ -266,7 +268,8 @@ fun CalendarScreen(
                         onClick = onAddNewRotinaClicked,
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.padding(bottom = bottomBarPadding)
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
@@ -280,7 +283,7 @@ fun CalendarScreen(
         ) { paddingValues ->
             Row(
                 modifier = Modifier
-                    .padding(paddingValues)
+                    .padding(top = paddingValues.calculateTopPadding())
                     .fillMaxSize()
             ) {
                 Column(
@@ -312,6 +315,7 @@ fun CalendarScreen(
                                     uiState = uiState,
                                     selectedDate = selectedDate,
                                     eventsForDate = eventsForSelectedDate,
+                                    bottomBarPadding = bottomBarPadding,
                                     onRotinaClick = { item ->
                                         if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
                                     },
@@ -341,6 +345,7 @@ fun CalendarScreen(
                                 uiState = uiState,
                                 selectedDate = selectedDate,
                                 eventsForDate = eventsForSelectedDate,
+                                bottomBarPadding = bottomBarPadding,
                                 onRotinaClick = { item ->
                                     if (uiState.isSelectionModeActive) onRotinaClicked(item.id) else onShowDetailClicked(item)
                                 },
@@ -540,28 +545,40 @@ fun CalendarHeader(
     onNextMonth: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR"))
+
+        // Título do Mês com estilo correto
         Text(
             text = month.format(monthFormatter).replaceFirstChar { it.titlecase(Locale.getDefault()) },
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Black,
             color = MaterialTheme.colorScheme.onSurface
         )
+
+        // Botões de navegação simplificados e alinhados
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(
                 onClick = onPreviousMonth,
-                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             ) {
                 Icon(Icons.Default.ChevronLeft, "Anterior", tint = MaterialTheme.colorScheme.onSurface)
             }
+
             Spacer(Modifier.width(8.dp))
+
             IconButton(
                 onClick = onNextMonth,
-                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             ) {
                 Icon(Icons.Default.ChevronRight, "Próximo", tint = MaterialTheme.colorScheme.onSurface)
             }
@@ -631,6 +648,7 @@ fun EventsForDay(
     uiState: CalendarUiState,
     selectedDate: LocalDate,
     eventsForDate: EventsForDate,
+    bottomBarPadding: Dp = 0.dp,
     onRotinaClick: (ItemCronograma) -> Unit,
     onRotinaLongClick: (ItemCronograma) -> Unit,
     onMarkAsCompleted: (String) -> Unit,
@@ -656,6 +674,7 @@ fun EventsForDay(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = formattedDate,
                     style = MaterialTheme.typography.headlineSmall,
@@ -697,7 +716,7 @@ fun EventsForDay(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Top,
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = bottomBarPadding + 40.dp)
             ) {
                 val sortedRotinas = eventsForDate.localRotinas.sortedBy { it.horarioInicio }
                 itemsIndexed(sortedRotinas) { index, rotina ->

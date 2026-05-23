@@ -14,7 +14,7 @@ import br.com.fabriciolima.momentus.data.model.UnlockedAchievement
 
 @Database(
     entities = [Category::class, ItemCronograma::class, Template::class, Meta::class, HabitoConcluido::class, UnlockedAchievement::class],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -68,6 +68,28 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_13_14 = object : Migration(13, 14) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Migração apenas para recalcular o Hash do Room
+            }
+        }
+
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                checkAndAddStickerIdColumn(db)
+            }
+        }
+
+        private fun checkAndAddStickerIdColumn(db: SupportSQLiteDatabase) {
+            val cursor = db.query("PRAGMA table_info(categories)")
+            var hasStickerId = false
+            while (cursor.moveToNext()) {
+                val nameIdx = cursor.getColumnIndex("name")
+                if (nameIdx != -1 && cursor.getString(nameIdx) == "stickerId") {
+                    hasStickerId = true
+                    break
+                }
+            }
+            cursor.close()
+            if (!hasStickerId) {
+                db.execSQL("ALTER TABLE categories ADD COLUMN stickerId TEXT")
             }
         }
 

@@ -72,7 +72,7 @@ fun MomentusTheme(
             primary = customPrimaryColor ?: md_theme_dark_primary,
             onPrimary = md_theme_dark_onPrimary,
             primaryContainer = (customPrimaryColor ?: md_theme_dark_primary).copy(alpha = 0.2f),
-            onPrimaryContainer = md_theme_dark_onPrimaryContainer,
+            onPrimaryContainer = customPrimaryColor ?: md_theme_dark_onPrimaryContainer,
             secondary = md_theme_dark_secondary,
             onSecondary = md_theme_dark_onSecondary,
             background = md_theme_dark_background,
@@ -87,9 +87,9 @@ fun MomentusTheme(
     } else {
         lightColorScheme(
             primary = customPrimaryColor ?: md_theme_light_primary,
-            onPrimary = md_theme_dark_onPrimary,
+            onPrimary = md_theme_light_onPrimary,
             primaryContainer = (customPrimaryColor ?: md_theme_light_primary).copy(alpha = 0.1f),
-            onPrimaryContainer = md_theme_light_onPrimaryContainer,
+            onPrimaryContainer = customPrimaryColor ?: md_theme_light_onPrimaryContainer,
             secondary = md_theme_light_secondary,
             onSecondary = md_theme_light_onSecondary,
             background = md_theme_light_background,

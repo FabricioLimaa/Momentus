@@ -91,9 +91,13 @@ fun SignUpScreen(
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.statusBars
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .navigationBarsPadding()
+        ) {
             // Fundo decorativo
             Box(
                 modifier = Modifier
@@ -198,7 +202,8 @@ fun SignUpScreen(
                     onClick = { viewModel.onSignUpClicked(name, email, password) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     enabled = isFormValid && !uiState.isLoading,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
                     if(uiState.isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)

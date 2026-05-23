@@ -165,7 +165,7 @@ fun AppScaffold(
             }
 
             Box(modifier = Modifier.weight(1f)) {
-                AppNavHost(navController, startDestination, googleAccount, inAppUpdateManager, windowSizeClass, calendarViewModel, {})
+                AppNavHost(navController, startDestination, googleAccount, inAppUpdateManager, windowSizeClass, calendarViewModel, {}, 0.dp)
             }
         }
     } else {
@@ -221,7 +221,6 @@ fun AppScaffold(
         ) { paddingValues ->
             Box(
                 modifier = Modifier.fillMaxSize()
-                // Padding removido daqui para evitar a "tarja" no background
             ) {
                 AppNavHost(
                     navController = navController,
@@ -231,7 +230,8 @@ fun AppScaffold(
                     windowSizeClass = windowSizeClass,
                     sharedViewModel = calendarViewModel,
                     onMenuClick = {},
-                    modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
+                    bottomBarPadding = paddingValues.calculateBottomPadding(),
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }
@@ -247,6 +247,7 @@ fun AppNavHost(
     windowSizeClass: WindowSizeClass,
     sharedViewModel: CalendarViewModel,
     onMenuClick: () -> Unit,
+    bottomBarPadding: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier
 ) {
     NavHost(navController = navController, startDestination = startDestination, modifier = modifier) {
@@ -266,6 +267,7 @@ fun AppNavHost(
                 eventsForToday = eventsForToday,
                 allCategories = allCategories,
                 windowSizeClass = windowSizeClass,
+                bottomBarPadding = bottomBarPadding,
                 onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                 onMarkAsCompleted = sharedViewModel::markHabitAsCompleted,
                 onUnmarkAsCompleted = sharedViewModel::unmarkHabitAsCompleted,
@@ -303,6 +305,7 @@ fun AppNavHost(
                 account = googleAccount,
                 showCompletionAnimation = sharedViewModel.showCompletionAnimation,
                 windowSizeClass = windowSizeClass,
+                bottomBarPadding = bottomBarPadding,
                 onNavigateToAchievements = { navController.navigate(Screen.Achievements.route) },
                 onDateSelected = sharedViewModel::selectDate,
                 onMenuClick = onMenuClick,
@@ -333,31 +336,59 @@ fun AppNavHost(
         }
 
         composable(Screen.Focus.route) {
-            FocusModeScreen()
+            FocusModeScreen(bottomBarPadding = bottomBarPadding)
         }
         composable(Screen.Templates.route) { 
             TemplatesScreen(
                 navController = navController, 
-                windowSizeClass = windowSizeClass
+                windowSizeClass = windowSizeClass,
+                bottomBarPadding = bottomBarPadding
             ) 
         }
-        composable(Screen.Categories.route) { CategoriesScreen(navController) }
+        composable(Screen.Categories.route) { 
+            CategoriesScreen(
+                navController = navController,
+                bottomBarPadding = bottomBarPadding
+            ) 
+        }
         composable(Screen.Stats.route) { 
             StatsScreen(
                 navController = navController, 
-                windowSizeClass = windowSizeClass
+                windowSizeClass = windowSizeClass,
+                bottomBarPadding = bottomBarPadding
             ) 
         }
         composable(Screen.Achievements.route) { 
             AchievementsScreen(
                 navController = navController, 
-                windowSizeClass = windowSizeClass
+                windowSizeClass = windowSizeClass,
+                bottomBarPadding = bottomBarPadding
             ) 
         }
-        composable(Screen.Updates.route) { UpdateNotesScreen(navController) }
-        composable(Screen.Legal.route) { LegalScreen(navController) }
-        composable(Screen.Settings.route) { SettingsScreen(navController) }
-        composable(Screen.Market.route) { MarketScreen(navController) }
+        composable(Screen.Updates.route) { 
+            UpdateNotesScreen(
+                navController = navController,
+                bottomBarPadding = bottomBarPadding
+            ) 
+        }
+        composable(Screen.Legal.route) { 
+            LegalScreen(
+                navController = navController,
+                bottomBarPadding = bottomBarPadding
+            ) 
+        }
+        composable(Screen.Settings.route) { 
+            SettingsScreen(
+                navController = navController,
+                bottomBarPadding = bottomBarPadding
+            ) 
+        }
+        composable(Screen.Market.route) { 
+            MarketScreen(
+                navController = navController,
+                bottomBarPadding = bottomBarPadding
+            ) 
+        }
         
         composable(Screen.More.route) {
             val uiState by sharedViewModel.uiState.collectAsStateWithLifecycle()
@@ -365,6 +396,7 @@ fun AppNavHost(
                 navController = navController,
                 uiState = uiState,
                 windowSizeClass = windowSizeClass,
+                bottomBarPadding = bottomBarPadding,
                 onLogout = { sharedViewModel.logout() }
             )
         }

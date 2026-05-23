@@ -26,6 +26,7 @@ import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.ui.platform.LocalContext
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +34,7 @@ fun MoreScreen(
     navController: NavController,
     uiState: CalendarUiState,
     windowSizeClass: WindowSizeClass,
+    bottomBarPadding: Dp = 0.dp,
     onLogout: () -> Unit,
 ) {
     val firebaseUser = FirebaseAuth.getInstance().currentUser
@@ -44,14 +46,16 @@ fun MoreScreen(
         snackbarHostState = snackbarHostState
     ) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) }
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = MaterialTheme.colorScheme.background
         ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(top = paddingValues.calculateTopPadding())
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = bottomBarPadding + 32.dp)
             ) {
                 // 1. User Profile Card
                 item {

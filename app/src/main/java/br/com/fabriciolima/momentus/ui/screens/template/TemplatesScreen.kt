@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Warning
@@ -47,13 +48,16 @@ import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.ui.components.TimelineEventItem
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import br.com.fabriciolima.momentus.ui.screens.market.XPBadge
 import br.com.fabriciolima.momentus.ui.theme.EmeraldNeon
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplatesScreen(
     navController: NavController,
     windowSizeClass: WindowSizeClass,
+    bottomBarPadding: Dp = 0.dp,
     viewModel: TemplateViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -178,21 +182,29 @@ fun TemplatesScreen(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
-                    title = { Text("Meus Templates", fontWeight = FontWeight.ExtraBold) }
+                    title = { Text("Meus Templates", fontWeight = FontWeight.ExtraBold) },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                        }
+                    },
                 )
             },
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.statusBars,
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = viewModel::onShowCreateDialog,
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(bottom = bottomBarPadding)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Novo Template")
                 }
             }
         ) { paddingValues ->
             Column(modifier = Modifier
-                .padding(paddingValues)
+                .padding(top = paddingValues.calculateTopPadding())
                 .fillMaxHeight()
                 .padding(horizontal = 16.dp))
             {
@@ -226,7 +238,7 @@ fun TemplatesScreen(
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(20.dp),
-                        contentPadding = PaddingValues(bottom = 80.dp)
+                        contentPadding = PaddingValues(bottom = bottomBarPadding + 40.dp)
                     ) {
                         items(uiState.templates) { templateComEventos ->
                             TemplateCardPremium(
@@ -672,7 +684,10 @@ fun CreateTemplateDialog(
                 Button(
                     onClick = { onConfirm(templateToEdit?.template?.id, templateName, templateDescricao.ifBlank { null }, eventForms) },
                     enabled = isFormValid,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .navigationBarsPadding(),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
@@ -682,6 +697,9 @@ fun CreateTemplateDialog(
                         fontSize = 16.sp
                     )
                 }
+
+                // Respiro extra para garantir que o botão não pareça sufocado mesmo com a barra do sistema
+                Spacer(modifier = Modifier.height(50.dp))
             }
         }
     }
@@ -795,7 +813,9 @@ fun EventTemplateForm(
                     shape = RoundedCornerShape(10.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = categoryColor.copy(alpha = 0.2f),
-                        selectedLabelColor = categoryColor
+                        selectedLabelColor = categoryColor,
+                        selectedLeadingIconColor = categoryColor,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),

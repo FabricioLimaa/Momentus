@@ -24,6 +24,7 @@ data class Category(
     val duracaoPadraoMinutos: Int = 60,
     val cor: String = "#CCCCCC",
     val tag: String? = null,
+    val stickerId: String? = null,
     @ServerTimestamp
     val lastUpdated: Date? = null
 ) : Serializable

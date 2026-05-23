@@ -28,24 +28,14 @@ import androidx.navigation.NavController
 import br.com.fabriciolima.momentus.data.model.MarketItem
 import br.com.fabriciolima.momentus.ui.theme.*
 import br.com.fabriciolima.momentus.ui.viewmodel.MarketViewModel
-
-@Composable
-fun getIconForMarketItem(id: String): ImageVector {
-    return when (id) {
-        "stk_rocket" -> Icons.Default.RocketLaunch
-        "stk_coffee" -> Icons.Default.Coffee
-        "stk_zen" -> Icons.Default.SelfImprovement
-        "stk_bolt" -> Icons.Default.Bolt
-        "med_time" -> Icons.Default.Timer
-        "med_streak" -> Icons.Default.LocalFireDepartment
-        else -> Icons.Default.Inventory2
-    }
-}
+import br.com.fabriciolima.momentus.ui.util.getIconForMarketItem
+import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketScreen(
     navController: NavController,
+    bottomBarPadding: Dp = 0.dp,
     viewModel: MarketViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,7 +59,7 @@ fun MarketScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Momentus Store", fontWeight = FontWeight.Black) },
+                title = { Text("Momentus Store", fontWeight = FontWeight.ExtraBold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
@@ -78,12 +68,13 @@ fun MarketScreen(
                 actions = {
                     XPBadge(points = uiState.userData?.points ?: 0L)
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.statusBars
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)
+        Box(modifier = Modifier
+            .fillMaxSize()
         ) {
             // Background Gradient
             Box(
@@ -101,7 +92,10 @@ fun MarketScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else {
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Column(modifier = Modifier
+                    .padding(top = paddingValues.calculateTopPadding())
+                    .padding(horizontal = 16.dp)
+                ) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Personalize sua experiência com colecionáveis exclusivos.",
@@ -115,7 +109,7 @@ fun MarketScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 32.dp)
+                        contentPadding = PaddingValues(bottom = bottomBarPadding + 32.dp)
                     ) {
                         items(uiState.items) { item ->
                             MarketItemCard(
@@ -194,7 +188,7 @@ fun MarketItemCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (item.isOwned) Icons.Default.CheckCircle else getIconForMarketItem(item.id),
+                    imageVector = if (item.isOwned) Icons.Default.CheckCircle else (getIconForMarketItem(item.id) ?: Icons.Default.Inventory2),
                     contentDescription = null,
                     tint = if (item.isOwned) MaterialTheme.colorScheme.primary else item.rarity.color,
                     modifier = Modifier.size(32.dp)

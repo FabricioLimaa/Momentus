@@ -100,8 +100,9 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DeepNavyBackground)
+            .background(MaterialTheme.colorScheme.background)
     ) {
+        val primaryColor = MaterialTheme.colorScheme.primary
         // Grafismo de Fundo Premium (Ondas suaves)
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
@@ -116,7 +117,7 @@ fun LoginScreen(
             drawPath(
                 path = path,
                 brush = Brush.verticalGradient(
-                    listOf(Color.Black.copy(alpha = 0.08f), Color.Transparent)
+                    listOf(primaryColor.copy(alpha = 0.08f), Color.Transparent)
                 )
             )
         }
@@ -124,8 +125,10 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(32.dp),
+                .padding(horizontal = 32.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -150,12 +153,12 @@ fun LoginScreen(
                 text = "Momentus",
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Black,
-                color = TextPrimaryDark
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "Organize suas metas, conquiste seu dia.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextSecondaryDark,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -209,10 +212,10 @@ fun LoginScreen(
                 shape = RoundedCornerShape(16.dp),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    GlassBorder
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 ),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = TextPrimaryDark
+                    contentColor = MaterialTheme.colorScheme.onBackground
                 )
             ) {
                 Icon(
@@ -238,9 +241,9 @@ fun LoginScreen(
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = GlassBorder,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                             focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedLabelColor = TextSecondaryDark
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
@@ -254,9 +257,9 @@ fun LoginScreen(
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = GlassBorder,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                             focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedLabelColor = TextSecondaryDark
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         visualTransformation = PasswordVisualTransformation()
@@ -269,9 +272,9 @@ fun LoginScreen(
                         Checkbox(
                             checked = rememberMe,
                             onCheckedChange = { rememberMe = it; viewModel.updatePreferences(email, it) },
-                            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary, uncheckedColor = GlassBorder)
+                            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary, uncheckedColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         )
-                        Text("Lembrar-me", style = MaterialTheme.typography.bodyMedium, color = TextSecondaryDark)
+                        Text("Lembrar-me", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.weight(1f))
                         TextButton(onClick = { navController.navigate(Screen.ForgotPassword.route) }) {
                             Text("Esqueceu a senha?", color = MaterialTheme.colorScheme.primary)
@@ -302,7 +305,7 @@ fun LoginScreen(
                 Text(
                     text = "Comece gratuitamente",
                     style = MaterialTheme.typography.labelLarge,
-                    color = TextSecondaryDark.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -314,7 +317,7 @@ fun LoginScreen(
                         append("\nsuas rotinas.")
                     },
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondaryDark.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     textAlign = TextAlign.Center,
                     lineHeight = 16.sp
                 )
@@ -323,7 +326,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Não tem uma conta?", color = TextSecondaryDark)
+                Text("Não tem uma conta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = { navController.navigate(Screen.SignUp.route) }) {
                     Text("Crie uma aqui", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
@@ -338,7 +341,7 @@ fun LoginScreen(
         Text(
             text = "Versão: $versionName",
             style = MaterialTheme.typography.bodySmall,
-            color = TextSecondaryDark.copy(alpha = 0.3f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 30.dp)
         )
     }

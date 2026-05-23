@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
+import br.com.fabriciolima.momentus.ui.util.getIconForMarketItem
 
 @Composable
 fun CategoryListItem(item: CategoryWithMeta, onEdit: (CategoryWithMeta) -> Unit, onDelete: (CategoryWithMeta) -> Unit) {
@@ -38,12 +39,23 @@ fun CategoryListItem(item: CategoryWithMeta, onEdit: (CategoryWithMeta) -> Unit,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // ADICIONADO: Ícone circular com a cor da categoria
+                    // ADICIONADO: Ícone circular com a cor da categoria e sticker (se houver)
                     Box(
                         modifier = Modifier
-                            .size(24.dp)
-                            .background(categoryColor, CircleShape)
-                    )
+                            .size(32.dp)
+                            .background(categoryColor, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val stickerIcon = getIconForMarketItem(item.category.stickerId)
+                        if (stickerIcon != null) {
+                            Icon(
+                                imageVector = stickerIcon,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(item.category.nome, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }

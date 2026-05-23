@@ -11,7 +11,7 @@ import javax.inject.Inject
 class UpsertCategoryUseCase @Inject constructor(
     private val categoryRepository: CategoryRepository
 ) {
-    suspend operator fun invoke(id: String?, nome: String, cor: String): Result<Unit> {
+    suspend operator fun invoke(id: String?, nome: String, cor: String, stickerId: String? = null): Result<Unit> {
         val currentCategories = categoryRepository.allCategoriesWithMetas.first().map { it.category }
         val isDuplicate = currentCategories.any { it.nome.equals(nome, ignoreCase = true) && it.id != id }
 
@@ -23,6 +23,7 @@ class UpsertCategoryUseCase @Inject constructor(
             id = id ?: UUID.randomUUID().toString(),
             nome = nome.trim(),
             cor = cor,
+            stickerId = stickerId,
             descricao = null,
             tag = null
         )
