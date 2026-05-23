@@ -272,14 +272,17 @@ fun CalendarScreen(
                         modifier = Modifier.padding(bottom = bottomBarPadding)
                     ) {
                         if (uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), 
+                                color = MaterialTheme.colorScheme.onPrimary)
                         } else {
-                            Icon(Icons.Default.Add, contentDescription = "Nova Rotina")
+                            Icon(Icons.Default.Add,
+                                contentDescription = "Nova Rotina")
                         }
                     }
                 }
             },
-            containerColor = MaterialTheme.colorScheme.background
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.statusBars
         ) { paddingValues ->
             Row(
                 modifier = Modifier
@@ -526,11 +529,21 @@ fun CalendarContent(
             modifier = Modifier.fillMaxWidth(),
             state = calendarState,
             dayContent = { day ->
+                val dayEvents = uiState.allScheduleItems.filter {
+                    it.data?.let { instant -> Instant.ofEpochMilli(instant).atZone(ZoneOffset.UTC).toLocalDate() == day.date } ?: false
+                }.sortedBy { it.horarioInicio }
+                
+                val colors = dayEvents.take(3).map { item ->
+                    val colorHex = uiState.categoriesMap[item.categoryId]?.cor ?: "#CCCCCC"
+                    try { Color(android.graphics.Color.parseColor(colorHex)) } catch (e: Exception) { Color.Gray }
+                }
+
                 DayCell(
                     day = day,
                     isSelected = selectedDate == day.date,
                     isToday = day.date == LocalDate.now(),
-                    hasEvents = localScheduleByDate.containsKey(day.date),
+                    eventColors = colors,
+                    hasMoreEvents = dayEvents.size > 3,
                     onDateSelected = { onDateSelected(it.date) }
                 )
             }
@@ -591,7 +604,8 @@ fun DayCell(
     day: CalendarDay,
     isSelected: Boolean,
     isToday: Boolean,
-    hasEvents: Boolean,
+    eventColors: List<Color>,
+    hasMoreEvents: Boolean,
     onDateSelected: (CalendarDay) -> Unit
 ) {
     val isCurrentMonth = day.position == DayPosition.MonthDate
@@ -613,7 +627,7 @@ fun DayCell(
             .background(backgroundColor)
             .then(
                 if (isToday && !isSelected && isCurrentMonth) {
-                    Modifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
                 } else Modifier
             )
             .clickable(enabled = isCurrentMonth, onClick = { onDateSelected(day) }),
@@ -630,14 +644,28 @@ fun DayCell(
                 fontWeight = if (isSelected || isToday) FontWeight.Black else FontWeight.Medium
             )
             
-            if (hasEvents && isCurrentMonth) {
+            if (eventColors.isNotEmpty() && isCurrentMonth) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .size(4.dp)
-                        .clip(CircleShape)
-                        .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary)
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    eventColors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else color)
+                        )
+                    }
+                    if (hasMoreEvents) {
+                        Text(
+                            text = "+",
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        )
+                    }
+                }
             }
         }
     }
@@ -694,7 +722,7 @@ fun EventsForDay(
 
         if (eventsForDate.localRotinas.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(top = 40.dp),
+                modifier = Modifier.fillMaxSize().padding(bottom = bottomBarPadding),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

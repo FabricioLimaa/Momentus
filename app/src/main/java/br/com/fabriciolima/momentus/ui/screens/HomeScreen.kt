@@ -167,7 +167,8 @@ fun HomeScreen(
                         modifier = Modifier.padding(bottom = bottomBarPadding)
                     ) {
                         if (uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Add,
