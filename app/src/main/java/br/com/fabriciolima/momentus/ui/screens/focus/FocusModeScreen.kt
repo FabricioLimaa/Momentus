@@ -25,235 +25,269 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.fabriciolima.momentus.ui.theme.*
 import br.com.fabriciolima.momentus.ui.viewmodel.FocusMode
 import br.com.fabriciolima.momentus.ui.viewmodel.FocusViewModel
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
+import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import java.util.Locale
 import androidx.compose.ui.unit.Dp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FocusModeScreen(
+    windowSizeClass: WindowSizeClass,
     bottomBarPadding: Dp = 0.dp,
     viewModel: FocusViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    if (uiState.showSettingsDialog) {
-        FocusSettingsDialog(
-            currentFocus = uiState.focusDurationMinutes,
-            currentShortBreak = uiState.shortBreakMinutes,
-            currentLongBreak = uiState.longBreakMinutes,
-            onDismiss = { viewModel.setShowSettingsDialog(false) },
-            onConfirm = { f, s, l -> viewModel.updateDurations(f, s, l) }
-        )
-    }
+    AdaptiveOrientationWrapper(
+        windowSizeClass = windowSizeClass,
+        snackbarHostState = snackbarHostState
+    ) {
+        LaunchedEffect(uiState.error, uiState.successMessage) {
+            uiState.error?.let { error ->
+                snackbarHostState.showSnackbar(error.message ?: "Erro no Modo Foco")
+                viewModel.onErrorShown()
+            }
+            uiState.successMessage?.let {
+                snackbarHostState.showSnackbar(it)
+                viewModel.onSuccessMessageShown()
+            }
+        }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.statusBars
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            // Sutil gradiente de fundo adaptativo
+        if (uiState.showSettingsDialog) {
+            FocusSettingsDialog(
+                currentFocus = uiState.focusDurationMinutes,
+                currentShortBreak = uiState.shortBreakMinutes,
+                currentLongBreak = uiState.longBreakMinutes,
+                onDismiss = { viewModel.setShowSettingsDialog(false) },
+                onConfirm = { f, s, l -> viewModel.updateDurations(f, s, l) }
+            )
+        }
+
+        Scaffold(
+            snackbarHost = { 
+                SnackbarHost(snackbarHostState) { data ->
+                    PremiumSnackbar(data)
+                }
+            },
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { 
+                        Text(
+                            "Modo Foco", 
+                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.titleLarge,
+                            letterSpacing = (-0.5).sp
+                        ) 
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.statusBars
+        ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.background,
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.05f)
-                            )
-                        )
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = paddingValues.calculateTopPadding())
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // Header Minimalista
-                Text(
-                    text = "Modo Foco",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    letterSpacing = 1.sp
-                )
-                
-                Text(
-                    text = when (uiState.mode) {
-                        FocusMode.FOCUS -> "Hora de concentrar"
-                        FocusMode.SHORT_BREAK -> "Pausa curta"
-                        FocusMode.LONG_BREAK -> "Pausa longa"
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Timer Circular
+                // Sutil gradiente de fundo adaptativo
                 Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(280.dp)
-                ) {
-                    val progress = uiState.timeLeftSeconds.toFloat() / uiState.totalSeconds.toFloat()
-                    val animatedProgress by animateFloatAsState(
-                        targetValue = progress,
-                        animationSpec = tween(durationMillis = 1000),
-                        label = "timerProgress"
-                    )
-
-                    // Trilho do progresso
-                    CircularProgressIndicator(
-                        progress = { 1f },
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                        strokeWidth = 12.dp,
-                        strokeCap = StrokeCap.Round
-                    )
-
-                    // Progresso Ativo
-                    CircularProgressIndicator(
-                        progress = { animatedProgress },
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 12.dp,
-                        trackColor = Color.Transparent,
-                        strokeCap = StrokeCap.Round
-                    )
-
-                    // Tempo Restante
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        val minutes = uiState.timeLeftSeconds / 60
-                        val seconds = uiState.timeLeftSeconds % 60
-                        Text(
-                            text = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds),
-                            style = MaterialTheme.typography.displayLarge.copy(fontSize = 64.sp),
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        
-                        if (uiState.isRunning) {
-                            Text(
-                                text = "EM ANDAMENTO",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.background,
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.05f)
+                                )
                             )
+                        )
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = paddingValues.calculateTopPadding())
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = when (uiState.mode) {
+                            FocusMode.FOCUS -> "Hora de concentrar"
+                            FocusMode.SHORT_BREAK -> "Pausa curta"
+                            FocusMode.LONG_BREAK -> "Pausa longa"
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Timer Circular
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(280.dp)
+                    ) {
+                        val progress = uiState.timeLeftSeconds.toFloat() / uiState.totalSeconds.toFloat()
+                        val animatedProgress by animateFloatAsState(
+                            targetValue = progress,
+                            animationSpec = tween(durationMillis = 1000),
+                            label = "timerProgress"
+                        )
+
+                        // Trilho do progresso
+                        CircularProgressIndicator(
+                            progress = { 1f },
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            strokeWidth = 12.dp,
+                            strokeCap = StrokeCap.Round
+                        )
+
+                        // Progresso Ativo
+                        CircularProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 12.dp,
+                            trackColor = Color.Transparent,
+                            strokeCap = StrokeCap.Round
+                        )
+
+                        // Tempo Restante
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val minutes = uiState.timeLeftSeconds / 60
+                            val seconds = uiState.timeLeftSeconds % 60
+                            Text(
+                                text = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds),
+                                style = MaterialTheme.typography.displayLarge.copy(fontSize = 64.sp),
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            
+                            if (uiState.isRunning) {
+                                Text(
+                                    text = "EM ANDAMENTO",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 2.sp
+                                )
+                            }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.weight(1f))
 
-                // Controles de Modo
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    ModeButton(
-                        label = "Foco", 
-                        isSelected = uiState.mode == FocusMode.FOCUS,
-                        onClick = { viewModel.setMode(FocusMode.FOCUS) }
-                    )
-                    ModeButton(
-                        label = "Pausa", 
-                        isSelected = uiState.mode == FocusMode.SHORT_BREAK,
-                        onClick = { viewModel.setMode(FocusMode.SHORT_BREAK) }
-                    )
-                    ModeButton(
-                        label = "Longa", 
-                        isSelected = uiState.mode == FocusMode.LONG_BREAK,
-                        onClick = { viewModel.setMode(FocusMode.LONG_BREAK) }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // Botões de Ação Principais
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    IconButton(
-                        onClick = { viewModel.resetTimer() },
+                    // Controles de Modo
+                    Row(
                         modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
+                            .clip(RoundedCornerShape(20.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reiniciar", tint = MaterialTheme.colorScheme.onSurface)
-                    }
-
-                    Button(
-                        onClick = { viewModel.toggleTimer() },
-                        modifier = Modifier
-                            .height(72.dp)
-                            .width(160.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (uiState.isRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                            contentColor = if (uiState.isRunning) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp)
+                        ModeButton(
+                            label = "Foco", 
+                            isSelected = uiState.mode == FocusMode.FOCUS,
+                            onClick = { viewModel.setMode(FocusMode.FOCUS) }
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (uiState.isRunning) "PAUSAR" else "FOCO",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 18.sp
+                        ModeButton(
+                            label = "Pausa", 
+                            isSelected = uiState.mode == FocusMode.SHORT_BREAK,
+                            onClick = { viewModel.setMode(FocusMode.SHORT_BREAK) }
+                        )
+                        ModeButton(
+                            label = "Longa", 
+                            isSelected = uiState.mode == FocusMode.LONG_BREAK,
+                            onClick = { viewModel.setMode(FocusMode.LONG_BREAK) }
                         )
                     }
 
-                    IconButton(
-                        onClick = { viewModel.setShowSettingsDialog(true) },
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // Botões de Ação Principais
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        Icon(Icons.Default.Tune, contentDescription = "Ajustes", tint = MaterialTheme.colorScheme.onSurface)
+                        IconButton(
+                            onClick = { viewModel.resetTimer() },
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Reiniciar", tint = MaterialTheme.colorScheme.onSurface)
+                        }
+
+                        Button(
+                            onClick = { viewModel.toggleTimer() },
+                            modifier = Modifier
+                                .height(72.dp)
+                                .width(160.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (uiState.isRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                contentColor = if (uiState.isRunning) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (uiState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (uiState.isRunning) "PAUSAR" else "FOCO",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 18.sp
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { viewModel.setShowSettingsDialog(true) },
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Tune, contentDescription = "Ajustes", tint = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(48.dp))
 
-                // Stats de Sessão (Glassmorphism)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    FocusStatCard(
-                        title = "XP Ganhos", 
-                        value = "+${uiState.xpGained}", 
-                        icon = Icons.Default.Bolt,
-                        modifier = Modifier.weight(1f)
-                    )
-                    FocusStatCard(
-                        title = "Ciclos", 
-                        value = uiState.completedSessions.toString(), 
-                        icon = Icons.Default.CheckCircle,
-                        modifier = Modifier.weight(1f)
-                    )
+                    // Stats de Sessão (Glassmorphism)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        FocusStatCard(
+                            title = "XP Ganhos", 
+                            value = "+${uiState.xpGained}", 
+                            icon = Icons.Default.Bolt,
+                            modifier = Modifier.weight(1f)
+                        )
+                        FocusStatCard(
+                            title = "Ciclos", 
+                            value = uiState.completedSessions.toString(), 
+                            icon = Icons.Default.CheckCircle,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(bottomBarPadding + 20.dp))
                 }
-                
-                Spacer(modifier = Modifier.height(bottomBarPadding + 20.dp))
             }
         }
     }

@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import br.com.fabriciolima.momentus.domain.error.AppError
+import kotlinx.coroutines.flow.update
 import java.util.Date
 import javax.inject.Inject
 
@@ -29,7 +31,9 @@ data class AchievementsUiState(
     val totalCount: Int = 0,
     val streakCount: Int = 0,
     val points: Long = 0L,
-    val selectedAchievement: AchievementUiInfo? = null // Para o dialog
+    val selectedAchievement: AchievementUiInfo? = null,
+    val error: AppError? = null,
+    val successMessage: String? = null
 )
 
 @HiltViewModel
@@ -76,5 +80,13 @@ class AchievementsViewModel @Inject constructor(
 
     fun onDialogDismiss() {
         _uiState.update { it.copy(selectedAchievement = null) }
+    }
+
+    fun onErrorShown() {
+        _uiState.update { it.copy(error = null) }
+    }
+
+    fun onSuccessMessageShown() {
+        _uiState.update { it.copy(successMessage = null) }
     }
 }

@@ -284,7 +284,9 @@ fun AppNavHost(
                 onClearSelection = sharedViewModel::onClearSelection,
                 onSelectAll = sharedViewModel::onSelectAll,
                 onConfirmDeleteSelectedRotinas = sharedViewModel::confirmDeleteSelectedRotinas,
-                onDeleteSelectedRotinas = sharedViewModel::deleteSelectedRotinas
+                onDeleteSelectedRotinas = sharedViewModel::deleteSelectedRotinas,
+                onSuccessMessageShown = sharedViewModel::onSuccessMessageShown,
+                onErrorShown = sharedViewModel::onErrorShown
             )
         }
 
@@ -336,7 +338,10 @@ fun AppNavHost(
         }
 
         composable(Screen.Focus.route) {
-            FocusModeScreen(bottomBarPadding = bottomBarPadding)
+            FocusModeScreen(
+                windowSizeClass = windowSizeClass,
+                bottomBarPadding = bottomBarPadding
+            )
         }
         composable(Screen.Templates.route) { 
             TemplatesScreen(

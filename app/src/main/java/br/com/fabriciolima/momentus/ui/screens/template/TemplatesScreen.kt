@@ -46,6 +46,7 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.ui.components.TimelineEventItem
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import br.com.fabriciolima.momentus.ui.screens.market.XPBadge
@@ -69,13 +70,15 @@ fun TemplatesScreen(
         windowSizeClass = windowSizeClass,
         snackbarHostState = snackbarHostState
     ) {
-        LaunchedEffect(uiState.error) {
+        LaunchedEffect(uiState.error, uiState.successMessage) {
             uiState.error?.let { error ->
                 val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro desconhecido"
-                scope.launch {
-                    snackbarHostState.showSnackbar(message)
-                    viewModel.onErrorShown()
-                }
+                snackbarHostState.showSnackbar(message)
+                viewModel.onErrorShown()
+            }
+            uiState.successMessage?.let {
+                snackbarHostState.showSnackbar(it)
+                viewModel.onSuccessMessageShown()
             }
         }
 
@@ -85,18 +88,7 @@ fun TemplatesScreen(
                     categories = uiState.categoriesMap.values.toList(),
                     onDismiss = viewModel::onDialogDismiss,
                     onConfirm = { id, name, description, events ->
-                        viewModel.salvarTemplateCompleto(id, name, description, events) { result ->
-                            when (result) {
-                                is Result.Success -> {
-                                    scope.launch { snackbarHostState.showSnackbar("Template salvo com sucesso!") }
-                                }
-                                is Result.Error -> {
-                                    val error = result.error
-                                    val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
-                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                                }
-                            }
-                        }
+                        viewModel.salvarTemplateCompleto(id, name, description, events)
                     }
                 )
             }
@@ -104,18 +96,7 @@ fun TemplatesScreen(
                 ImportTemplateDialog(
                     onDismiss = viewModel::onDialogDismiss,
                     onConfirm = { jsonString ->
-                        viewModel.importTemplateFromJson(jsonString) { result ->
-                            when (result) {
-                                is Result.Success -> {
-                                    scope.launch { snackbarHostState.showSnackbar("Template importado com sucesso!") }
-                                }
-                                is Result.Error -> {
-                                    val error = result.error
-                                    val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao importar"
-                                    scope.launch { snackbarHostState.showSnackbar(message) }
-                                }
-                            }
-                        }
+                        viewModel.importTemplateFromJson(jsonString)
                     }
                 )
             }
@@ -125,18 +106,7 @@ fun TemplatesScreen(
                     categories = uiState.categoriesMap.values.toList(),
                     onDismiss = viewModel::onDialogDismiss,
                     onConfirm = { id, name, description, events ->
-                        viewModel.salvarTemplateCompleto(id, name, description, events) { result ->
-                            when (result) {
-                                is Result.Success -> {
-                                    scope.launch { snackbarHostState.showSnackbar("Template atualizado com sucesso!") }
-                                }
-                                is Result.Error -> {
-                                    val error = result.error
-                                    val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao salvar"
-                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                                }
-                            }
-                        }
+                        viewModel.salvarTemplateCompleto(id, name, description, events)
                     }
                 )
             }
@@ -167,18 +137,7 @@ fun TemplatesScreen(
                 ApplyTemplateDialog(
                     onDismiss = viewModel::onDialogDismiss,
                     onConfirm = { dates, saveToGoogle ->
-                        viewModel.applyTemplateToDates(dialogState.template.template.id, dates, saveToGoogle) { result ->
-                            when (result) {
-                                is Result.Success -> {
-                                    scope.launch { snackbarHostState.showSnackbar("Template aplicado com sucesso!") }
-                                }
-                                is Result.Error -> {
-                                    val error = result.error
-                                    val message = error.message ?: error.messageResId?.let { context.getString(it) } ?: "Erro ao aplicar"
-                                    scope.launch { snackbarHostState.showSnackbar(message) }
-                                }
-                            }
-                        }
+                        viewModel.applyTemplateToDates(dialogState.template.template.id, dates, saveToGoogle)
                     }
                 )
             }
@@ -186,15 +145,30 @@ fun TemplatesScreen(
         }
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = { 
+                SnackbarHost(snackbarHostState) { data ->
+                    PremiumSnackbar(data)
+                }
+            },
             topBar = {
-                TopAppBar(
-                    title = { Text("Meus Templates", fontWeight = FontWeight.ExtraBold) },
+                CenterAlignedTopAppBar(
+                    title = { 
+                        Text(
+                            "Meus Templates", 
+                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.titleLarge,
+                            letterSpacing = (-0.5).sp
+                        ) 
+                    },
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                         }
                     },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
             },
             containerColor = MaterialTheme.colorScheme.background,

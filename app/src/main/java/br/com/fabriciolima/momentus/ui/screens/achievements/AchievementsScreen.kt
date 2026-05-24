@@ -38,6 +38,8 @@ import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
+import br.com.fabriciolima.momentus.ui.theme.GlassCard
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.ui.unit.Dp
 
@@ -73,6 +75,16 @@ fun AchievementsScreen(
         windowSizeClass = windowSizeClass,
         snackbarHostState = snackbarHostState
     ) {
+        LaunchedEffect(uiState.error, uiState.successMessage) {
+            uiState.error?.let {
+                snackbarHostState.showSnackbar(it.message ?: "Erro ao carregar conquistas")
+                viewModel.onErrorShown()
+            }
+            uiState.successMessage?.let {
+                snackbarHostState.showSnackbar(it)
+                viewModel.onSuccessMessageShown()
+            }
+        }
         uiState.selectedAchievement?.let {
             AchievementDetailDialog(
                 info = it,
@@ -81,7 +93,11 @@ fun AchievementsScreen(
         }
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = { 
+                SnackbarHost(snackbarHostState) { data ->
+                    PremiumSnackbar(data)
+                }
+            },
             topBar = {
                 TopAppBar(
                     title = { Text("Conquistas", fontWeight = FontWeight.ExtraBold) },

@@ -47,7 +47,8 @@ data class TemplateUiState(
     val dialogState: TemplateDialogState = TemplateDialogState.Hidden,
     val isLoading: Boolean = false,
     val isSyncing: Boolean = true,
-    val error: AppError? = null
+    val error: AppError? = null,
+    val successMessage: String? = null
 )
 
 @HiltViewModel
@@ -122,7 +123,7 @@ class TemplateViewModel @Inject constructor(
         return Json.encodeToString(shareableData)
     }
 
-    fun importTemplateFromJson(jsonString: String, onResult: (Result<Unit>) -> Unit) {
+    fun importTemplateFromJson(jsonString: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -143,12 +144,16 @@ class TemplateViewModel @Inject constructor(
                 templateRepository.insertTemplate(newTemplate)
                 scheduleRepository.insertAllItems(newEventos)
 
-                onResult(Result.Success(Unit))
-                _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
+                _uiState.update { 
+                    it.copy(
+                        dialogState = TemplateDialogState.Hidden,
+                        successMessage = "Template importado com sucesso!"
+                    ) 
+                }
 
             } catch (e: Exception) {
                 Log.e(TAG, "Falha ao importar template do JSON", e)
-                onResult(Result.Error(AppError.UnknownError(e)))
+                _uiState.update { it.copy(error = AppError.UnknownError(e)) }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -159,8 +164,7 @@ class TemplateViewModel @Inject constructor(
         templateId: String?,
         nomeTemplate: String,
         descricaoTemplate: String?,
-        eventosForm: List<EventFormData>,
-        onResult: (Result<Unit>) -> Unit
+        eventosForm: List<EventFormData>
     ) {
         viewModelScope.launch {
             Log.d(TAG, "Iniciando salvarTemplateCompleto. Modo Edição: ${templateId != null}, ID: $templateId")
@@ -186,11 +190,15 @@ class TemplateViewModel @Inject constructor(
                     scheduleRepository.insertAllItems(eventos)
                 }
 
-                onResult(Result.Success(Unit))
-                _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
+                _uiState.update { 
+                    it.copy(
+                        dialogState = TemplateDialogState.Hidden,
+                        successMessage = if (templateId != null) "Template atualizado com sucesso!" else "Template criado com sucesso!"
+                    ) 
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Erro em salvarTemplateCompleto", e)
-                onResult(Result.Error(AppError.UnknownError(e)))
+                _uiState.update { it.copy(error = AppError.UnknownError(e)) }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -203,7 +211,12 @@ class TemplateViewModel @Inject constructor(
             try {
                 scheduleRepository.deleteItemsByTemplateId(template.id)
                 templateRepository.deleteTemplate(template)
-                _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
+                _uiState.update { 
+                    it.copy(
+                        dialogState = TemplateDialogState.Hidden,
+                        successMessage = "Template excluído com sucesso!"
+                    ) 
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = AppError.UnknownError(e)) }
             } finally {
@@ -212,7 +225,7 @@ class TemplateViewModel @Inject constructor(
         }
     }
 
-    fun applyTemplateToDates(templateId: String, dates: List<LocalDate>, saveToGoogle: Boolean, onResult: (Result<Unit>) -> Unit) {
+    fun applyTemplateToDates(templateId: String, dates: List<LocalDate>, saveToGoogle: Boolean) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -220,15 +233,12 @@ class TemplateViewModel @Inject constructor(
                 if (templateComEventos != null) {
                     val novosEventos = mutableListOf<ItemCronograma>()
                     
-                    // 1. DEDUPLICAÇÃO: Garante que o template base não tenha eventos duplicados por erro de sync anterior
                     val eventosBaseUnicos = templateComEventos.eventos.distinctBy { 
                         "${it.titulo}-${it.horarioInicioString}-${it.horarioTerminoString}-${it.categoryId}" 
                     }
 
                     dates.forEach { date ->
                         eventosBaseUnicos.forEach { eventoTemplate ->
-                            // 2. ID DETERMINÍSTICO: Cria um ID baseado no evento original + data
-                            // Isso impede que, se o processo rodar duas vezes para a mesma data, o Room duplique o item.
                             val deterministicId = "applied_${eventoTemplate.id}_${date}"
                             
                             val novoEvento = eventoTemplate.copy(
@@ -259,14 +269,17 @@ class TemplateViewModel @Inject constructor(
 
                     scheduleRepository.insertAllItems(novosEventos)
                     WidgetUpdater.requestUpdate(application)
-                    _uiState.update { it.copy(dialogState = TemplateDialogState.Hidden) }
-                    onResult(Result.Success(Unit))
+                    _uiState.update { 
+                        it.copy(
+                            dialogState = TemplateDialogState.Hidden,
+                            successMessage = "Template aplicado com sucesso!"
+                        ) 
+                    }
                 } else {
-                    onResult(Result.Error(AppError.UnknownError(Exception("Template não encontrado."))))
+                    _uiState.update { it.copy(error = AppError.UnknownError(Exception("Template não encontrado."))) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = AppError.UnknownError(e)) }
-                onResult(Result.Error(AppError.UnknownError(e)))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -275,5 +288,9 @@ class TemplateViewModel @Inject constructor(
 
     fun onErrorShown() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun onSuccessMessageShown() {
+        _uiState.update { it.copy(successMessage = null) }
     }
 }

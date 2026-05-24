@@ -37,6 +37,7 @@ import java.util.Locale
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.ui.unit.Dp
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,17 +55,25 @@ fun StatsScreen(
         windowSizeClass = windowSizeClass,
         snackbarHostState = snackbarHostState
     ) {
-        LaunchedEffect(uiState.error) {
+        LaunchedEffect(uiState.error, uiState.successMessage) {
             uiState.error?.let { error ->
                 val activityContext = context as? android.app.Activity
                 val messageText = error.message ?: error.messageResId?.let { activityContext?.getString(it) } ?: "Erro desconhecido"
                 snackbarHostState.showSnackbar(message = messageText)
                 viewModel.onErrorShown()
             }
+            uiState.successMessage?.let {
+                snackbarHostState.showSnackbar(it)
+                viewModel.onSuccessMessageShown()
+            }
         }
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = { 
+                SnackbarHost(snackbarHostState) { data ->
+                    PremiumSnackbar(data)
+                }
+            },
             topBar = {
                 TopAppBar(
                     title = { 

@@ -30,6 +30,7 @@ data class CategoryUiState(
     val categories: List<Category> = emptyList(),
     val ownedStickers: List<MarketItem> = emptyList(),
     val dialogState: CategoryDialogState = CategoryDialogState.Hidden,
+    val successMessage: String? = null,
     val error: AppError? = null
 )
 
@@ -82,7 +83,10 @@ class CategoryViewModel @Inject constructor(
             val result = upsertCategoryUseCase(id, nome, cor, stickerId)
             
             when (result) {
-                is Result.Success -> onDialogDismiss()
+                is Result.Success -> {
+                    _uiState.update { it.copy(successMessage = if (id == null) "Categoria criada!" else "Alterações salvas!") }
+                    onDialogDismiss()
+                }
                 is Result.Error -> _uiState.update { it.copy(error = result.error) }
             }
         }
@@ -92,13 +96,16 @@ class CategoryViewModel @Inject constructor(
         viewModelScope.launch {
             val result = deleteCategoryUseCase(category)
             when (result) {
-                is Result.Success -> onDialogDismiss()
+                is Result.Success -> {
+                    _uiState.update { it.copy(successMessage = "Categoria excluída com sucesso.") }
+                    onDialogDismiss()
+                }
                 is Result.Error -> _uiState.update { it.copy(error = result.error) }
             }
         }
     }
 
-    fun onErrorShown() {
-        _uiState.update { it.copy(error = null) }
+    fun onMessageShown() {
+        _uiState.update { it.copy(successMessage = null, error = null) }
     }
 }

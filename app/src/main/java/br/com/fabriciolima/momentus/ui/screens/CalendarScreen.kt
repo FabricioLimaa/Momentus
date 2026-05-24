@@ -64,6 +64,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.ui.unit.Dp
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -273,7 +274,11 @@ fun CalendarScreen(
         }
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = { 
+                SnackbarHost(snackbarHostState) { data ->
+                    PremiumSnackbar(data)
+                }
+            },
             topBar = {
                 if (uiState.isSelectionModeActive) {
                     SelectionTopAppBar(

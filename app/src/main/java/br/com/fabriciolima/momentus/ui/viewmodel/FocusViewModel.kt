@@ -22,7 +22,9 @@ data class FocusUiState(
     val focusDurationMinutes: Int = 25,
     val shortBreakMinutes: Int = 5,
     val longBreakMinutes: Int = 15,
-    val showSettingsDialog: Boolean = false
+    val showSettingsDialog: Boolean = false,
+    val error: br.com.fabriciolima.momentus.domain.error.AppError? = null,
+    val successMessage: String? = null
 )
 
 enum class FocusMode {
@@ -126,9 +128,18 @@ class FocusViewModel @Inject constructor(
                 focusDurationMinutes = focus,
                 shortBreakMinutes = shortBreak,
                 longBreakMinutes = longBreak,
-                showSettingsDialog = false
+                showSettingsDialog = false,
+                successMessage = "Configurações de foco atualizadas!"
             )
         }
         resetTimer()
+    }
+
+    fun onErrorShown() {
+        _uiState.update { it.copy(error = null) }
+    }
+
+    fun onSuccessMessageShown() {
+        _uiState.update { it.copy(successMessage = null) }
     }
 }

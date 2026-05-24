@@ -33,6 +33,7 @@ data class StatsUiState(
     val improvementPercentage: Int = 0,
     val bestHour: Int? = null,
     val error: AppError? = null,
+    val successMessage: String? = null,
     val isLoading: Boolean = false
 )
 
@@ -87,5 +88,9 @@ class StatsViewModel @Inject constructor(
 
     fun onErrorShown() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun onSuccessMessageShown() {
+        _uiState.update { it.copy(successMessage = null) }
     }
 }

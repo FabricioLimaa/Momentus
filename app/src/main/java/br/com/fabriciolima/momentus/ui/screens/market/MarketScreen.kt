@@ -30,6 +30,7 @@ import br.com.fabriciolima.momentus.ui.theme.*
 import br.com.fabriciolima.momentus.ui.viewmodel.MarketViewModel
 import br.com.fabriciolima.momentus.ui.util.getIconForMarketItem
 import androidx.compose.ui.unit.Dp
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,14 +42,11 @@ fun MarketScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.error) {
+    LaunchedEffect(uiState.error, uiState.purchaseSuccess) {
         uiState.error?.let {
             snackbarHostState.showSnackbar(it.message ?: "Erro ao processar compra")
             viewModel.onMessageShown()
         }
-    }
-
-    LaunchedEffect(uiState.purchaseSuccess) {
         uiState.purchaseSuccess?.let {
             snackbarHostState.showSnackbar("Parabéns! Você adquiriu: ${it.name}")
             viewModel.onMessageShown()
@@ -56,7 +54,11 @@ fun MarketScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { 
+            SnackbarHost(snackbarHostState) { data ->
+                PremiumSnackbar(data)
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { Text("Momentus Store", fontWeight = FontWeight.ExtraBold) },

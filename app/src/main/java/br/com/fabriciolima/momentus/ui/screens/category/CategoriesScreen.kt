@@ -23,6 +23,7 @@ import br.com.fabriciolima.momentus.ui.viewmodel.CategoryDialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.CategoryViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.Dp
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,13 +37,15 @@ fun CategoriesScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    LaunchedEffect(uiState.error) {
+    LaunchedEffect(uiState.error, uiState.successMessage) {
         uiState.error?.let {
             val message = it.message ?: it.messageResId?.let { resId -> context.getString(resId) } ?: "Erro desconhecido"
-            scope.launch {
-                snackbarHostState.showSnackbar(message)
-                viewModel.onErrorShown()
-            }
+            snackbarHostState.showSnackbar(message)
+            viewModel.onMessageShown()
+        }
+        uiState.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.onMessageShown()
         }
     }
 
@@ -81,7 +84,11 @@ fun CategoriesScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = { 
+            SnackbarHost(snackbarHostState) { data ->
+                PremiumSnackbar(data)
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { Text("Gerenciar Categorias", fontWeight = FontWeight.Bold) },
@@ -101,7 +108,6 @@ fun CategoriesScreen(
             .padding(horizontal = 16.dp)) {
             
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Categorias", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
             Text(
                 text = "Crie suas categorias para melhor organização",
                 style = MaterialTheme.typography.bodyLarge,

@@ -30,6 +30,7 @@ import br.com.fabriciolima.momentus.data.repository.AppThemeMode
 import br.com.fabriciolima.momentus.ui.theme.MomentusTheme
 import br.com.fabriciolima.momentus.ui.viewmodel.SettingsViewModel
 import androidx.compose.ui.unit.Dp
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +70,11 @@ fun SettingsScreen(
         overrideFontSizeMultiplier = uiState.fontSizeMultiplier
     ) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = { 
+                SnackbarHost(snackbarHostState) { data ->
+                    PremiumSnackbar(data)
+                }
+            },
             topBar = {
                 TopAppBar(
                     title = { Text("Configurações", fontWeight = FontWeight.Bold) },

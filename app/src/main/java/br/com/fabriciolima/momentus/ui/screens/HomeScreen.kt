@@ -38,10 +38,12 @@ import br.com.fabriciolima.momentus.ui.viewmodel.CalendarUiState
 import br.com.fabriciolima.momentus.ui.viewmodel.DialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.EventsForDate
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 import java.time.LocalDate
 import java.time.LocalTime
 import androidx.compose.ui.unit.Dp
 import androidx.compose.material.icons.outlined.Warning
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +69,9 @@ fun HomeScreen(
     onClearSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onConfirmDeleteSelectedRotinas: () -> Unit,
-    onDeleteSelectedRotinas: () -> Unit
+    onDeleteSelectedRotinas: () -> Unit,
+    onSuccessMessageShown: () -> Unit,
+    onErrorShown: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -75,6 +79,18 @@ fun HomeScreen(
         windowSizeClass = windowSizeClass,
         snackbarHostState = snackbarHostState
     ) {
+        // Observar mensagens do ViewModel
+        LaunchedEffect(uiState.successMessage, uiState.error) {
+            uiState.successMessage?.let {
+                snackbarHostState.showSnackbar(it)
+                onSuccessMessageShown()
+            }
+            uiState.error?.let {
+                snackbarHostState.showSnackbar(it.message ?: "Erro desconhecido")
+                onErrorShown()
+            }
+        }
+
         // Cálculo de progresso do dia
         val completionsToday = eventsForToday.localRotinas.count { uiState.completedHabitIds.contains(it.id) }
         val totalToday = eventsForToday.localRotinas.size
@@ -159,7 +175,11 @@ fun HomeScreen(
         }
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = { 
+                SnackbarHost(snackbarHostState) { data ->
+                    PremiumSnackbar(data)
+                }
+            },
             topBar = {
                 if (uiState.isSelectionModeActive) {
                     SelectionTopAppBar(
@@ -236,7 +256,7 @@ fun HomeScreen(
                                     Icon(
                                         imageVector = Icons.Default.LocalFireDepartment,
                                         contentDescription = null,
-                                        tint = Color(0xFFFF5722),
+                                        tint = getStreakColor(uiState.streak),
                                         modifier = Modifier.size(32.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -248,9 +268,16 @@ fun HomeScreen(
                                     )
                                 }
                                 Text(
-                                    text = "Incrível! Continue assim!",
+                                    text = when {
+                                        totalToday == 0 -> "Dia livre! Que tal planejar algo novo? ✨"
+                                        completionsToday == 0 -> "Vamos começar? O primeiro passo! 🚀"
+                                        progress < 0.5f -> "Ótimo começo! Continue focado. 💪"
+                                        progress < 1.0f -> "Mais da metade concluído! Você está quase lá. ⚡"
+                                        else -> "Dia perfeito! Você conquistou todas as suas metas! 🏆"
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
 
