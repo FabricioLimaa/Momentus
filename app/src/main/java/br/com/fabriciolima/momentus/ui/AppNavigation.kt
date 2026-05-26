@@ -353,6 +353,7 @@ fun AppNavHost(
         composable(Screen.Categories.route) { 
             CategoriesScreen(
                 navController = navController,
+                windowSizeClass = windowSizeClass,
                 bottomBarPadding = bottomBarPadding
             ) 
         }
@@ -379,18 +380,21 @@ fun AppNavHost(
         composable(Screen.Legal.route) { 
             LegalScreen(
                 navController = navController,
+                windowSizeClass = windowSizeClass,
                 bottomBarPadding = bottomBarPadding
             ) 
         }
         composable(Screen.Settings.route) { 
             SettingsScreen(
                 navController = navController,
+                windowSizeClass = windowSizeClass,
                 bottomBarPadding = bottomBarPadding
             ) 
         }
         composable(Screen.Market.route) { 
             MarketScreen(
                 navController = navController,
+                windowSizeClass = windowSizeClass,
                 bottomBarPadding = bottomBarPadding
             ) 
         }

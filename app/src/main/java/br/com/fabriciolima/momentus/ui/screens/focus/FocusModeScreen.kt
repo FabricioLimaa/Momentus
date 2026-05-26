@@ -68,7 +68,10 @@ fun FocusModeScreen(
 
         Scaffold(
             snackbarHost = { 
-                SnackbarHost(snackbarHostState) { data ->
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.padding(bottom = bottomBarPadding)
+                ) { data ->
                     PremiumSnackbar(data)
                 }
             },

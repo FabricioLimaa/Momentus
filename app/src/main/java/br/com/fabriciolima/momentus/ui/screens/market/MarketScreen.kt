@@ -31,94 +31,110 @@ import br.com.fabriciolima.momentus.ui.viewmodel.MarketViewModel
 import br.com.fabriciolima.momentus.ui.util.getIconForMarketItem
 import androidx.compose.ui.unit.Dp
 import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
+import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketScreen(
     navController: NavController,
+    windowSizeClass: WindowSizeClass,
     bottomBarPadding: Dp = 0.dp,
     viewModel: MarketViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.error, uiState.purchaseSuccess) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it.message ?: "Erro ao processar compra")
-            viewModel.onMessageShown()
-        }
-        uiState.purchaseSuccess?.let {
-            snackbarHostState.showSnackbar("Parabéns! Você adquiriu: ${it.name}")
-            viewModel.onMessageShown()
-        }
-    }
-
-    Scaffold(
-        snackbarHost = { 
-            SnackbarHost(snackbarHostState) { data ->
-                PremiumSnackbar(data)
+    AdaptiveOrientationWrapper(
+        windowSizeClass = windowSizeClass,
+        snackbarHostState = snackbarHostState
+    ) {
+        LaunchedEffect(uiState.error, uiState.purchaseSuccess) {
+            uiState.error?.let {
+                snackbarHostState.showSnackbar(it.message ?: "Erro ao processar compra")
+                viewModel.onMessageShown()
             }
-        },
-        topBar = {
-            TopAppBar(
-                title = { Text("Momentus Store", fontWeight = FontWeight.ExtraBold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
-                    }
-                },
-                actions = {
-                    XPBadge(points = uiState.userData?.points ?: 0L)
-                },
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.statusBars
-    ) { paddingValues ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-        ) {
-            // Background Gradient
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Transparent, MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
-                        )
-                    )
-            )
+            uiState.purchaseSuccess?.let {
+                snackbarHostState.showSnackbar("Parabéns! Você adquiriu: ${it.name}")
+                viewModel.onMessageShown()
+            }
+        }
 
-            if (uiState.isLoading && uiState.items.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        Scaffold(
+            snackbarHost = { 
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.padding(bottom = bottomBarPadding)
+                ) { data ->
+                    PremiumSnackbar(data)
                 }
-            } else {
-                Column(modifier = Modifier
-                    .padding(top = paddingValues.calculateTopPadding())
-                    .padding(horizontal = 16.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Personalize sua experiência com colecionáveis exclusivos.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = bottomBarPadding + 32.dp)
-                    ) {
-                        items(uiState.items) { item ->
-                            MarketItemCard(
-                                item = item,
-                                canAfford = (uiState.userData?.points ?: 0L) >= item.finalPrice,
-                                onBuyClick = { viewModel.purchaseItem(item) }
+            },
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Text(
+                            "Momentus Store", 
+                            fontWeight = FontWeight.ExtraBold
+                        ) 
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                        }
+                    },
+                    actions = {
+                        XPBadge(points = uiState.userData?.points ?: 0L)
+                    },
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.statusBars
+        ) { paddingValues ->
+            Box(modifier = Modifier
+                .fillMaxSize()
+            ) {
+                // Background Gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
                             )
+                        )
+                )
+
+                if (uiState.isLoading && uiState.items.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                } else {
+                    Column(modifier = Modifier
+                        .padding(top = paddingValues.calculateTopPadding())
+                        .padding(horizontal = 16.dp)
+                    ) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Personalize com colecionáveis exclusivos.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = bottomBarPadding + 32.dp)
+                        ) {
+                            items(uiState.items) { item ->
+                                MarketItemCard(
+                                    item = item,
+                                    canAfford = (uiState.userData?.points ?: 0L) >= item.finalPrice,
+                                    onBuyClick = { viewModel.purchaseItem(item) }
+                                )
+                            }
                         }
                     }
                 }

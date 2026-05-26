@@ -6,9 +6,11 @@ import br.com.fabriciolima.momentus.data.model.MarketItem
 import br.com.fabriciolima.momentus.di.IoDispatcher
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -33,19 +35,14 @@ class MarketRepository @Inject constructor(
         MarketItem("stk_bolt", "Energia Pura", "Dê um choque na procrastinação.", null, null, ItemType.STICKER, ItemRarity.RARE, 120L)
     )
 
-    fun getAvailableItems(): Flow<List<MarketItem>> = flow {
-        val ownedIds = getOwnedItemsIds()
-        emit(initialItems.map { it.copy(isOwned = ownedIds.contains(it.id)) })
-    }
-
-    private suspend fun getOwnedItemsIds(): Set<String> = withContext(dispatcher) {
-        val uid = userId ?: return@withContext emptySet()
-        try {
-            val snapshot = firestore.collection("users").document(uid).collection("inventory").get().await()
-            snapshot.documents.map { it.id }.toSet()
-        } catch (e: Exception) {
-            emptySet()
-        }
+    fun getAvailableItems(): Flow<List<MarketItem>> {
+        val uid = userId ?: return flowOf(initialItems)
+        return firestore.collection("users").document(uid).collection("inventory")
+            .snapshots()
+            .map { snapshot ->
+                val ownedIds = snapshot.documents.map { it.id }.toSet()
+                initialItems.map { it.copy(isOwned = ownedIds.contains(it.id)) }
+            }
     }
 
     suspend fun purchaseItem(item: MarketItem): Result<Unit> = withContext(dispatcher) {
@@ -56,6 +53,12 @@ class MarketRepository @Inject constructor(
             
             if (user.points < item.finalPrice) {
                 return@withContext Result.failure(Exception("XP insuficiente! Continue focando para ganhar mais."))
+            }
+
+            // Verificação de segurança: já possui o item?
+            val inventoryRef = firestore.collection("users").document(uid).collection("inventory").document(item.id)
+            if (inventoryRef.get().await().exists()) {
+                return@withContext Result.failure(Exception("Você já possui este item!"))
             }
 
             // 1. Deduzir pontos

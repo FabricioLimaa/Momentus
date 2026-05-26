@@ -40,18 +40,17 @@ import br.com.fabriciolima.momentus.ui.components.EventFormData
 import br.com.fabriciolima.momentus.ui.theme.*
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateDialogState
 import br.com.fabriciolima.momentus.ui.viewmodel.TemplateViewModel
-import br.com.fabriciolima.momentus.util.Result
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 import br.com.fabriciolima.momentus.ui.components.TimelineEventItem
-import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import br.com.fabriciolima.momentus.ui.screens.market.XPBadge
 import br.com.fabriciolima.momentus.ui.theme.EmeraldNeon
 import androidx.compose.ui.unit.Dp
+import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,7 +62,6 @@ fun TemplatesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     AdaptiveOrientationWrapper(
@@ -146,29 +144,21 @@ fun TemplatesScreen(
 
         Scaffold(
             snackbarHost = { 
-                SnackbarHost(snackbarHostState) { data ->
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.padding(bottom = bottomBarPadding)
+                ) { data ->
                     PremiumSnackbar(data)
                 }
             },
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = { 
-                        Text(
-                            "Meus Templates", 
-                            fontWeight = FontWeight.Black,
-                            style = MaterialTheme.typography.titleLarge,
-                            letterSpacing = (-0.5).sp
-                        ) 
-                    },
+                TopAppBar(
+                    title = { Text("Meus Templates", fontWeight = FontWeight.ExtraBold) },
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                         }
                     },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface
-                    )
                 )
             },
             containerColor = MaterialTheme.colorScheme.background,

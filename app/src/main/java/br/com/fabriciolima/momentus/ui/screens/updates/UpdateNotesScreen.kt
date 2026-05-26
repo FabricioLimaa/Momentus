@@ -37,7 +37,12 @@ fun UpdateNotesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notas de Atualização", fontWeight = FontWeight.ExtraBold) },
+                title = { 
+                    Text(
+                        "Novidades", 
+                        fontWeight = FontWeight.ExtraBold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
@@ -105,32 +110,32 @@ fun UpdateNotesScreen(
                 // Seções de Novidades
                 UpdateSectionItem(
                     icon = Icons.Default.AutoAwesome,
-                    title = "Stickers com Utilidade!",
-                    description = "Agora você pode aplicar os stickers comprados às suas categorias. Eles aparecerão na timeline para destacar suas tarefas mais importantes."
+                    title = "Design System Premium",
+                    description = "Migramos para o tema 'Deep Navy' com Glassmorphism. Uma experiência visual mais limpa, moderna e sofisticada em todas as telas."
                 )
 
                 UpdateSectionItem(
-                    icon = Icons.Default.ShoppingBag,
-                    title = "Momentus Store",
-                    description = "Use seu XP para adquirir colecionáveis exclusivos. Personalize seu perfil e mostre sua dedicação à produtividade."
+                    icon = Icons.Default.NotificationsActive,
+                    title = "Feedback Visual Refinado",
+                    description = "Todas as suas ações agora têm confirmações visuais imediatas com o novo PremiumSnackbar, garantindo que você nunca perca o status de uma tarefa ou compra."
+                )
+
+                UpdateSectionItem(
+                    icon = Icons.Default.Timeline,
+                    title = "Timeline Vertical Conectada",
+                    description = "Visualize sua rotina diária como um fluxo contínuo. Melhoramos a legibilidade da agenda com conexões visuais inteligentes."
                 )
 
                 UpdateSectionItem(
                     icon = Icons.Default.Devices,
-                    title = "Layout Universal Premium",
-                    description = "Refizemos toda a arquitetura visual para garantir uma experiência fluida em qualquer aparelho, respeitando 100% as barras do sistema."
+                    title = "Layout Universal",
+                    description = "O Momentus agora se adapta perfeitamente a qualquer tamanho de tela, de smartphones compactos a tablets e telas dobráveis."
                 )
 
                 UpdateSectionItem(
-                    icon = Icons.Default.Bolt,
-                    title = "Economia de XP 2.0",
-                    description = "Migramos nosso sistema de pontos para suportar acúmulos massivos. Ganhe recompensas sem limites enquanto foca nos seus objetivos."
-                )
-
-                UpdateSectionItem(
-                    icon = Icons.Default.Timer,
-                    title = "Foco Personalizado",
-                    description = "Ajuste os tempos de foco e pausas conforme sua necessidade. Introduzimos o acompanhamento de ciclos para sessões de trabalho profundo."
+                    icon = Icons.Default.ShoppingBag,
+                    title = "Momentus Store & Stickers",
+                    description = "Adquira stickers exclusivos com seu XP e use-os para dar personalidade às suas categorias de rotina."
                 )
 
                 Spacer(modifier = Modifier.height(40.dp))

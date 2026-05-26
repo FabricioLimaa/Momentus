@@ -70,7 +70,10 @@ fun StatsScreen(
 
         Scaffold(
             snackbarHost = { 
-                SnackbarHost(snackbarHostState) { data ->
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.padding(bottom = bottomBarPadding)
+                ) { data ->
                     PremiumSnackbar(data)
                 }
             },
@@ -79,11 +82,10 @@ fun StatsScreen(
                     title = { 
                         Text(
                             "Análise de Performance", 
-                            fontWeight = FontWeight.Black,
-                            style = MaterialTheme.typography.titleLarge
+                            fontWeight = FontWeight.ExtraBold
                         ) 
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = Color.Transparent,
                         titleContentColor = MaterialTheme.colorScheme.onSurface
                     )
@@ -93,7 +95,7 @@ fun StatsScreen(
             contentWindowInsets = WindowInsets.statusBars
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize()) {
-                // 1. O Fundo ocupa a tela inteira (incluindo o espaço atrás do menu)
+                // 1. O Fundo ocupa a tela inteira
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -107,8 +109,6 @@ fun StatsScreen(
                         )
                 )
 
-                // 2. A Lista usa o padding da TopAppBar (paddingValues) 
-                // e o padding do menu (bottomBarPadding) no contentPadding
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -116,7 +116,7 @@ fun StatsScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                     contentPadding = PaddingValues(
-                        bottom = bottomBarPadding + 32.dp // Menu + Respiro
+                        bottom = bottomBarPadding + 32.dp
                     )
                 ) {
                     item {
@@ -131,8 +131,9 @@ fun StatsScreen(
                         Text(
                             text = "Insights de ${if(uiState.filter == StatsFilter.WEEK) "Semana" else if(uiState.filter == StatsFilter.MONTH) "Mês" else "Ano"}",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onBackground
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Row(
@@ -162,8 +163,9 @@ fun StatsScreen(
                         Text(
                             text = "Conclusões por Período",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onBackground
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         if (uiState.barChartData.isNotEmpty()) {
@@ -185,8 +187,9 @@ fun StatsScreen(
                         Text(
                             text = "Taxa de Conclusão por Categoria",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onBackground
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
