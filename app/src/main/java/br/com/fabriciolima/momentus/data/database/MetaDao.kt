@@ -15,6 +15,9 @@ interface MetaDao {
     @Query("SELECT * FROM tabela_metas WHERE categoryId = :categoryId")
     fun getMetaForCategory(categoryId: String): Flow<Meta?>
 
+    @Query("DELETE FROM tabela_metas WHERE categoryId = :categoryId")
+    suspend fun deleteMetaForCategory(categoryId: String)
+
     @Query("DELETE FROM tabela_metas")
     suspend fun clear()
 }

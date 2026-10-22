@@ -15,10 +15,12 @@ import br.com.fabriciolima.momentus.widget.WidgetUpdateWorker
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -45,12 +47,16 @@ open class ScheduleRepository @Inject constructor(
     private val workManager = WorkManager.getInstance(context)
 
     private fun triggerWidgetUpdate() {
-        val workRequest = OneTimeWorkRequestBuilder<WidgetUpdateWorker>().build()
-        workManager.enqueueUniqueWork(
-            WidgetUpdateWorker.WORK_NAME,
-            androidx.work.ExistingWorkPolicy.REPLACE,
-            workRequest
-        )
+        try {
+            val workRequest = OneTimeWorkRequestBuilder<WidgetUpdateWorker>().build()
+            workManager.enqueueUniqueWork(
+                WidgetUpdateWorker.WORK_NAME,
+                androidx.work.ExistingWorkPolicy.REPLACE,
+                workRequest
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha ao agendar atualização de widget", e)
+        }
     }
 
     private val userId: String?
@@ -70,20 +76,42 @@ open class ScheduleRepository @Inject constructor(
                     Log.e(TAG, "Erro no SnapshotListener de eventos: ${e.code}", e)
                     return@addSnapshotListener
                 }
-                snapshots?.toObjects<ItemCronograma>()?.let { cloudItems ->
-                    CoroutineScope(dispatcher).launch {
-                        // Filtra itens para não sobrescrever o isDeleted local com false vindo da nuvem se o local for mais novo
-                        val localItems = itemCronogramaDao.getAllSyncIncludingDeleted().associateBy { it.id }
-                        val filteredItems = cloudItems.filter { cloud ->
-                            val local = localItems[cloud.id]
-                            local == null || local.lastUpdated == null || cloud.lastUpdated == null || cloud.lastUpdated!!.after(local.lastUpdated)
-                        }
-                        
-                        if (filteredItems.isNotEmpty()) {
-                            itemCronogramaDao.insertAll(filteredItems)
-                            triggerWidgetUpdate()
+                if (snapshots == null) return@addSnapshotListener
+
+                try {
+                    val cloudItems = mutableListOf<ItemCronograma>()
+                    for (doc in snapshots.documents) {
+                        try {
+                            val item = doc.toObject<ItemCronograma>()
+                            if (item != null) {
+                                cloudItems.add(item)
+                            }
+                        } catch (ex: Exception) {
+                            Log.e(TAG, "Erro ao deserializar ItemCronograma ${doc.id}", ex)
                         }
                     }
+
+                    if (cloudItems.isNotEmpty()) {
+                        CoroutineScope(dispatcher + SupervisorJob()).launch {
+                            try {
+                                // Filtra itens para não sobrescrever o isDeleted local com false vindo da nuvem se o local for mais novo
+                                val localItems = itemCronogramaDao.getAllSyncIncludingDeleted().associateBy { it.id }
+                                val filteredItems = cloudItems.filter { cloud ->
+                                    val local = localItems[cloud.id]
+                                    local == null || local.lastUpdated == null || cloud.lastUpdated == null || cloud.lastUpdated!!.after(local.lastUpdated)
+                                }
+                                
+                                if (filteredItems.isNotEmpty()) {
+                                    itemCronogramaDao.insertAll(filteredItems)
+                                    triggerWidgetUpdate()
+                                }
+                            } catch (t: Throwable) {
+                                Log.e(TAG, "Erro ao salvar itens do cronograma no Room", t)
+                            }
+                        }
+                    }
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Erro inesperado ao processar snapshot de eventos", t)
                 }
             }
         } catch (e: Exception) {
@@ -104,8 +132,19 @@ open class ScheduleRepository @Inject constructor(
             // 1. Coleta itens locais (incluindo marcados como deletados para sincronizar a remoção)
             val localItems = itemCronogramaDao.getAllSyncIncludingDeleted().associateBy { it.id }
             
-            // 2. Coleta itens da nuvem
-            val cloudItems = collectionRef.get().await().toObjects<ItemCronograma>().associateBy { it.id }
+            // 2. Coleta itens da nuvem com deserialização segura
+            val snapshot = collectionRef.get().await()
+            val cloudItems = mutableMapOf<String, ItemCronograma>()
+            for (doc in snapshot.documents) {
+                try {
+                    val item = doc.toObject<ItemCronograma>()
+                    if (item != null) {
+                        cloudItems[item.id] = item
+                    }
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Erro ao deserializar ItemCronograma ${doc.id} no syncSchedule", ex)
+                }
+            }
 
             // 3. Itens para Upload: Novos, mais recentes ou recém-deletados localmente
             val itemsToUpload = localItems.filter { (id, local) ->
@@ -137,9 +176,11 @@ open class ScheduleRepository @Inject constructor(
             if (itemsToDownload.isNotEmpty()) {
                 // Filtrar apenas o que não está deletado na nuvem (se houver essa marcação lá)
                 val activeDownloads = itemsToDownload.filter { !it.isDeleted }
-                itemCronogramaDao.insertAll(activeDownloads)
-                triggerWidgetUpdate()
-                Log.d(TAG, "[SYNC] Download de ${activeDownloads.size} itens concluído.")
+                if (activeDownloads.isNotEmpty()) {
+                    itemCronogramaDao.insertAll(activeDownloads)
+                    triggerWidgetUpdate()
+                    Log.d(TAG, "[SYNC] Download de ${activeDownloads.size} itens concluído.")
+                }
             }
             
             // 5. Limpeza local: Após o upload/delete bem sucedido, removemos do banco local

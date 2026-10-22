@@ -11,7 +11,7 @@ import javax.inject.Inject
 class UpsertCategoryUseCase @Inject constructor(
     private val categoryRepository: CategoryRepository
 ) {
-    suspend operator fun invoke(id: String?, nome: String, cor: String, stickerId: String? = null): Result<Unit> {
+    suspend operator fun invoke(id: String?, nome: String, cor: String, stickerId: String? = null, metaSemanalMinutos: Int? = null): Result<Unit> {
         val currentCategories = categoryRepository.allCategoriesWithMetas.first().map { it.category }
         val isDuplicate = currentCategories.any { it.nome.equals(nome, ignoreCase = true) && it.id != id }
 
@@ -30,6 +30,11 @@ class UpsertCategoryUseCase @Inject constructor(
         
         return try {
             categoryRepository.insertCategory(category)
+            if (metaSemanalMinutos != null) {
+                categoryRepository.saveMeta(br.com.fabriciolima.momentus.data.model.Meta(category.id, metaSemanalMinutos))
+            } else {
+                categoryRepository.deleteMeta(category.id)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(AppError.UnknownError(e))

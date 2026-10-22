@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,7 +39,6 @@ fun CategoriesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
 
     AdaptiveOrientationWrapper(
         windowSizeClass = windowSizeClass,
@@ -48,8 +46,7 @@ fun CategoriesScreen(
     ) {
         LaunchedEffect(uiState.error, uiState.successMessage) {
             uiState.error?.let {
-                val message = it.message ?: it.messageResId?.let { resId -> context.getString(resId) } ?: "Erro desconhecido"
-                snackbarHostState.showSnackbar(message)
+                snackbarHostState.showSnackbar(it.message ?: "Erro desconhecido")
                 viewModel.onMessageShown()
             }
             uiState.successMessage?.let {
@@ -61,18 +58,22 @@ fun CategoriesScreen(
         when (val dialogState = uiState.dialogState) {
             is CategoryDialogState.CreateNew -> {
                 EditCategoryDialog(
-                    category = null,
+                    categoryWithMeta = null,
                     ownedStickers = uiState.ownedStickers,
                     onDismiss = viewModel::onDialogDismiss,
-                    onConfirm = viewModel::upsertCategory
+                    onConfirm = { id, name, color, stickerId, meta ->
+                        viewModel.upsertCategory(id, name, color, stickerId, meta)
+                    }
                 )
             }
             is CategoryDialogState.Edit -> {
                 EditCategoryDialog(
-                    category = dialogState.category,
+                    categoryWithMeta = dialogState.categoryWithMeta,
                     ownedStickers = uiState.ownedStickers,
                     onDismiss = viewModel::onDialogDismiss,
-                    onConfirm = viewModel::upsertCategory
+                    onConfirm = { id, name, color, stickerId, meta ->
+                        viewModel.upsertCategory(id, name, color, stickerId, meta)
+                    }
                 )
             }
             is CategoryDialogState.ConfirmDelete -> {
@@ -146,11 +147,11 @@ fun CategoriesScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = bottomBarPadding + 32.dp)
                 ) {
-                    items(uiState.categories) { category ->
+                    items(uiState.categories) { categoryWithMeta ->
                         CategoryListItem(
-                            item = CategoryWithMeta(category, null),
-                            onEdit = { viewModel.onShowEditDialog(category) },
-                            onDelete = { viewModel.onShowConfirmDeleteDialog(category) }
+                            item = categoryWithMeta,
+                            onEdit = { viewModel.onShowEditDialog(categoryWithMeta) },
+                            onDelete = { viewModel.onShowConfirmDeleteDialog(categoryWithMeta.category) }
                         )
                     }
                 }

@@ -9,6 +9,7 @@ import br.com.fabriciolima.momentus.domain.AchievementsList
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -105,7 +106,18 @@ class GamificationRepository @Inject constructor(
                 val snapshot = collectionRef.get().await()
                 Log.d(TAG, "[SYNC_DIAGNOSTIC] Firebase query executada. Documentos encontrados: ${snapshot.size()}.")
                 
-                val cloudAchievements = snapshot.toObjects<UnlockedAchievement>()
+                val cloudAchievements = mutableListOf<UnlockedAchievement>()
+                for (doc in snapshot.documents) {
+                    try {
+                        val ach = doc.toObject<UnlockedAchievement>()
+                        if (ach != null) {
+                            cloudAchievements.add(ach)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Erro ao deserializar UnlockedAchievement ${doc.id}", e)
+                    }
+                }
+
                 val localAchievements = unlockedAchievementDao.getAllIdsSync().toSet()
                 val cloudAchievementMap = cloudAchievements.associateBy { it.achievementId }
 

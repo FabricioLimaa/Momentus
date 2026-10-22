@@ -12,10 +12,12 @@ import br.com.fabriciolima.momentus.widget.WidgetUpdater
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -47,14 +49,43 @@ open class TemplateRepository @Inject constructor(
         val currentUserId = this.userId
         if (currentUserId == null || templatesListener != null) return
 
-        val templatesCollection = firestore.collection("users").document(currentUserId).collection("templates")
-        templatesListener = templatesCollection.addSnapshotListener { snapshots, e ->
-            if (e != null) return@addSnapshotListener
-            snapshots?.toObjects<Template>()?.let {
-                CoroutineScope(dispatcher).launch {
-                    templateDao.insertAll(it)
+        try {
+            val templatesCollection = firestore.collection("users").document(currentUserId).collection("templates")
+            templatesListener = templatesCollection.addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    Log.w(TAG, "Erro no snapshot listener de templates: ${e.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshots == null) return@addSnapshotListener
+
+                try {
+                    val validTemplates = mutableListOf<Template>()
+                    for (doc in snapshots.documents) {
+                        try {
+                            val template = doc.toObject<Template>()
+                            if (template != null) {
+                                validTemplates.add(template)
+                            }
+                        } catch (ex: Exception) {
+                            Log.e(TAG, "Erro ao deserializar Template ${doc.id}", ex)
+                        }
+                    }
+
+                    if (validTemplates.isNotEmpty()) {
+                        CoroutineScope(dispatcher + SupervisorJob()).launch {
+                            try {
+                                templateDao.insertAll(validTemplates)
+                            } catch (t: Throwable) {
+                                Log.e(TAG, "Erro ao salvar templates no Room", t)
+                            }
+                        }
+                    }
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Erro inesperado ao processar snapshot de templates", t)
                 }
             }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Falha crítica ao registrar listener de templates", t)
         }
     }
 
@@ -68,8 +99,21 @@ open class TemplateRepository @Inject constructor(
 
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection("templates")
-            val cloudTemplates = collectionRef.get().await().toObjects<Template>()
-            templateDao.insertAll(cloudTemplates)
+            val snapshot = collectionRef.get().await()
+            val cloudTemplates = mutableListOf<Template>()
+            for (doc in snapshot.documents) {
+                try {
+                    val tmpl = doc.toObject<Template>()
+                    if (tmpl != null) {
+                        cloudTemplates.add(tmpl)
+                    }
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Erro ao deserializar Template ${doc.id} no syncTemplates", ex)
+                }
+            }
+            if (cloudTemplates.isNotEmpty()) {
+                templateDao.insertAll(cloudTemplates)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao sincronizar templates.", e)
         }

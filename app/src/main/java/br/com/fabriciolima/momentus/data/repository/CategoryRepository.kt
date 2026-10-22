@@ -21,6 +21,7 @@ import br.com.fabriciolima.momentus.util.Result
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -109,8 +110,12 @@ open class CategoryRepository @Inject constructor(
     val currentStreak: Flow<Int> = habitoConcluidoDao.getAllCompletionDates()
         .map { calculateStreak(it) }
         .onEach { streak ->
-            CoroutineScope(dispatcher).launch {
-                userRepository.updateStreak(streak)
+            CoroutineScope(dispatcher + SupervisorJob()).launch {
+                try {
+                    userRepository.updateStreak(streak)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Erro ao atualizar streak no usuário", e)
+                }
             }
         }
 
@@ -160,20 +165,46 @@ open class CategoryRepository @Inject constructor(
         Log.d(TAG, "[SYNC_DIAGNOSTIC] startListeningForChanges: Alterando status para SYNCING")
         _syncStatus.value = SyncStatus.SYNCING
 
-        val categoriesCollection = firestore.collection("users").document(userId).collection("categories")
-        categoriesListener = categoriesCollection.addSnapshotListener { snapshots, e ->
-            if (e != null) {
-                Log.w(TAG, "Erro ao escutar por mudanças nas categorias.", e)
-                _syncStatus.value = SyncStatus.OFFLINE
-                return@addSnapshotListener
-            }
-            Log.d(TAG, "[SYNC_DIAGNOSTIC] Listener de categorias ativo. Alterando status para CONNECTED")
-            _syncStatus.value = SyncStatus.CONNECTED
-            snapshots?.toObjects<Category>()?.let {
-                CoroutineScope(dispatcher).launch {
-                    categoryDao.insertAll(it)
+        try {
+            val categoriesCollection = firestore.collection("users").document(userId).collection("categories")
+            categoriesListener = categoriesCollection.addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    Log.w(TAG, "Erro ao escutar por mudanças nas categorias: ${e.message}")
+                    _syncStatus.value = SyncStatus.OFFLINE
+                    return@addSnapshotListener
+                }
+                Log.d(TAG, "[SYNC_DIAGNOSTIC] Listener de categorias ativo. Alterando status para CONNECTED")
+                _syncStatus.value = SyncStatus.CONNECTED
+                if (snapshots == null) return@addSnapshotListener
+
+                try {
+                    val validCategories = mutableListOf<Category>()
+                    for (doc in snapshots.documents) {
+                        try {
+                            val cat = doc.toObject<Category>()
+                            if (cat != null) {
+                                validCategories.add(cat)
+                            }
+                        } catch (ex: Exception) {
+                            Log.e(TAG, "Erro ao deserializar Category ${doc.id}", ex)
+                        }
+                    }
+
+                    if (validCategories.isNotEmpty()) {
+                        CoroutineScope(dispatcher + SupervisorJob()).launch {
+                            try {
+                                categoryDao.insertAll(validCategories)
+                            } catch (t: Throwable) {
+                                Log.e(TAG, "Erro ao salvar categorias no Room", t)
+                            }
+                        }
+                    }
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Erro inesperado ao processar snapshot de categorias", t)
                 }
             }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Falha crítica ao registrar listener de categorias", t)
         }
 
         templateRepository.startListeningForChanges()
@@ -208,30 +239,41 @@ open class CategoryRepository @Inject constructor(
             }
             _syncMessage.value = "Sincronizando categorias..."
             syncCategories()
+            _syncMessage.value = "Sincronizando metas..."
+            syncMetas()
             _syncMessage.value = "Sincronizando templates..."
             templateRepository.syncTemplates()
             _syncMessage.value = "Sincronização concluída!"
             _syncStatus.value = SyncStatus.CONNECTED
-            Log.d(TAG, "[ACHIEVEMENT_FLOW] 2. Sincronização concluída. Emitindo evento para verificação de conquistas.")
+            Log.d(TAG, "[ACHIEVEMENT_FLOW] 2. Sincronização concluída com sucesso. Notificando observadores.")
             _initialSyncCompleted.emit(Unit)
             Result.Success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Erro durante a sincronização.", e)
-            _syncMessage.value = "Falha na sincronização."
+            Log.e(TAG, "Erro durante a sincronização dos dados.", e)
             _syncStatus.value = SyncStatus.OFFLINE
             Result.Error(AppError.SyncError)
         }
     }
 
     /**
-     * Sincronização bidirecional de categorias.
+     * Sincronização bidirecional de categorias entre Room e Firestore com estratégia Last-Write-Wins.
      */
     suspend fun syncCategories() = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection("categories")
             val localCategories = categoryDao.getAllSync().associateBy { it.id }
-            val cloudCategories = collectionRef.get().await().toObjects<Category>().associateBy { it.id }
+            
+            val snapshot = collectionRef.get().await()
+            val cloudCategories = mutableMapOf<String, Category>()
+            for (doc in snapshot.documents) {
+                try {
+                    val cat = doc.toObject<Category>()
+                    if (cat != null) cloudCategories[cat.id] = cat
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Erro ao deserializar Category ${doc.id} no syncCategories", ex)
+                }
+            }
 
             // 1. Enviar categorias locais novas ou mais recentes
             val itemsToUpload = localCategories.filter { (id, local) ->
@@ -261,12 +303,59 @@ open class CategoryRepository @Inject constructor(
         }
     }
 
+    /**
+     * Sincronização de metas.
+     */
+    suspend fun syncMetas() = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
+        try {
+            val collectionRef = firestore.collection("users").document(currentUserId).collection("metas")
+            val snapshot = collectionRef.get().await()
+            val cloudMetas = mutableListOf<Meta>()
+            for (doc in snapshot.documents) {
+                try {
+                    val meta = doc.toObject<Meta>()
+                    if (meta != null) cloudMetas.add(meta)
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Erro ao deserializar Meta ${doc.id} no syncMetas", ex)
+                }
+            }
+            cloudMetas.forEach {
+                try {
+                    metaDao.insertOrUpdate(it)
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Erro ao salvar meta no Room para categoryId ${it.categoryId}", ex)
+                }
+            }
+            Log.d(TAG, "Sync: Download de ${cloudMetas.size} metas concluído.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao sincronizar metas.", e)
+        }
+    }
+
     suspend fun syncCompletedHabits() = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
         try {
             val collectionRef = firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
-            val cloudHabits = collectionRef.get().await().toObjects<HabitoConcluido>()
-            cloudHabits.forEach { habitoConcluidoDao.insert(it) }
+            val snapshot = collectionRef.get().await()
+            val cloudHabits = mutableListOf<HabitoConcluido>()
+            for (doc in snapshot.documents) {
+                try {
+                    val habit = doc.toObject<HabitoConcluido>()
+                    if (habit != null) cloudHabits.add(habit)
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Erro ao deserializar HabitoConcluido ${doc.id}", ex)
+                }
+            }
+            if (cloudHabits.isNotEmpty()) {
+                cloudHabits.forEach {
+                    try {
+                        habitoConcluidoDao.insert(it)
+                    } catch (ex: Exception) {
+                        Log.e(TAG, "Erro ao inserir habitoConcluido no Room: ${it.itemCronogramaId}", ex)
+                    }
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao sincronizar hábitos concluídos.", e)
         }
@@ -291,13 +380,24 @@ open class CategoryRepository @Inject constructor(
     open suspend fun insertCategory(category: Category) = withContext(dispatcher) {
         val currentUserId = userId ?: return@withContext
         categoryDao.insert(category)
-        firestore.collection("users").document(currentUserId).collection("categories").document(category.id).set(category)
+        try {
+            firestore.collection("users").document(currentUserId)
+                .collection("categories").document(category.id)
+                .set(category).await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao salvar categoria no Firestore", e)
+        }
     }
 
-    open suspend fun deleteCategory(category: Category) {
+    open suspend fun deleteCategory(category: Category) = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
         categoryDao.delete(category)
-        userId?.let {
-            firestore.collection("users").document(it).collection("categories").document(category.id).delete()
+        try {
+            firestore.collection("users").document(currentUserId)
+                .collection("categories").document(category.id)
+                .delete().await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao excluir categoria do Firestore", e)
         }
     }
 
@@ -307,9 +407,13 @@ open class CategoryRepository @Inject constructor(
         checkAchievements()
 
         val currentUserId = userId ?: return@withContext
-        firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
-            .document(itemCronogramaId)
-            .set(habito)
+        try {
+            firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
+                .document(itemCronogramaId)
+                .set(habito).await()
+        } catch (e: Exception) {
+            Log.w(TAG, "Erro ao salvar hábito concluído no Firestore", e)
+        }
     }
 
     suspend fun checkAchievements() = withContext(dispatcher) {
@@ -345,12 +449,36 @@ open class CategoryRepository @Inject constructor(
     suspend fun unmarkHabitAsCompleted(itemCronogramaId: String) = withContext(dispatcher) {
         habitoConcluidoDao.delete(itemCronogramaId)
         val currentUserId = userId ?: return@withContext
-        firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
-            .document(itemCronogramaId).delete()
+        try {
+            firestore.collection("users").document(currentUserId).collection(COMPLETED_HABITS_COLLECTION)
+                .document(itemCronogramaId).delete().await()
+        } catch (e: Exception) {
+            Log.w(TAG, "Erro ao excluir hábito concluído no Firestore", e)
+        }
     }
 
-    suspend fun saveMeta(meta: Meta) {
+    suspend fun saveMeta(meta: Meta) = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
         metaDao.insertOrUpdate(meta)
+        // Sincroniza com o Firestore também
+        try {
+            firestore.collection("users").document(currentUserId)
+                .collection("metas").document(meta.categoryId).set(meta).await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao salvar meta no Firestore", e)
+        }
+    }
+
+    suspend fun deleteMeta(categoryId: String) = withContext(dispatcher) {
+        val currentUserId = userId ?: return@withContext
+        metaDao.deleteMetaForCategory(categoryId)
+        // Remove do Firestore também
+        try {
+            firestore.collection("users").document(currentUserId)
+                .collection("metas").document(categoryId).delete().await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao excluir meta do Firestore", e)
+        }
     }
 
     suspend fun saveEventToGoogle(

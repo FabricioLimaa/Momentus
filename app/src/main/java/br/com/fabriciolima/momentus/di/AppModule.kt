@@ -161,6 +161,9 @@ object AppModule {
                         db.execSQL("ALTER TABLE categories ADD COLUMN stickerId TEXT")
                     }
 
+                    // Garante que a tabela_metas existe defensivamente
+                    db.execSQL("CREATE TABLE IF NOT EXISTS tabela_metas (categoryId TEXT NOT NULL PRIMARY KEY, metaMinutosSemanal INTEGER NOT NULL, FOREIGN KEY(categoryId) REFERENCES categories(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+
                 } catch (e: Exception) {
                     Log.e("AppModule", "Auto-reparo falhou: ${e.message}")
                 }

@@ -1,7 +1,6 @@
 package br.com.fabriciolima.momentus.ui.screens.template
 
 import android.content.Intent
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -48,7 +47,6 @@ import br.com.fabriciolima.momentus.ui.components.TimelineEventItem
 import br.com.fabriciolima.momentus.ui.util.AdaptiveOrientationWrapper
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import br.com.fabriciolima.momentus.ui.screens.market.XPBadge
-import br.com.fabriciolima.momentus.ui.theme.EmeraldNeon
 import androidx.compose.ui.unit.Dp
 import br.com.fabriciolima.momentus.ui.components.PremiumSnackbar
 
@@ -168,6 +166,7 @@ fun TemplatesScreen(
                     onClick = viewModel::onShowCreateDialog,
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.padding(bottom = bottomBarPadding)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Novo Template")
@@ -251,11 +250,8 @@ fun TemplateCardPremium(
     onApplyClick: () -> Unit,
     onShareClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+    GlassCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(

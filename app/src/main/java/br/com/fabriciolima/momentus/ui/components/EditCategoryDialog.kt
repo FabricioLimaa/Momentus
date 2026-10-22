@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import br.com.fabriciolima.momentus.data.model.Category
+import br.com.fabriciolima.momentus.data.model.CategoryWithMeta
 import br.com.fabriciolima.momentus.data.model.MarketItem
 import br.com.fabriciolima.momentus.ui.theme.googleCalendarColors
 import br.com.fabriciolima.momentus.ui.util.getIconForMarketItem
@@ -39,13 +40,21 @@ fun Color.toHexString(): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditCategoryDialog(
-    category: Category?,
+    categoryWithMeta: CategoryWithMeta? = null,
     ownedStickers: List<MarketItem> = emptyList(),
     onDismiss: () -> Unit,
-    onConfirm: (id: String?, name: String, color: String, stickerId: String?) -> Unit
+    onConfirm: (id: String?, name: String, color: String, stickerId: String?, metaSemanalMinutos: Int?) -> Unit
 ) {
+    val category = categoryWithMeta?.category
+    val initialMeta = categoryWithMeta?.meta?.metaMinutosSemanal
+
     var name by remember { mutableStateOf(category?.nome ?: "") }
     var selectedStickerId by remember { mutableStateOf(category?.stickerId) }
+    
+    // Controle da Meta
+    var isMetaEnabled by remember { mutableStateOf(initialMeta != null) }
+    var metaHoras by remember { mutableStateOf(if (initialMeta != null) (initialMeta / 60).toString() else "0") }
+    var metaMinutos by remember { mutableStateOf(if (initialMeta != null) (initialMeta % 60).toString() else "0") }
 
     val initialColor = category?.cor?.let { colorString ->
         googleCalendarColors.entries.find { it.value.toHexString() == colorString }?.value
@@ -62,7 +71,7 @@ fun EditCategoryDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
-                .imePadding() // Garante que suba quando o teclado abrir
+                .imePadding()
         ) {
             Column(
                 modifier = Modifier
@@ -84,12 +93,70 @@ fun EditCategoryDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // SEÇÃO DE META SEMANAL (COM SWITCH)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Meta Semanal", 
+                            style = MaterialTheme.typography.titleSmall, 
+                            fontWeight = FontWeight.Bold, 
+                            color = if (isMetaEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Acompanhe seu progresso de tempo",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isMetaEnabled,
+                        onCheckedChange = { isMetaEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                }
+
+                if (isMetaEnabled) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = metaHoras,
+                            onValueChange = { if (it.all { char -> char.isDigit() }) metaHoras = it },
+                            label = { Text("Horas") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            suffix = { Text("h") },
+                            placeholder = { Text("0") }
+                        )
+                        OutlinedTextField(
+                            value = metaMinutos,
+                            onValueChange = { if (it.all { char -> char.isDigit() }) metaMinutos = it },
+                            label = { Text("Minutos") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            suffix = { Text("m") },
+                            placeholder = { Text("0") }
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text("Cor da Categoria", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // Box com altura fixa para a grade de cores
                 Box(modifier = Modifier.height(110.dp)) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(6),
@@ -162,21 +229,6 @@ fun EditCategoryDialog(
                             }
                         }
                     }
-                } else {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "💡 Compre stickers na loja para personalizar suas categorias!",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(12.dp),
-                            textAlign = TextAlign.Center
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -191,7 +243,19 @@ fun EditCategoryDialog(
                     }
                     Spacer(Modifier.width(12.dp))
                     Button(
-                        onClick = { onConfirm(category?.id, name, selectedColor.toHexString(), selectedStickerId) },
+                        onClick = { 
+                            val totalMinutos = if (isMetaEnabled) {
+                                (metaHoras.toIntOrNull() ?: 0) * 60 + (metaMinutos.toIntOrNull() ?: 0)
+                            } else null
+                            
+                            onConfirm(
+                                category?.id, 
+                                name, 
+                                selectedColor.toHexString(), 
+                                selectedStickerId,
+                                if (totalMinutos != null && totalMinutos > 0) totalMinutos else null
+                            ) 
+                        },
                         enabled = name.isNotBlank(),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)

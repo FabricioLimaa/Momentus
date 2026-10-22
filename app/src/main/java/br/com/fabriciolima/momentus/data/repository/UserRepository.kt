@@ -74,7 +74,12 @@ class UserRepository @Inject constructor(
                         return@addSnapshotListener
                     }
                     if (snapshot != null && snapshot.exists()) {
-                        trySend(snapshot.toObject(UserData::class.java))
+                        try {
+                            trySend(snapshot.toObject(UserData::class.java))
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Erro ao deserializar UserData: ${e.message}")
+                            trySend(null)
+                        }
                     } else {
                         trySend(null)
                     }

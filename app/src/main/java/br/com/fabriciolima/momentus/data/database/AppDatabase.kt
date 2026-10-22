@@ -74,6 +74,7 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_14_15 = object : Migration(14, 15) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 checkAndAddStickerIdColumn(db)
+                db.execSQL("CREATE TABLE IF NOT EXISTS tabela_metas (categoryId TEXT NOT NULL PRIMARY KEY, metaMinutosSemanal INTEGER NOT NULL, FOREIGN KEY(categoryId) REFERENCES categories(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
             }
         }
 

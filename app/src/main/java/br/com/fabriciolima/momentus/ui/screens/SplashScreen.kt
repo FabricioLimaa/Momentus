@@ -79,16 +79,6 @@ fun SplashScreen(syncMessage: String) {
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Glow Verde ao Fundo
-        Box(
-            modifier = Modifier
-                .size(200.dp)
-                .scale(glowScale)
-                .alpha(glowAlpha * startAnimation.value)
-                .blur(40.dp)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
-        )
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -96,13 +86,32 @@ fun SplashScreen(syncMessage: String) {
                 .offset(y = offsetY.value.dp)
                 .alpha(startAnimation.value)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_logo_round),
-                contentDescription = "Logo Momentus",
-                modifier = Modifier
-                    .size(140.dp)
-                    .scale(startAnimation.value.coerceAtLeast(0.8f))
-            )
+            Box(contentAlignment = Alignment.Center) {
+                // Glow Verde Circular (Radial Gradient para brilho circular perfeito)
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .scale(glowScale)
+                        .alpha(glowAlpha)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                )
+
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_logo_round),
+                    contentDescription = "Logo Momentus",
+                    modifier = Modifier
+                        .size(140.dp)
+                        .scale(startAnimation.value.coerceAtLeast(0.8f))
+                )
+            }
             
             Spacer(modifier = Modifier.height(32.dp))
             

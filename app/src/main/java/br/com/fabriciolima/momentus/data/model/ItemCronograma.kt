@@ -6,6 +6,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.firebase.firestore.Exclude
+import com.google.firebase.firestore.IgnoreExtraProperties
 import com.google.firebase.firestore.ServerTimestamp
 import kotlinx.serialization.Serializable
 import br.com.fabriciolima.momentus.util.DateSerializer
@@ -15,6 +16,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Date
 
 @Keep
+@IgnoreExtraProperties
 @Serializable
 @Entity(
     tableName = "tabela_itens_cronograma",
@@ -65,9 +67,37 @@ data class ItemCronograma(
     // Propriedades para serialização do LocalTime no Firestore
     var horarioInicioString: String
         get() = horarioInicio.format(DateTimeFormatter.ISO_LOCAL_TIME)
-        set(value) { horarioInicio = LocalTime.parse(value, DateTimeFormatter.ISO_LOCAL_TIME) }
+        set(value) {
+            horarioInicio = parseSafeTime(value)
+        }
 
     var horarioTerminoString: String
         get() = horarioTermino.format(DateTimeFormatter.ISO_LOCAL_TIME)
-        set(value) { horarioTermino = LocalTime.parse(value, DateTimeFormatter.ISO_LOCAL_TIME) }
+        set(value) {
+            horarioTermino = parseSafeTime(value)
+        }
+
+    companion object {
+        private fun parseSafeTime(value: String?): LocalTime {
+            if (value.isNullOrBlank()) return LocalTime.of(0, 0)
+            val trimmed = value.trim()
+            return try {
+                LocalTime.parse(trimmed, DateTimeFormatter.ISO_LOCAL_TIME)
+            } catch (e: Exception) {
+                try {
+                    val parts = trimmed.split(":")
+                    if (parts.size >= 2) {
+                        val h = parts[0].toIntOrNull() ?: 0
+                        val m = parts[1].toIntOrNull() ?: 0
+                        val s = if (parts.size >= 3) parts[2].toIntOrNull() ?: 0 else 0
+                        LocalTime.of(h.coerceIn(0, 23), m.coerceIn(0, 59), s.coerceIn(0, 59))
+                    } else {
+                        LocalTime.of(0, 0)
+                    }
+                } catch (e2: Exception) {
+                    LocalTime.of(0, 0)
+                }
+            }
+        }
+    }
 }
